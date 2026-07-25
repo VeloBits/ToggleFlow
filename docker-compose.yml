@@ -1,0 +1,40 @@
+name: toggleflow
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: toggleflow
+      POSTGRES_PASSWORD: toggleflow
+      POSTGRES_DB: toggleflow
+    ports:
+      # 5434 on the host — 5432 is the usual system default and 5433 is taken by
+      # the fixmytext stack's velobits-dev-db (see the VeloBits dev port map).
+      - '5434:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U toggleflow']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+# No Keycloak here: ToggleFlow uses the shared keycloak-dev owned by the
+# velobits-infra stack (org-level infra, start it first: `docker compose up -d`
+# in ../velobits-infra).
+#   - from the host (API dev server, browser):  http://localhost:8080
+#   - in-network (containerized services):      http://keycloak-dev:8080
+# When a ToggleFlow service is containerized and needs Keycloak, join the
+# shared network the same way the fixmytext stacks do:
+#
+#   services:
+#     <service>:
+#       networks: [default, velobits]
+#   networks:
+#     velobits:
+#       name: velobits-net
+#       external: true
+
+volumes:
+  postgres-data:

@@ -1,0 +1,16 @@
+# deps / build
+node_modules/
+dist/
+.turbo/
+.wrangler/
+coverage/
+*.tsbuildinfo
+
+# env — keep .env.example tracked
+.env
+.env.*
+!.env.example
+
+# misc
+*.log
+.DS_Store

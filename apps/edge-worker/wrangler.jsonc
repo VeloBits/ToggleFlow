@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "toggleflow-edge",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-01",
+  // KV namespace holding published ruleset snapshots.
+  // Create with:  wrangler kv namespace create RULESETS
+  // then paste the generated id here before the first deploy.
+  "kv_namespaces": [{ "binding": "RULESETS", "id": "TODO_CREATE_KV_NAMESPACE" }],
+  "observability": { "enabled": true },
+}
