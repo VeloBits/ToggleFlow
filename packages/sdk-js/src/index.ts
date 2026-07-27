@@ -1,15 +1,52 @@
 /**
  * @toggleflow/sdk — the JS/TS client SDK.
  *
- * Two clients will land here:
- *  - server client (secret key): downloads the full ruleset at boot, caches it
- *    in memory, and evaluates locally via @toggleflow/engine — authoritative,
- *    survives platform outages.
- *  - browser client (client key): fetches already-evaluated flags from the
- *    edge endpoint — cosmetic; targeting rules never ship to the browser.
+ *  - Server client (secret key): boot-fetches the full ruleset, caches it in
+ *    memory, evaluates locally via @toggleflow/engine (~0ms per check),
+ *    ETag-polls in the background, and serves stale on any outage.
+ *  - Browser client (client key): fetches already-evaluated flags from the
+ *    edge — targeting rules never ship to the browser.
+ *  - Route→flag middleware for Express/Fastify: zero per-tool code.
+ *  - React adapter lives behind the `@toggleflow/sdk/react` subpath.
  *
- * Package wiring only for now — no feature code.
+ * Updates arrive through a transport-agnostic subscribe interface — SSE will
+ * replace polling later without breaking changes (brief §8).
  */
-export { SCHEMA_VERSION as ENGINE_SCHEMA_VERSION } from '@toggleflow/engine';
+export {
+  ANONYMOUS,
+  ToggleFlowServerClient,
+  createServerClient,
+  type ServerClientOptions,
+  type ServerUpdate,
+  type UserContextInput,
+} from './server';
 
-export const PACKAGE_NAME = '@toggleflow/sdk';
+export {
+  ToggleFlowBrowserClient,
+  createBrowserClient,
+  type BrowserClientOptions,
+  type EvaluatedFlag,
+  type FlagsSnapshot,
+} from './browser';
+
+export {
+  expressToolGuard,
+  fastifyToolGuard,
+  matchRoute,
+  resolveDisabledResponse,
+  type DisabledResponse,
+  type GuardRequest,
+  type RouteFlagRule,
+  type ToolGuardOptions,
+} from './middleware';
+
+export type { Unsubscribe } from './transport';
+
+// The wire/evaluation types customers see in results.
+export type {
+  JsonObject,
+  JsonValue,
+  RulesetSnapshot,
+  ToolEvaluation,
+  UserContext,
+} from '@toggleflow/engine';

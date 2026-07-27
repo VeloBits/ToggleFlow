@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // Universal package: DOM lib for fetch/timer types, no Node ambient
+    // types — Node-only APIs must not creep in.
+    "lib": ["ES2023", "DOM"],
+    "jsx": "react-jsx",
     "types": []
   },
-  "include": ["src", "test", "tsup.config.ts"]
+  "include": ["src", "test", "demo", "tsup.config.ts"]
 }

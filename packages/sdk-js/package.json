@@ -13,6 +13,19 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js",
+      "require": "./dist/react.cjs"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
     }
   },
   "files": [
@@ -29,7 +42,13 @@
     "@toggleflow/engine": "workspace:*"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.17",
+    "happy-dom": "^20.11.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "tsup": "^8.5.1",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   }
