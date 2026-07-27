@@ -19,6 +19,7 @@ import { registerAuditRoutes } from './routes/audit';
 import { registerConfigRoutes } from './routes/configs';
 import { registerFlagRoutes } from './routes/flags';
 import { registerMeRoutes } from './routes/me';
+import { registerMemberRoutes } from './routes/members';
 import { registerProjectRoutes } from './routes/projects';
 import { registerPublishRoutes } from './routes/publish';
 import { registerSegmentRoutes } from './routes/segments';
@@ -138,6 +139,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   registerApiKeyRoutes(app);
   registerAuditRoutes(app);
   registerPublishRoutes(app);
+  registerMemberRoutes(app);
 
   return app;
 }

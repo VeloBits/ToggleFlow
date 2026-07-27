@@ -6,8 +6,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Control-plane API during local dev.
-      '/api': 'http://localhost:4000',
+      // Control-plane API during local dev; the API serves /v1/* at the root.
+      '/api': {
+        target: 'http://localhost:4000',
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
     },
   },
 });
