@@ -118,6 +118,10 @@ importers:
         version: 4.114.0(@cloudflare/workers-types@5.20260724.1)
 
   packages/engine:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       tsup:
         specifier: ^8.5.1

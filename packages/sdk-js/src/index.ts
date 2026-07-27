@@ -10,6 +10,6 @@
  *
  * Package wiring only for now — no feature code.
  */
-export { PACKAGE_NAME as ENGINE_PACKAGE_NAME } from '@toggleflow/engine';
+export { SCHEMA_VERSION as ENGINE_SCHEMA_VERSION } from '@toggleflow/engine';
 
 export const PACKAGE_NAME = '@toggleflow/sdk';

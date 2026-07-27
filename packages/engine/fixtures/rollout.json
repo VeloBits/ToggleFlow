@@ -1,0 +1,96 @@
+{
+  "description": "% rollouts: deterministic FNV-1a bucketing of flagKey+userKey. Bucket values pinned here freeze the hash contract: tool.tone-rewrite buckets are user-2=18.60, alice=12.04 (inside 25%), user-1=47.17, bob=36.47 (outside). 0% includes nobody, 100% everyone.",
+  "snapshot": {
+    "schemaVersion": 1,
+    "projectId": "proj-demo",
+    "environmentId": "env-prod",
+    "environmentKey": "prod",
+    "version": 3,
+    "publishedAt": "2026-07-27T12:00:00.000Z",
+    "segments": {},
+    "tools": {
+      "tool.tone-rewrite": {
+        "enabled": true,
+        "rolloutPercent": 25,
+        "targetingRules": [],
+        "config": null
+      },
+      "tool.zero": { "enabled": true, "rolloutPercent": 0, "targetingRules": [], "config": null },
+      "tool.full": { "enabled": true, "rolloutPercent": 100, "targetingRules": [], "config": null }
+    }
+  },
+  "cases": [
+    {
+      "name": "user-2 (bucket 18.60) is inside the 25% rollout",
+      "toolKey": "tool.tone-rewrite",
+      "context": { "key": "user-2", "attributes": {} },
+      "expected": {
+        "key": "tool.tone-rewrite",
+        "enabled": true,
+        "reason": "rollout",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "alice (bucket 12.04) is inside the 25% rollout",
+      "toolKey": "tool.tone-rewrite",
+      "context": { "key": "alice", "attributes": {} },
+      "expected": {
+        "key": "tool.tone-rewrite",
+        "enabled": true,
+        "reason": "rollout",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "user-1 (bucket 47.17) is outside the 25% rollout",
+      "toolKey": "tool.tone-rewrite",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "tool.tone-rewrite",
+        "enabled": false,
+        "reason": "rollout",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "bob (bucket 36.47) is outside the 25% rollout",
+      "toolKey": "tool.tone-rewrite",
+      "context": { "key": "bob", "attributes": {} },
+      "expected": {
+        "key": "tool.tone-rewrite",
+        "enabled": false,
+        "reason": "rollout",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "0% rollout includes nobody",
+      "toolKey": "tool.zero",
+      "context": { "key": "user-2", "attributes": {} },
+      "expected": {
+        "key": "tool.zero",
+        "enabled": false,
+        "reason": "rollout",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "100% rollout includes everyone",
+      "toolKey": "tool.full",
+      "context": { "key": "user-3", "attributes": {} },
+      "expected": {
+        "key": "tool.full",
+        "enabled": true,
+        "reason": "rollout",
+        "config": null,
+        "fallback": null
+      }
+    }
+  ]
+}

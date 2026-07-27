@@ -1,0 +1,69 @@
+{
+  "description": "Config + fallback resolution: fallback rides inside the config value (brief §6D), may be any JSON value, and is null when absent. Sparse tool entries exercise schema defaults. Unknown tool keys evaluate disabled with reason not_found.",
+  "snapshot": {
+    "schemaVersion": 1,
+    "projectId": "proj-demo",
+    "environmentId": "env-dev",
+    "environmentKey": "dev",
+    "version": 1,
+    "publishedAt": "2026-07-27T12:00:00.000Z",
+    "tools": {
+      "tool.sparse": { "enabled": true },
+      "tool.no-fallback": { "enabled": true, "config": { "limit": 10 } },
+      "tool.disabled-with-fallback": {
+        "enabled": false,
+        "config": { "limit": 5, "fallback": "hidden" }
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "sparse entry gets schema defaults: no rollout, no rules, null config",
+      "toolKey": "tool.sparse",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "tool.sparse",
+        "enabled": true,
+        "reason": "default",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "config without a fallback field resolves fallback to null",
+      "toolKey": "tool.no-fallback",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "tool.no-fallback",
+        "enabled": true,
+        "reason": "default",
+        "config": { "limit": 10 },
+        "fallback": null
+      }
+    },
+    {
+      "name": "fallback may be any JSON value and is served with the kill switch",
+      "toolKey": "tool.disabled-with-fallback",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "tool.disabled-with-fallback",
+        "enabled": false,
+        "reason": "kill_switch",
+        "config": { "limit": 5, "fallback": "hidden" },
+        "fallback": "hidden"
+      }
+    },
+    {
+      "name": "unknown tool key evaluates disabled with reason not_found",
+      "toolKey": "tool.does-not-exist",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "tool.does-not-exist",
+        "enabled": false,
+        "reason": "not_found",
+        "config": null,
+        "fallback": null
+      }
+    }
+  ]
+}
