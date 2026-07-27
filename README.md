@@ -16,6 +16,8 @@ pnpm monorepo orchestrated by Turborepo. TypeScript everywhere — the evaluatio
 | `packages/engine`  | `@toggleflow/engine`      | Shared flag/config evaluation engine (runtime-agnostic)          |
 | `packages/sdk-js`  | `@toggleflow/sdk`         | JS/TS client SDK for customer apps                               |
 
+The delivery plane's read endpoints are ToggleFlow's **public REST API** (what the SDKs consume — usable with plain HTTP from any language): see [apps/edge-worker/API.md](apps/edge-worker/API.md).
+
 ## Prerequisites
 
 - Node ≥ 22 (see `.nvmrc`), pnpm 11 (`corepack enable`)

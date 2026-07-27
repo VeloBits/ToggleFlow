@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit && tsc -p test --noEmit",
+    "test": "pnpm run build && vitest run",
     "clean": "rm -rf dist .turbo .wrangler"
   },
   "dependencies": {
@@ -15,7 +17,11 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260724.1",
+    "@types/node": "^24.13.3",
+    "miniflare": "^4.20260722.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
+    "vitest": "^4.1.10",
     "wrangler": "^4.114.0"
   }
 }

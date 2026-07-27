@@ -1,0 +1,9 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    // ESNext lib: miniflare's KV types (workers-types) rely on Iterator helpers.
+    "lib": ["ESNext"],
+    "types": ["node"]
+  },
+  "include": ["."]
+}
