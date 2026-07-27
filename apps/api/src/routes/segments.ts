@@ -7,7 +7,6 @@ import { resolveProject, resolveSegment } from '../auth/rbac';
 import { environments, segments } from '../db/schema';
 import { writeAudit } from '../lib/audit';
 import { notFound } from '../lib/errors';
-import { publishEnvironment } from '../lib/publish';
 
 const projectParams = z.object({ projectId: z.uuid() });
 const segmentParams = z.object({ segmentId: z.uuid() });
@@ -39,7 +38,7 @@ async function publishProjectEnvironments(app: FastifyInstance, projectId: strin
     .select({ id: environments.id })
     .from(environments)
     .where(eq(environments.projectId, projectId));
-  await Promise.all(rows.map((r) => publishEnvironment(r.id)));
+  for (const row of rows) app.publisher.scheduleRuleset(row.id);
 }
 
 export function registerSegmentRoutes(app: FastifyInstance): void {

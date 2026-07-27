@@ -7,7 +7,6 @@ import { apiKeys, environments, projects } from '../db/schema';
 import { generateApiKey } from '../lib/api-keys';
 import { writeAudit } from '../lib/audit';
 import { notFound } from '../lib/errors';
-import { publishEnvironment } from '../lib/publish';
 
 const environmentParams = z.object({ environmentId: z.uuid() });
 const keyParams = z.object({ keyId: z.uuid() });
@@ -70,7 +69,7 @@ export function registerApiKeyRoutes(app: FastifyInstance): void {
       });
       return row;
     });
-    await publishEnvironment(environmentId);
+    app.publisher.scheduleKeys(environmentId);
     return reply.status(201).send({ ...toPublic(key), token: generated.token });
   });
 
@@ -105,7 +104,7 @@ export function registerApiKeyRoutes(app: FastifyInstance): void {
       });
       return after;
     });
-    await publishEnvironment(row.key.environmentId);
+    app.publisher.scheduleKeys(row.key.environmentId);
     return toPublic(revoked);
   });
 }

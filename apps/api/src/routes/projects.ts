@@ -6,7 +6,6 @@ import { requireOrgRole, resolveEnvironment, resolveProject } from '../auth/rbac
 import { environments, flagStates, projects, tools } from '../db/schema';
 import { writeAudit } from '../lib/audit';
 import { notFound } from '../lib/errors';
-import { publishEnvironment } from '../lib/publish';
 
 const DEFAULT_ENVIRONMENTS = [
   { key: 'dev', name: 'Development' },
@@ -166,7 +165,7 @@ export function registerProjectRoutes(app: FastifyInstance): void {
       });
       return row;
     });
-    await publishEnvironment(environment.id);
+    app.publisher.scheduleRuleset(environment.id);
     return reply.status(201).send(environment);
   });
 
@@ -214,6 +213,7 @@ export function registerProjectRoutes(app: FastifyInstance): void {
         before: { key: scope.environmentKey },
       });
     });
+    await app.publisher.removeEnvironment(environmentId);
     return reply.status(204).send();
   });
 }

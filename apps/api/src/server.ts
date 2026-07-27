@@ -7,18 +7,28 @@ import { createKeycloakVerifier, type TokenVerifier } from './auth/verifier';
 import { createDb, type Db } from './db';
 import { env } from './env';
 import { HttpError, unauthorized } from './lib/errors';
+import {
+  createCloudflareKvClient,
+  createMemoryKvClient,
+  createMiniflareKvClient,
+  type KvClient,
+} from './lib/kv';
+import { Publisher } from './lib/publish';
 import { registerApiKeyRoutes } from './routes/api-keys';
 import { registerAuditRoutes } from './routes/audit';
 import { registerConfigRoutes } from './routes/configs';
 import { registerFlagRoutes } from './routes/flags';
 import { registerMeRoutes } from './routes/me';
 import { registerProjectRoutes } from './routes/projects';
+import { registerPublishRoutes } from './routes/publish';
 import { registerSegmentRoutes } from './routes/segments';
 import { registerToolRoutes } from './routes/tools';
 
 declare module 'fastify' {
   interface FastifyInstance {
     db: Db;
+    kv: KvClient;
+    publisher: Publisher;
   }
   interface FastifyRequest {
     auth: AuthContext;
@@ -26,9 +36,35 @@ declare module 'fastify' {
 }
 
 export interface BuildServerOptions {
-  /** Overrides for tests: point at another database or inject a local token verifier. */
+  /** Overrides for tests: database, token verifier, KV client, publish debounce. */
   databaseUrl?: string;
   verifier?: TokenVerifier;
+  kv?: KvClient;
+  publishDebounceMs?: number;
+}
+
+function createKvClientFromEnv(): KvClient {
+  switch (env.kvMode) {
+    case 'memory':
+      return createMemoryKvClient();
+    case 'miniflare':
+      return createMiniflareKvClient({
+        namespaceId: env.kvNamespaceId,
+        persistPath: env.kvPersistPath,
+      });
+    case 'cloudflare': {
+      if (!env.cloudflareAccountId || !env.cloudflareApiToken) {
+        throw new Error(
+          'KV_MODE=cloudflare requires CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN',
+        );
+      }
+      return createCloudflareKvClient({
+        accountId: env.cloudflareAccountId,
+        namespaceId: env.kvNamespaceId,
+        apiToken: env.cloudflareApiToken,
+      });
+    }
+  }
 }
 
 export async function buildServer(opts: BuildServerOptions = {}): Promise<FastifyInstance> {
@@ -39,7 +75,17 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   await app.register(cors, { origin: true });
 
   app.decorate('db', createDb(opts.databaseUrl ?? env.databaseUrl));
+  app.decorate('kv', opts.kv ?? createKvClientFromEnv());
+  app.decorate(
+    'publisher',
+    new Publisher(app.db, app.kv, {
+      debounceMs: opts.publishDebounceMs ?? env.publishDebounceMs,
+      logger: app.log,
+    }),
+  );
   app.addHook('onClose', async () => {
+    await app.publisher.close();
+    await app.kv.close?.();
     await app.db.$client.end();
   });
 
@@ -91,6 +137,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   registerConfigRoutes(app);
   registerApiKeyRoutes(app);
   registerAuditRoutes(app);
+  registerPublishRoutes(app);
 
   return app;
 }

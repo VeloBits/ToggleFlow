@@ -7,7 +7,6 @@ import { resolveEnvironment, resolveTool } from '../auth/rbac';
 import { flagStates, tools } from '../db/schema';
 import { writeAudit } from '../lib/audit';
 import { notFound } from '../lib/errors';
-import { publishEnvironment } from '../lib/publish';
 
 const environmentParams = z.object({ environmentId: z.uuid() });
 const flagParams = z.object({ environmentId: z.uuid(), toolId: z.uuid() });
@@ -81,7 +80,7 @@ export function registerFlagRoutes(app: FastifyInstance): void {
       });
       return after;
     });
-    await publishEnvironment(environmentId);
+    app.publisher.scheduleRuleset(environmentId);
     return state;
   });
 }

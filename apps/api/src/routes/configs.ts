@@ -7,7 +7,6 @@ import { resolveEnvironment, resolveTool } from '../auth/rbac';
 import { configVersions, toolConfigs } from '../db/schema';
 import { writeAudit } from '../lib/audit';
 import { badRequest, notFound } from '../lib/errors';
-import { publishEnvironment } from '../lib/publish';
 
 const configParams = z.object({ environmentId: z.uuid(), toolId: z.uuid() });
 const configPutBody = z.object({ value: jsonObjectSchema });
@@ -79,7 +78,7 @@ export function registerConfigRoutes(app: FastifyInstance): void {
       });
       return after;
     });
-    await publishEnvironment(environmentId);
+    app.publisher.scheduleRuleset(environmentId);
     return config;
   });
 
@@ -149,7 +148,7 @@ export function registerConfigRoutes(app: FastifyInstance): void {
       });
       return after;
     });
-    await publishEnvironment(environmentId);
+    app.publisher.scheduleRuleset(environmentId);
     return config;
   });
 }

@@ -14,7 +14,6 @@ import {
 } from '../db/schema';
 import { writeAudit } from '../lib/audit';
 import { badRequest, notFound } from '../lib/errors';
-import { publishEnvironment } from '../lib/publish';
 
 const projectParams = z.object({ projectId: z.uuid() });
 const toolParams = z.object({ toolId: z.uuid() });
@@ -135,7 +134,7 @@ export function registerToolRoutes(app: FastifyInstance): void {
       });
       return row;
     });
-    await Promise.all(envIds.map(publishEnvironment));
+    for (const environmentId of envIds) app.publisher.scheduleRuleset(environmentId);
     return reply.status(201).send(tool);
   });
 
@@ -187,7 +186,7 @@ export function registerToolRoutes(app: FastifyInstance): void {
       return after;
     });
     const envIds = await projectEnvironmentIds(app.db, scope.projectId);
-    await Promise.all(envIds.map(publishEnvironment));
+    for (const environmentId of envIds) app.publisher.scheduleRuleset(environmentId);
     return tool;
   });
 
@@ -209,7 +208,7 @@ export function registerToolRoutes(app: FastifyInstance): void {
       });
     });
     const envIds = await projectEnvironmentIds(app.db, scope.projectId);
-    await Promise.all(envIds.map(publishEnvironment));
+    for (const environmentId of envIds) app.publisher.scheduleRuleset(environmentId);
     return reply.status(204).send();
   });
 
@@ -314,7 +313,7 @@ export function registerToolRoutes(app: FastifyInstance): void {
       });
       return { created, updated, archived, unchanged };
     });
-    await Promise.all(envIds.map(publishEnvironment));
+    for (const environmentId of envIds) app.publisher.scheduleRuleset(environmentId);
     return result;
   });
 }

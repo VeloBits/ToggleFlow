@@ -11,6 +11,7 @@ import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair } from 'jose';
 import { createTokenVerifier } from '../src/auth/verifier';
 import type { Db } from '../src/db';
 import { orgMemberships, users } from '../src/db/schema';
+import { createMemoryKvClient, type KvClient } from '../src/lib/kv';
 import { buildServer } from '../src/server';
 
 export const TEST_ISSUER = 'http://keycloak.test/realms/Velobits-Dev';
@@ -26,17 +27,22 @@ export interface SignOptions {
 export interface TestHarness {
   app: FastifyInstance;
   db: Db;
+  kv: KvClient;
   signToken: (sub: string, opts?: SignOptions) => Promise<string>;
   authed: (token: string) => Record<string, string>;
 }
 
-export async function setupTestApp(): Promise<TestHarness> {
+export async function setupTestApp(opts: { kv?: KvClient } = {}): Promise<TestHarness> {
   const { publicKey, privateKey } = await generateKeyPair('RS256');
   const jwk = await exportJWK(publicKey);
   const getKey = createLocalJWKSet({ keys: [{ ...jwk, kid: 'test', alg: 'RS256', use: 'sig' }] });
 
+  // Memory KV by default so suites never spawn workerd; the publish suite
+  // passes a miniflare client explicitly to exercise the real local-KV path.
+  const kv = opts.kv ?? createMemoryKvClient();
   const app = await buildServer({
     verifier: createTokenVerifier({ issuer: TEST_ISSUER, audience: TEST_AUDIENCE, getKey }),
+    kv,
   });
   await migrate(app.db, { migrationsFolder: 'drizzle' });
   await resetDb(app.db);
@@ -58,6 +64,7 @@ export async function setupTestApp(): Promise<TestHarness> {
   return {
     app,
     db: app.db,
+    kv,
     signToken,
     authed: (token) => ({ authorization: `Bearer ${token}` }),
   };
