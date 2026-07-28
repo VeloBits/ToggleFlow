@@ -14,7 +14,7 @@ import { orgMemberships, users } from '../src/db/schema';
 import { createMemoryKvClient, type KvClient } from '../src/lib/kv';
 import { buildServer } from '../src/server';
 
-export const TEST_ISSUER = 'http://keycloak.test/realms/Velobits-Dev';
+export const TEST_ISSUER = 'http://keycloak.test/realms/Velobits';
 export const TEST_AUDIENCE = 'toggleflow-api';
 
 export interface SignOptions {

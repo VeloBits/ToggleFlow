@@ -8,30 +8,114 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    services:
+      # apps/api's integration tests hit a real Postgres and TRUNCATE all 13
+      # tables between suites (apps/api/test/helpers.ts). Port 5434 matches the
+      # DATABASE_URL default in apps/api/src/env.ts and docker-compose.yml, so
+      # nothing needs a special-case URL.
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: toggleflow
+          POSTGRES_PASSWORD: toggleflow
+          POSTGRES_DB: toggleflow
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U toggleflow -d toggleflow"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: pnpm
+          cache: npm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Lint
-        run: pnpm lint
+        run: npm run lint
 
       - name: Format check
-        run: pnpm format:check
+        run: npm run format:check
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: npm run typecheck
 
       - name: Build
-        run: pnpm build
+        run: npm run build
 
       - name: Test
-        run: pnpm test
+        run: npm test
+        env:
+          # Set explicitly rather than relying on the zod default: every var in
+          # apps/api/src/env.ts has one, so a mis-wired database never throws at
+          # boot — it fails at the first query, much further from the cause.
+          DATABASE_URL: postgres://toggleflow:toggleflow@localhost:5434/toggleflow
+
+  docker-smoke:
+    name: Docker prod smoke
+    runs-on: ubuntu-latest
+    # Fail fast rather than sitting until GitHub's 6h default if something hangs.
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ../velobits-infra owns velobits-net and does not exist in CI. api-prod
+      # joins it as external, so it must exist or `up` errors out. No Keycloak is
+      # needed here: /health sits outside the /v1/ auth hook and jose's
+      # createRemoteJWKSet fetches lazily — only an authenticated request would
+      # try to reach it.
+      - name: Create the external network the compose file expects
+        run: docker network create velobits-net || true
+
+      - name: Start the prod stack
+        run: docker compose --profile prod up --build -d
+
+      - name: Wait for the router
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:3200/healthz; then
+              echo "router up after ${i} attempts"; exit 0
+            fi
+            sleep 5
+          done
+          echo "router did not become ready" >&2
+          exit 1
+
+      - name: Smoke — the stack through one origin
+        run: |
+          set -euo pipefail
+          # Dashboard: nginx serves the built SPA at the webroot.
+          curl -sf http://localhost:3200/ | grep -q '<div id="root"'
+          # SPA history fallback — react-router-dom owns /tools client-side, so a
+          # deep link must return the app shell rather than a 404.
+          curl -sf -o /dev/null http://localhost:3200/tools
+          # Control plane, through the /api prefix strip.
+          curl -sf http://localhost:3200/api/health | grep -q '"status":"ok"'
+          # Migrations actually ran (api-prod gates on service_completed_successfully).
+          docker compose --profile prod exec -T postgres \
+            psql -U toggleflow -d toggleflow -c '\dt' | grep -q ' tools '
+          # Unauthenticated /v1/* is rejected — proves the auth hook is wired.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3200/api/v1/me)" = 401
+          # The delivery plane is Cloudflare-only in prod, so /edge/* must 404
+          # rather than fall through to the SPA fallback and return HTML with a 200.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3200/edge/health)" = 404
+          # Exactly one of each security header — the router hides the static
+          # image's duplicates.
+          test "$(curl -sI http://localhost:3200/ | grep -ci '^x-frame-options:')" = 1
+
+      - name: Dump logs
+        if: always()
+        run: docker compose --profile prod logs --no-color | tail -200
+
+      - name: Tear down
+        if: always()
+        run: docker compose --profile prod down -v
