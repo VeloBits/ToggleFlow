@@ -9,7 +9,14 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   DATABASE_URL: z.string().default('postgres://toggleflow:toggleflow@localhost:5434/toggleflow'),
   KEYCLOAK_URL: z.string().default('http://localhost:8080'),
-  KEYCLOAK_REALM: z.string().default('Velobits-Dev'),
+  // Container-only override for the JWKS *network fetch*. The `iss` claim
+  // Keycloak mints is pinned by KC_HOSTNAME=localhost in the velobits-infra
+  // stack, so KEYCLOAK_URL (and therefore keycloakIssuer) must stay
+  // http://localhost:8080 to match it — but that address is unreachable from
+  // inside a container. Set this to http://keycloak-dev:8080 there, and leave it
+  // unset on bare metal.
+  KEYCLOAK_INTERNAL_URL: z.string().optional(),
+  KEYCLOAK_REALM: z.string().default('Velobits'),
   KEYCLOAK_AUDIENCE: z.string().default('toggleflow-api'),
   // Delivery-plane publish target. `miniflare` = workerd's local KV persisted
   // into the edge worker's .wrangler state so `wrangler dev` reads it.
@@ -31,6 +38,8 @@ export const env = {
   keycloakRealm: parsed.KEYCLOAK_REALM,
   keycloakAudience: parsed.KEYCLOAK_AUDIENCE,
   keycloakIssuer: `${parsed.KEYCLOAK_URL}/realms/${parsed.KEYCLOAK_REALM}`,
+  /** Same shape as keycloakIssuer, but used only to build the JWKS fetch URL. */
+  keycloakJwksIssuer: `${parsed.KEYCLOAK_INTERNAL_URL ?? parsed.KEYCLOAK_URL}/realms/${parsed.KEYCLOAK_REALM}`,
   kvMode: parsed.KV_MODE,
   kvNamespaceId: parsed.KV_NAMESPACE_ID,
   kvPersistPath: parsed.KV_PERSIST_PATH,

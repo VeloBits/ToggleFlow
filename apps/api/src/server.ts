@@ -92,7 +92,11 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
 
   const verifier =
     opts.verifier ??
-    createKeycloakVerifier({ issuer: env.keycloakIssuer, audience: env.keycloakAudience });
+    createKeycloakVerifier({
+      issuer: env.keycloakIssuer,
+      audience: env.keycloakAudience,
+      jwksIssuer: env.keycloakJwksIssuer,
+    });
 
   // Everything under /v1/ requires a valid Keycloak bearer token; the user is
   // provisioned (and a personal org bootstrapped) on first sight of a subject.
