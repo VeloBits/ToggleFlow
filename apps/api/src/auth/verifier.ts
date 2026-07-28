@@ -45,7 +45,22 @@ export function createTokenVerifier(config: VerifierConfig): TokenVerifier {
   };
 }
 
-export function createKeycloakVerifier(opts: { issuer: string; audience: string }): TokenVerifier {
-  const jwksUrl = new URL(`${opts.issuer}/protocol/openid-connect/certs`);
-  return createTokenVerifier({ ...opts, getKey: createRemoteJWKSet(jwksUrl) });
+export function createKeycloakVerifier(opts: {
+  issuer: string;
+  audience: string;
+  /**
+   * Base for the JWKS network fetch; defaults to `issuer`. These differ inside a
+   * container: Keycloak pins the `iss` claim to its configured frontend URL
+   * (http://localhost:8080/...), which a container cannot reach — so the fetch
+   * goes to http://keycloak-dev:8080/... over the shared network while `iss`
+   * validation still compares against `issuer`.
+   */
+  jwksIssuer?: string;
+}): TokenVerifier {
+  const jwksUrl = new URL(`${opts.jwksIssuer ?? opts.issuer}/protocol/openid-connect/certs`);
+  return createTokenVerifier({
+    issuer: opts.issuer,
+    audience: opts.audience,
+    getKey: createRemoteJWKSet(jwksUrl),
+  });
 }

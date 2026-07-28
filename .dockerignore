@@ -1,0 +1,51 @@
+# Exclude anything that would slow a build, break it, or leak into an image.
+
+# Host-installed dependencies — NEVER ship these. npm resolves platform-specific
+# native binaries here (@cloudflare/workerd-*, @esbuild/*, @tailwindcss/oxide-*)
+# and a win32 build cannot execute in a Linux container. Every image runs its
+# own `npm ci` instead.
+node_modules/
+**/node_modules/
+
+# Build output — rebuilt inside the image. NOTE: this is exactly why every
+# Dockerfile runs `npm run build -w @toggleflow/engine`, and why the dev profile
+# has an engine watcher service: @toggleflow/engine resolves through its
+# package.json "exports" to dist/, which never arrives with the source.
+dist/
+**/dist/
+.turbo/
+**/.turbo/
+coverage/
+**/coverage/
+*.tsbuildinfo
+
+# Local workerd/miniflare KV state. Containers get the `wrangler-state` named
+# volume; a Windows copy of a SQLite store must never seed it.
+.wrangler/
+**/.wrangler/
+
+# Stale pnpm artefacts — this repo is npm workspaces (packageManager npm@11.16.0)
+# and package-lock.json is the only lockfile the Dockerfiles copy.
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+.git/
+.github/
+.gitignore
+.gitattributes
+*.md
+
+# Env values arrive via compose `environment:` (runtime) and build args (build
+# time) — never baked into a layer.
+.env
+.env.*
+!.env.example
+
+# Not needed in any image. docker/ IS needed: the nginx confs are COPYd.
+docker-compose.yml
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
