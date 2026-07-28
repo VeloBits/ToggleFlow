@@ -1,12 +1,22 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(cleanup);
 
+// The guest home only needs the auth actions; stubbing the context keeps the
+// test off the real UserManager (network + storage).
+const auth = vi.hoisted(() => ({ login: vi.fn(), signup: vi.fn() }));
+vi.mock('../src/auth/AuthContext', () => ({
+  useAuth: () => ({ user: null, loading: false, logout: vi.fn(), ...auth }),
+}));
+
 import type { FlagRow } from '../src/api/client';
+import { returnToFromState, safeReturnTo } from '../src/auth/return-to';
 import { diffLines } from '../src/components/diff';
 import { ConfirmButton, StatusChip } from '../src/components/ui';
+import { GuestHomePage } from '../src/pages/GuestHomePage';
 import { EMPTY_FILTER, filterRows } from '../src/pages/tools-filter';
 
 describe('diffLines', () => {
@@ -99,5 +109,56 @@ describe('ConfirmButton', () => {
     );
     fireEvent.click(screen.getByText('Turn OFF'));
     expect(onConfirm).toHaveBeenCalledOnce();
+  });
+});
+
+describe('safeReturnTo', () => {
+  it('keeps in-app paths', () => {
+    expect(safeReturnTo('/tools/abc')).toBe('/tools/abc');
+    expect(safeReturnTo('/audit?actor=ns')).toBe('/audit?actor=ns');
+  });
+
+  it('rejects external, non-path, and callback targets', () => {
+    expect(safeReturnTo('//evil.example.com')).toBe('/');
+    expect(safeReturnTo('/\\evil.example.com')).toBe('/');
+    expect(safeReturnTo('https://evil.example.com')).toBe('/');
+    expect(safeReturnTo('tools/abc')).toBe('/');
+    expect(safeReturnTo(undefined)).toBe('/');
+    expect(safeReturnTo('/auth/callback')).toBe('/');
+  });
+
+  it('reads the path out of the oidc state', () => {
+    expect(returnToFromState({ returnTo: '/segments' })).toBe('/segments');
+    expect(returnToFromState({})).toBe('/');
+    expect(returnToFromState(null)).toBe('/');
+  });
+});
+
+describe('GuestHomePage', () => {
+  beforeEach(() => {
+    auth.login.mockClear();
+    auth.signup.mockClear();
+  });
+
+  const renderAt = (path: string) =>
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <GuestHomePage />
+      </MemoryRouter>,
+    );
+
+  it('is the landing page and offers sign-in without a login screen', () => {
+    renderAt('/');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('control plane');
+    fireEvent.click(screen.getAllByText('Sign in')[0]!);
+    expect(auth.login).toHaveBeenCalledWith('/');
+    fireEvent.click(screen.getAllByText('Get started free')[0]!);
+    expect(auth.signup).toHaveBeenCalledWith('/');
+  });
+
+  it('carries the requested path into sign-in so deep links survive', () => {
+    renderAt('/tools/abc?env=prod');
+    fireEvent.click(screen.getAllByText('Sign in')[0]!);
+    expect(auth.login).toHaveBeenCalledWith('/tools/abc?env=prod');
   });
 });

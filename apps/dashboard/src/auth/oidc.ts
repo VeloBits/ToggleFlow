@@ -42,4 +42,5 @@ const signupUserManager = new UserManager({
 });
 
 /** Keycloak registration page with a full code-flow round trip back to the app. */
-export const signupRedirect = (): Promise<void> => signupUserManager.signinRedirect();
+export const signupRedirect = (returnTo?: string): Promise<void> =>
+  signupUserManager.signinRedirect({ state: { returnTo } });

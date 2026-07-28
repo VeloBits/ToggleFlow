@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { userManager } from './oidc';
+import { returnToFromState } from './return-to';
 
 export function CallbackPage() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export function CallbackPage() {
     ran.current = true;
     userManager
       .signinRedirectCallback()
-      .then(() => navigate('/', { replace: true }))
+      .then((loaded) => navigate(returnToFromState(loaded.state), { replace: true }))
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }, [navigate]);
 
