@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
-import { ThemeToggle } from '../ui/theme-toggle';
+import { GuestNav } from '../components/GuestNav';
 
 /**
  * Public landing page — the default screen for anyone who isn't signed in.
@@ -125,7 +125,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="border-border/60 border-t px-6 py-16">
+    <section id={id} className="border-border/60 scroll-mt-24 border-t px-6 py-16">
       <div className="mx-auto max-w-5xl">
         <p className="text-accent mb-2 text-[12.5px] font-semibold tracking-wide uppercase">
           {eyebrow}
@@ -145,33 +145,17 @@ export function GuestHomePage() {
 
   return (
     <div className="bg-bg text-text min-h-screen">
-      <header className="border-border/60 bg-panel/85 sticky top-0 z-10 border-b backdrop-blur">
-        <div className="mx-auto flex h-[52px] max-w-6xl items-center gap-3 px-6">
-          <span className="text-accent mr-2 font-bold" aria-hidden>
-            ◆
-          </span>
-          <span className="font-bold">ToggleFlow</span>
-          <nav className="text-muted ml-6 hidden gap-5 text-[13px] md:flex" aria-label="Page">
-            <a href="#features" className="hover:text-text">
-              Features
-            </a>
-            <a href="#how" className="hover:text-text">
-              How it works
-            </a>
-            <a href="#why" className="hover:text-text">
-              Why ToggleFlow
-            </a>
-          </nav>
-          <span className="flex-1" />
-          <ThemeToggle />
-          <button type="button" className="primary" onClick={() => void login(returnTo)}>
-            Sign in
-          </button>
-        </div>
-      </header>
+      <a
+        href="#main"
+        className="border-border bg-panel text-text focus-visible:ring-accent sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-md focus:border focus:px-3 focus:py-2 focus-visible:ring-2 focus-visible:outline-none"
+      >
+        Skip to content
+      </a>
+      <GuestNav returnTo={returnTo} />
 
-      <main>
-        <section className="px-6 pt-20 pb-16">
+      {/* The nav is fixed, so the hero owns the clearance under it. */}
+      <main id="main" className="scroll-mt-24">
+        <section className="px-6 pt-28 pb-16 sm:pt-32">
           <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
             <div>
               <p className="border-border bg-bg2 text-muted mb-5 inline-block rounded-full border px-3 py-1 text-[12px]">

@@ -138,6 +138,10 @@ describe('GuestHomePage', () => {
   beforeEach(() => {
     auth.login.mockClear();
     auth.signup.mockClear();
+    // happy-dom keeps one document per file, so scroll offset and the fragment
+    // would leak between cases.
+    window.scroll({ top: 0 });
+    window.history.replaceState(null, '', '/');
   });
 
   const renderAt = (path: string) =>
@@ -160,5 +164,71 @@ describe('GuestHomePage', () => {
     renderAt('/tools/abc?env=prod');
     fireEvent.click(screen.getAllByText('Sign in')[0]!);
     expect(auth.login).toHaveBeenCalledWith('/tools/abc?env=prod');
+  });
+
+  it('weights the nav island past 40px of scroll', () => {
+    renderAt('/');
+    const island = document.getElementById('site-nav')!;
+    expect(island.getAttribute('data-scrolled')).toBe('false');
+    window.scroll({ top: 120 });
+    fireEvent.scroll(window);
+    expect(island.getAttribute('data-scrolled')).toBe('true');
+    window.scroll({ top: 10 });
+    fireEvent.scroll(window);
+    expect(island.getAttribute('data-scrolled')).toBe('false');
+  });
+
+  it('opens the mobile menu, then closes it on Escape and restores focus', () => {
+    renderAt('/');
+    const toggle = screen.getByRole('button', { name: 'Open navigation menu' });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.getAttribute('aria-controls')).toBe('mobile-menu');
+    expect(document.getElementById('mobile-menu')).toBeNull();
+
+    fireEvent.click(toggle);
+    const menu = document.getElementById('mobile-menu')!;
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(toggle.getAttribute('aria-label')).toBe('Close navigation menu');
+    expect([...menu.querySelectorAll('a')].map((link) => link.getAttribute('href'))).toEqual([
+      '#features',
+      '#how',
+      '#why',
+    ]);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(document.getElementById('mobile-menu')).toBeNull();
+    expect(document.activeElement).toBe(toggle);
+  });
+
+  it('closes the mobile menu on an outside mousedown but not an inside one', () => {
+    renderAt('/');
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+    fireEvent.mouseDown(document.getElementById('mobile-menu')!);
+    expect(document.getElementById('mobile-menu')).toBeTruthy();
+    fireEvent.mouseDown(document.body);
+    expect(document.getElementById('mobile-menu')).toBeNull();
+  });
+
+  it('carries the requested path from inside the mobile menu', () => {
+    renderAt('/tools/abc?env=prod');
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+    const menu = document.getElementById('mobile-menu')!;
+    const getStarted = [...menu.querySelectorAll('button')].find(
+      (button) => button.textContent === 'Get started free',
+    )!;
+    fireEvent.click(getStarted);
+    expect(auth.signup).toHaveBeenCalledWith('/tools/abc?env=prod');
+    expect(document.getElementById('mobile-menu')).toBeNull();
+  });
+
+  it('marks the section the visitor jumped to with aria-current', () => {
+    renderAt('/');
+    const island = document.getElementById('site-nav')!;
+    const features = island.querySelector('a[href="#features"]')!;
+    const how = island.querySelector('a[href="#how"]')!;
+    expect(features.getAttribute('aria-current')).toBeNull();
+    fireEvent.click(features);
+    expect(features.getAttribute('aria-current')).toBe('location');
+    expect(how.getAttribute('aria-current')).toBeNull();
   });
 });
