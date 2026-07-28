@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsup';
 
-export default defineConfig({
+export default defineConfig((options) => ({
   // Separate entries so React stays an optional peer dep behind the
   // `@toggleflow/sdk/react` subpath — importing the main entry never
   // touches React.
@@ -8,5 +8,7 @@ export default defineConfig({
   format: ['esm', 'cjs'],
   dts: true,
   sourcemap: true,
-  clean: true,
-});
+  // Keep dist/ intact in watch mode so dependents' DTS builds never race a
+  // startup wipe (same rationale as packages/engine).
+  clean: !options.watch,
+}));
