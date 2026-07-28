@@ -3,10 +3,28 @@ import { NavLink } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
 import { useWorkspace } from '../state/WorkspaceContext';
+import { isDark, toggleTheme } from '../ui/theme';
+import { useToast } from '../ui/toast';
 import { ErrorNote, Modal } from './ui';
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(isDark);
+  return (
+    <button
+      type="button"
+      className="ghost"
+      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+      title={dark ? 'Light theme' : 'Dark theme'}
+      onClick={() => setDark(toggleTheme())}
+    >
+      {dark ? '☀' : '☾'}
+    </button>
+  );
+}
 
 function Switchers() {
   const ws = useWorkspace();
+  const toast = useToast();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState<unknown>(null);
@@ -75,6 +93,7 @@ function Switchers() {
                     setCreating(false);
                     setName('');
                     setError(null);
+                    toast('Project created with dev/staging/prod environments');
                   })
                   .catch(setError);
               }}
@@ -105,6 +124,7 @@ export function Layout({ children }: { children: ReactNode }) {
           {ws.me?.user.displayName ?? ws.me?.user.email ?? user?.profile.email}
           {ws.role ? ` · ${ws.role}` : ''}
         </span>
+        <ThemeToggle />
         <button type="button" onClick={() => void logout()}>
           Sign out
         </button>

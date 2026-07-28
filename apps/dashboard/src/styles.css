@@ -1,22 +1,44 @@
+/* VeloBits palette (VSCode Light) — mirrors fixmytext shell tokens.css */
 :root {
-  --bg: #f6f7f9;
+  --bg: #f8f8f8;
+  --bg2: #eaeaeb;
   --panel: #ffffff;
-  --border: #dde1e6;
-  --text: #1b1f24;
-  --muted: #667085;
-  --accent: #4353ff;
-  --accent-soft: #eef0ff;
-  --on: #12805c;
-  --on-soft: #e6f6ef;
-  --off: #b42318;
-  --off-soft: #fdeceb;
-  --rollout: #b25e09;
-  --rollout-soft: #fdf1e2;
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  --border: #c8c8c8;
+  --border-strong: #a0a0a0;
+  --text: #1a1a1a;
+  --muted: #6b6b6b;
+  --accent: #007acc;
+  --accent-hover: #0062a3;
+  --accent-soft: rgba(0, 122, 204, 0.1);
+  --highlight: rgba(0, 0, 0, 0.04);
+  --on: #388a34;
+  --on-soft: rgba(56, 138, 52, 0.12);
+  --off: #cd3131;
+  --off-soft: rgba(205, 49, 49, 0.1);
+  --rollout: #b5920a;
+  --rollout-soft: rgba(181, 146, 10, 0.14);
+  font-family: var(--font-display);
+}
+
+/* VSCode Dark+ — mirrors fixmytext body.dark */
+body.dark {
+  --bg: #1e1e1e;
+  --bg2: #2d2d2d;
+  --panel: #252526;
+  --border: #3c3c3c;
+  --border-strong: #4d4d4d;
+  --text: #d4d4d4;
+  --muted: #9a9a9a;
+  --accent: #007acc;
+  --accent-hover: #1177bb;
+  --accent-soft: rgba(0, 122, 204, 0.22);
+  --highlight: rgba(255, 255, 255, 0.05);
+  --on: #6a9955;
+  --on-soft: rgba(106, 153, 85, 0.16);
+  --off: #f44747;
+  --off-soft: rgba(244, 71, 71, 0.14);
+  --rollout: #dcdcaa;
+  --rollout-soft: rgba(220, 220, 170, 0.14);
 }
 
 * {
@@ -53,7 +75,7 @@ button.primary {
 }
 button.danger {
   color: var(--off);
-  border-color: #f0b6b0;
+  border-color: color-mix(in srgb, var(--off) 35%, transparent);
 }
 button.danger.armed,
 button.armed {
@@ -81,7 +103,7 @@ textarea {
   background: var(--panel);
 }
 textarea.code {
-  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12.5px;
   min-height: 160px;
   width: 100%;
@@ -168,7 +190,7 @@ textarea.code {
   color: var(--muted);
 }
 .mono {
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 12.5px;
 }
 
@@ -187,7 +209,7 @@ table.data td {
   border-bottom: 1px solid var(--border);
 }
 table.data th {
-  background: #fafbfc;
+  background: var(--bg2);
   font-weight: 600;
   font-size: 12.5px;
   color: var(--muted);
@@ -198,7 +220,7 @@ table.data tr:last-child td {
   border-bottom: none;
 }
 table.data tbody tr:hover {
-  background: #fafbff;
+  background: var(--highlight);
 }
 tr.clickable {
   cursor: pointer;
@@ -229,7 +251,7 @@ tr.clickable {
 }
 .tag {
   display: inline-block;
-  background: #eef1f4;
+  background: var(--bg2);
   border-radius: 4px;
   padding: 1px 6px;
   font-size: 12px;

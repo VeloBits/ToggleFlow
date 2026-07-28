@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+
+/*
+ * VeloBits theme bridge — VSCode Dark+/Light inspired, same palette as
+ * fixmytext's design system (frontend/packages/design-system/theme.css +
+ * shell tokens.css). Values live as runtime CSS variables in styles.css
+ * (:root = light, body.dark = dark); the inline tokens below expose them
+ * as Tailwind utilities (bg-panel, text-muted, border-border, ...) that
+ * follow the active theme automatically.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg2: var(--bg2);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-highlight: var(--highlight);
+  --color-on: var(--on);
+  --color-on-soft: var(--on-soft);
+  --color-off: var(--off);
+  --color-off-soft: var(--off-soft);
+  --color-rollout: var(--rollout);
+  --color-rollout-soft: var(--rollout-soft);
+}
+
+@theme {
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-pill: 999px;
+
+  --font-display: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+
+  --transition-base: 0.12s ease;
+}
+
+/*
+ * Preflight resets heading sizes/weights to inherit; the legacy CSS relied
+ * on browser defaults. Restore sane base sizes (layer base, so any
+ * unlayered page CSS still wins).
+ */
+@layer base {
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+  }
+  h2 {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+  }
+}

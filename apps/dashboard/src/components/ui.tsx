@@ -1,6 +1,8 @@
 /** Small shared UI atoms — functional and clean over pretty (MVP admin surface). */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { Dialog } from '../ui/dialog';
+
 export function StatusChip({
   enabled,
   rolloutPercent,
@@ -51,6 +53,7 @@ export function ConfirmButton({
   );
 }
 
+/** Kept as the page-facing API; now backed by Radix (focus trap, Esc, aria). */
 export function Modal({
   title,
   onClose,
@@ -61,17 +64,9 @@ export function Modal({
   children: ReactNode;
 }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3>{title}</h3>
-          <button type="button" className="ghost" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <Dialog title={title} onClose={onClose}>
+      {children}
+    </Dialog>
   );
 }
 
