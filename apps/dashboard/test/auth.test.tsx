@@ -11,7 +11,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, getAccessToken, useAuth } from '../src/auth/AuthContext';
 import { CallbackPage } from '../src/auth/CallbackPage';
 import { userManager } from '../src/auth/oidc';
-import { LoginPage } from '../src/pages/LoginPage';
 import { stubAuth, testUser } from './harness';
 
 afterEach(() => {
@@ -113,8 +112,14 @@ describe('AuthProvider', () => {
     renderProbe();
     await waitFor(() => expect(screen.getByTestId('state').textContent).toBe('dev@velobits.test'));
 
+    // No argument means "land back on /" once Keycloak returns.
     fireEvent.click(screen.getByText('login'));
-    expect(auth.signinRedirect).toHaveBeenCalled();
+    expect(auth.signinRedirect).toHaveBeenCalledWith({ state: { returnTo: '/' } });
+
+    // signupRedirect drives a second UserManager (Keycloak's /registrations)
+    // that this module never exports, so it is only observable as "did not
+    // throw" here.
+    expect(() => fireEvent.click(screen.getByText('signup'))).not.toThrow();
 
     fireEvent.click(screen.getByText('logout'));
     expect(auth.signoutRedirect).toHaveBeenCalled();
@@ -138,23 +143,9 @@ describe('getAccessToken', () => {
   });
 });
 
-describe('LoginPage', () => {
-  it('starts the sign-in and sign-up redirects', async () => {
-    const auth = stubAuth({ user: null });
-    render(
-      <AuthProvider>
-        <LoginPage />
-      </AuthProvider>,
-    );
-
-    fireEvent.click(screen.getByText('Sign in'));
-    expect(auth.signinRedirect).toHaveBeenCalled();
-
-    // signupRedirect drives a second UserManager (Keycloak's /registrations),
-    // so it is only observable as "did not throw" here.
-    expect(() => fireEvent.click(screen.getByText('Create account'))).not.toThrow();
-  });
-});
+// The sign-in/sign-up entry points moved to GuestHomePage when the dedicated
+// login screen was dropped; units.test.tsx covers them, including the returnTo
+// deep link that the old LoginPage had no notion of.
 
 describe('CallbackPage', () => {
   const renderCallback = () =>
