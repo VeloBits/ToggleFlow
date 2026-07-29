@@ -2,7 +2,7 @@
  * Dev seed: demo org → project → dev/staging/prod → a handful of tools with
  * flag state, a segment, and versioned config on two tools.
  *
- * Run with `pnpm db:seed` (after `pnpm db:migrate`). Safe to re-run: exits
+ * Run with `npm run db:seed` (after `npm run db:migrate`). Safe to re-run: exits
  * early if the demo org already exists.
  */
 import { eq } from 'drizzle-orm';

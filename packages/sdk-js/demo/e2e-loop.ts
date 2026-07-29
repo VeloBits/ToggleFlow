@@ -1,7 +1,7 @@
 /**
  * Live e2e demo of the Phase 6 gate (run with tsx against the dev stack):
  *
- *   TF_ENV_ID=... TF_SERVER_KEY=... pnpm exec tsx demo/e2e-loop.ts
+ *   TF_ENV_ID=... TF_SERVER_KEY=... npx tsx demo/e2e-loop.ts
  *
  * 1. Boots a server client against the edge worker (poll: TF_POLL_MS, default 3s;
  *    production default is 30s).

@@ -3,7 +3,7 @@
  *
  * Tenancy: org → project → environment. Tools + segments are project-scoped;
  * flag state, config, ruleset snapshots, and API keys are per-environment.
- * `pnpm db:generate` emits SQL migrations into ./drizzle (committed).
+ * `npm run db:generate` emits SQL migrations into ./drizzle (committed).
  */
 import { relations, sql } from 'drizzle-orm';
 import {

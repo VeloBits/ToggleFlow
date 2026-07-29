@@ -1,6 +1,6 @@
 /**
  * Keycloak OIDC wiring: `toggleflow-dashboard` public client (PKCE) on the
- * shared Velobits-Dev realm.
+ * shared Velobits realm.
  *
  * Signup: Keycloak ignores prompt=create, so a second UserManager overrides
  * the authorization endpoint with /registrations (the fixmytext-proven
@@ -10,7 +10,7 @@
 import { UserManager, WebStorageStateStore, type UserManagerSettings } from 'oidc-client-ts';
 
 const KEYCLOAK_URL = import.meta.env.VITE_KEYCLOAK_URL ?? 'http://localhost:8080';
-const REALM = import.meta.env.VITE_KEYCLOAK_REALM ?? 'Velobits-Dev';
+const REALM = import.meta.env.VITE_KEYCLOAK_REALM ?? 'Velobits';
 const CLIENT_ID = import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? 'toggleflow-dashboard';
 
 const authority = `${KEYCLOAK_URL}/realms/${REALM}`;

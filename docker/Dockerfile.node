@@ -1,0 +1,57 @@
+# Single-stage Node image for every workspace command that needs monorepo source
+# plus a full (dev-inclusive) install:
+#   dev    — engine watcher, api (tsx watch), dashboard (vite), edge worker (wrangler dev)
+#   tools  — migrate / seed one-shots
+#
+# The base MUST be glibc (Debian), never alpine. TWO workspaces spawn workerd,
+# which Cloudflare ships as a glibc-linked binary — on musl it dies with
+# `spawn .../workerd-linux-64/bin/workerd ENOENT`:
+#   apps/edge-worker  via `wrangler dev`
+#   apps/api          via `miniflare` — a RUNTIME dependency, dynamically
+#                     imported whenever KV_MODE=miniflare, which is the zod
+#                     default in apps/api/src/env.ts. Easy to miss.
+#
+# Build args:
+#   APP_WORKSPACE — npm workspace name, e.g. @toggleflow/api
+#   DEV_ARGS      — extra args forwarded to that workspace's `dev` script
+
+FROM node:24-bookworm-slim
+
+ARG APP_WORKSPACE=@toggleflow/api
+ARG DEV_ARGS=
+
+WORKDIR /app
+
+# Root manifest + lockfile + EVERY workspace package.json first, so `npm ci` is a
+# cached layer that only busts on a dependency change. npm workspaces needs all
+# of them present to resolve the lockfile.
+COPY package.json package-lock.json ./
+COPY apps/api/package.json         ./apps/api/
+COPY apps/dashboard/package.json   ./apps/dashboard/
+COPY apps/edge-worker/package.json ./apps/edge-worker/
+COPY packages/engine/package.json  ./packages/engine/
+COPY packages/sdk-js/package.json  ./packages/sdk-js/
+
+RUN npm ci --loglevel=error --no-audit --no-fund
+
+COPY . .
+
+# Build the shared engine into the image. @toggleflow/engine resolves through its
+# package.json "exports" to dist/, and dist/ is both gitignored and
+# .dockerignored, so it never arrives with the source. Dev services get a fresher
+# copy from the engine-dev watcher writing into the bind mount (which masks this
+# directory); anything run from this image WITHOUT a bind mount depends on
+# exactly this layer.
+RUN npm run build -w @toggleflow/engine
+
+ENV APP_WORKSPACE=$APP_WORKSPACE \
+    DEV_ARGS=$DEV_ARGS
+
+EXPOSE 4000
+EXPOSE 5173
+EXPOSE 8787
+
+# Shell form so the ENV-promoted ARGs interpolate at container start. The
+# ${DEV_ARGS:+-- $DEV_ARGS} guard omits the `--` separator entirely when there
+# are no extra args, so `tsx watch` / `tsup --watch` never see a bare `--`.
+CMD sh -c "npm run dev -w ${APP_WORKSPACE} ${DEV_ARGS:+-- $DEV_ARGS}"

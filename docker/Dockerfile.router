@@ -1,0 +1,16 @@
+# nginx reverse proxy — the single entry point for the whole stack.
+#
+# apps/dashboard/src/api/client.ts hardcodes fetch(`/api${path}`) with no
+# configurable base URL, so serving the SPA same-origin with something that
+# strips /api is mandatory, not a nicety. That is this container's whole job.
+#
+# ONE Dockerfile; dev vs prod is selected by the NGINX_CONF build arg.
+
+FROM nginx:1.27-alpine
+
+ARG NGINX_CONF=docker/nginx.router.dev.conf
+RUN rm /etc/nginx/conf.d/default.conf
+COPY ${NGINX_CONF} /etc/nginx/conf.d/router.conf
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

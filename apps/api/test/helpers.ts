@@ -3,6 +3,8 @@
  * (:5434), with tokens signed by a local RS256 key and verified through the
  * SAME verifier code path production uses (issuer + audience checks included).
  */
+import { join } from 'node:path';
+
 import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import type { FastifyInstance } from 'fastify';
@@ -14,7 +16,7 @@ import { orgMemberships, users } from '../src/db/schema';
 import { createMemoryKvClient, type KvClient } from '../src/lib/kv';
 import { buildServer } from '../src/server';
 
-export const TEST_ISSUER = 'http://keycloak.test/realms/Velobits-Dev';
+export const TEST_ISSUER = 'http://keycloak.test/realms/Velobits';
 export const TEST_AUDIENCE = 'toggleflow-api';
 
 export interface SignOptions {
@@ -44,7 +46,10 @@ export async function setupTestApp(opts: { kv?: KvClient } = {}): Promise<TestHa
     verifier: createTokenVerifier({ issuer: TEST_ISSUER, audience: TEST_AUDIENCE, getKey }),
     kv,
   });
-  await migrate(app.db, { migrationsFolder: 'drizzle' });
+  // Anchored to this file, not the CWD: the merged coverage run at the repo
+  // root (vitest.config.ts `projects`) executes with a different CWD than
+  // `npm test -w @toggleflow/api` does.
+  await migrate(app.db, { migrationsFolder: join(import.meta.dirname, '..', 'drizzle') });
   await resetDb(app.db);
 
   const signToken = (sub: string, opts: SignOptions = {}) =>
