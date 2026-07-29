@@ -363,20 +363,3 @@ tr.clickable {
   height: 100vh;
   gap: 12px;
 }
-.login-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 40px;
-  text-align: center;
-  width: 360px;
-}
-.login-card h1 {
-  color: var(--accent);
-}
-.login-card .actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 20px;
-}

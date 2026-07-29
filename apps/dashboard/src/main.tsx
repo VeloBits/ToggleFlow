@@ -6,7 +6,6 @@ import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { AuthProvider } from './auth/AuthContext';
 import './theme.css';
-import './styles.css';
 import { ToastProvider } from './ui/toast';
 import { initTheme } from './ui/theme';
 

@@ -5,7 +5,7 @@ import { CallbackPage } from './auth/CallbackPage';
 import { Layout } from './components/Layout';
 import { ApiKeysPage } from './pages/ApiKeysPage';
 import { AuditPage } from './pages/AuditPage';
-import { LoginPage } from './pages/LoginPage';
+import { GuestHomePage } from './pages/GuestHomePage';
 import { MembersPage } from './pages/MembersPage';
 import { SegmentsPage } from './pages/SegmentsPage';
 import { ToolDetailPage } from './pages/ToolDetailPage';
@@ -24,7 +24,9 @@ export function App() {
           loading ? (
             <main className="center-page">Loading…</main>
           ) : !user ? (
-            <LoginPage />
+            // Guests land on the public home page whatever path they asked for;
+            // its sign-in carries that path so the deep link survives login.
+            <GuestHomePage />
           ) : (
             <WorkspaceProvider>
               <Layout>
