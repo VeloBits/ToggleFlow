@@ -3,11 +3,31 @@ name: CI
 on:
   push:
     branches: [main, develop]
+  # `branches` filters on the PR's BASE, not its head. Without it every pull
+  # request runs — including feature -> sandbox, where sandbox is the shared
+  # integration branch and CI is not wanted. The trade-off is deliberate:
+  # nothing gates a merge into sandbox, and breakage surfaces one step later at
+  # the sandbox -> develop PR.
   pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+# One run per ref. A force-push to a PR cancels the superseded run instead of
+# leaving two full pipelines (including the 25-minute docker smoke) racing.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Read-only by default; no job here writes to the repo.
+permissions:
+  contents: read
 
 jobs:
   ci:
     runs-on: ubuntu-latest
+    # The postgres service health-check can hang; fail fast rather than sitting
+    # until GitHub's 6h default.
+    timeout-minutes: 20
 
     services:
       # apps/api's integration tests hit a real Postgres and TRUNCATE all 13
@@ -39,6 +59,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Turbo's cache is local-only, so without this every run rebuilds and
+      # re-tests from cold. Keyed on the lockfile plus the SHA so a run restores
+      # the nearest previous cache and then writes its own.
+      - name: Restore turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            turbo-${{ runner.os }}-
+
       - name: Lint
         run: npm run lint
 
@@ -51,13 +83,27 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Test
-        run: npm test
+      # One merged coverage run across every workspace instead of `npm test`.
+      # It runs the same 179 tests, so nothing is lost by replacing the plain
+      # test step — and it must come after Build because apps/edge-worker's
+      # suite boots dist/index.js in workerd. Thresholds live in
+      # vitest.config.ts and fail the step on their own.
+      - name: Test + coverage
+        run: npm run test:coverage
         env:
           # Set explicitly rather than relying on the zod default: every var in
           # apps/api/src/env.ts has one, so a mis-wired database never throws at
           # boot — it fails at the first query, much further from the cause.
           DATABASE_URL: postgres://toggleflow:toggleflow@localhost:5434/toggleflow
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: warn
 
   docker-smoke:
     name: Docker prod smoke

@@ -56,13 +56,13 @@ npm run dev                                   # all workspaces in watch mode (tu
 
 One compose file, three profiles. Every service belongs to a profile, so a bare `docker compose up` starts nothing.
 
-| Command | What it does |
-| --- | --- |
-| `docker compose --profile dev up --build` | Hot-reloading stack: tsx watch, vite, wrangler dev, source bind-mounted |
-| `docker compose --profile prod up --build` | Built artifacts: API on node, dashboard as static assets on nginx |
-| `docker compose --profile tools run --rm migrate` | Apply migrations (idempotent) |
-| `docker compose --profile tools run --rm seed` | Seed demo data (idempotent) |
-| `docker compose --profile dev down` | Stop. Add `-v` to also drop the database and KV volumes |
+| Command                                           | What it does                                                            |
+| ------------------------------------------------- | ----------------------------------------------------------------------- |
+| `docker compose --profile dev up --build`         | Hot-reloading stack: tsx watch, vite, wrangler dev, source bind-mounted |
+| `docker compose --profile prod up --build`        | Built artifacts: API on node, dashboard as static assets on nginx       |
+| `docker compose --profile tools run --rm migrate` | Apply migrations (idempotent)                                           |
+| `docker compose --profile tools run --rm seed`    | Seed demo data (idempotent)                                             |
+| `docker compose --profile dev down`               | Stop. Add `-v` to also drop the database and KV volumes                 |
 
 The **`dev` and `prod` profiles cannot run at the same time** — both routers publish host `:3200`.
 
@@ -70,12 +70,12 @@ The **`dev` and `prod` profiles cannot run at the same time** — both routers p
 
 Everything enters through an nginx router. This is not decoration: [apps/dashboard/src/api/client.ts](apps/dashboard/src/api/client.ts) hardcodes `fetch('/api' + path)` with no configurable base URL, so the SPA must be served same-origin with something that strips `/api`.
 
-| URL | Goes to |
-| --- | --- |
-| `http://localhost:3200/` | Dashboard (Vite dev server, or static nginx in prod) |
-| `http://localhost:3200/api/*` | Control-plane API, `/api` stripped — e.g. `/api/health` → `/health` |
-| `http://localhost:3200/edge/*` | Edge worker, `/edge` stripped (**dev profile only**) |
-| `http://localhost:3200/healthz` | The router's own liveness probe |
+| URL                             | Goes to                                                             |
+| ------------------------------- | ------------------------------------------------------------------- |
+| `http://localhost:3200/`        | Dashboard (Vite dev server, or static nginx in prod)                |
+| `http://localhost:3200/api/*`   | Control-plane API, `/api` stripped — e.g. `/api/health` → `/health` |
+| `http://localhost:3200/edge/*`  | Edge worker, `/edge` stripped (**dev profile only**)                |
+| `http://localhost:3200/healthz` | The router's own liveness probe                                     |
 
 The edge worker has no prod container on purpose: production is `npm run deploy -w @toggleflow/edge-worker` to Cloudflare, so a local prod container would simulate nothing.
 
@@ -83,13 +83,13 @@ The edge worker has no prod container on purpose: production is `npm run deploy 
 
 Ports are shared across the VeloBits dev stacks — don't collide.
 
-| Port | Owner |
-| --- | --- |
-| 3200 | ToggleFlow router |
+| Port               | Owner                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| 3200               | ToggleFlow router                                                                      |
 | 4000 / 5173 / 8787 | ToggleFlow api / dashboard / edge worker (dev profile, published for direct debugging) |
-| 5434 | ToggleFlow Postgres (5433 is the fixmytext dev DB) |
-| 80, 8080 | velobits-infra traefik, Keycloak |
-| 3000, 3100–3103 | fixmytext-web-frontend |
+| 5434               | ToggleFlow Postgres (5433 is the fixmytext dev DB)                                     |
+| 80, 8080           | velobits-infra traefik, Keycloak                                                       |
+| 3000, 3100–3103    | fixmytext-web-frontend                                                                 |
 
 ### The Keycloak issuer split
 
@@ -115,8 +115,8 @@ docker/
 
 Three things worth knowing before changing any of it:
 
-- **Every Node image is `bookworm-slim`, never alpine.** Two workspaces spawn `workerd`, which Cloudflare ships glibc-linked: `apps/edge-worker` via `wrangler dev`, and `apps/api` via `miniflare` — a *runtime* dependency, imported whenever `KV_MODE=miniflare` (the default).
-- **The `engine-dev` service is load-bearing.** `packages/engine` resolves through its `exports` to `dist/`, which is gitignored *and* `.dockerignore`d, so nothing else creates it. That service builds it, then watches; every app gates on its healthcheck.
+- **Every Node image is `bookworm-slim`, never alpine.** Two workspaces spawn `workerd`, which Cloudflare ships glibc-linked: `apps/edge-worker` via `wrangler dev`, and `apps/api` via `miniflare` — a _runtime_ dependency, imported whenever `KV_MODE=miniflare` (the default).
+- **The `engine-dev` service is load-bearing.** `packages/engine` resolves through its `exports` to `dist/`, which is gitignored _and_ `.dockerignore`d, so nothing else creates it. That service builds it, then watches; every app gates on its healthcheck.
 - **The miniflare KV store is a named volume, not a bind mount.** `apps/api` writes it and the edge worker reads it — two workerd processes over one SQLite store. On a Windows bind mount that reliably produces `SQLITE_BUSY`. Reset it with `docker volume rm toggleflow_wrangler-state`.
 
 ## Dev infrastructure
