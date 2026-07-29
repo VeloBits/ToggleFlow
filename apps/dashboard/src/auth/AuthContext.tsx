@@ -2,12 +2,14 @@ import type { User } from 'oidc-client-ts';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { signupRedirect, userManager } from './oidc';
+import { safeReturnTo } from './return-to';
 
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login: () => Promise<void>;
-  signup: () => Promise<void>;
+  /** `returnTo` is the in-app path to land on after the Keycloak round trip. */
+  login: (returnTo?: string) => Promise<void>;
+  signup: (returnTo?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -40,8 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
-        login: () => userManager.signinRedirect(),
-        signup: signupRedirect,
+        login: (returnTo) =>
+          userManager.signinRedirect({ state: { returnTo: safeReturnTo(returnTo) } }),
+        signup: (returnTo) => signupRedirect(safeReturnTo(returnTo)),
         logout: () => userManager.signoutRedirect(),
       }}
     >
