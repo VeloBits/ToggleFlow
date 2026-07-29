@@ -8,6 +8,7 @@
  * to call. (The live "origin dead" check is wrangler dev + stopped API.)
  */
 import { createHash } from 'node:crypto';
+import { join } from 'node:path';
 
 import killSwitchFixture from '@toggleflow/engine/fixtures/kill-switch.json';
 import targetingFixture from '@toggleflow/engine/fixtures/targeting.json';
@@ -35,7 +36,9 @@ const authed = (key: string, extra: Record<string, string> = {}) => ({
 beforeAll(async () => {
   mf = new Miniflare({
     modules: true,
-    scriptPath: 'dist/index.js',
+    // Anchored to this file, not the CWD: the merged coverage run at the repo
+    // root (vitest.config.ts `projects`) executes with a different CWD.
+    scriptPath: join(import.meta.dirname, '..', 'dist', 'index.js'),
     kvNamespaces: ['RULESETS'],
   });
   const kv = await mf.getKVNamespace('RULESETS');
