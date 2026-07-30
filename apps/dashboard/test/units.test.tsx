@@ -153,7 +153,7 @@ describe('GuestHomePage', () => {
 
   it('is the landing page, and sign-up is its only auth entry point', () => {
     renderAt('/');
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Feature flags');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Ship faster');
     // Sign in is gone from the nav and the footer: there is no /login screen, and
     // the hosted IdP walks returning users through the same authorize call, so a
     // second near-equal button only split the click.
@@ -273,5 +273,25 @@ describe('GuestHomePage', () => {
     )!;
     fireEvent.click(cta);
     expect(auth.signup).toHaveBeenCalledWith('/tools/abc?env=prod');
+  });
+
+  // The accordion's own behaviour is covered in test/accordion.test.tsx; this is
+  // the wiring — that the FAQ reaches it, opens on exactly one item, and that
+  // every answer is still in the HTML for a crawler even while collapsed.
+  it('renders the FAQ as an accordion with one item open', () => {
+    renderAt('/');
+    const faq = document.getElementById('faq')!;
+    const triggers = [...faq.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')];
+    expect(triggers.length).toBe(7);
+    expect(triggers.filter((trigger) => trigger.getAttribute('aria-expanded') === 'true')).toEqual([
+      triggers[0],
+    ]);
+    expect(triggers[0]!.textContent).toContain('What are feature flags?');
+    // Collapsed answers stay in the DOM: this page is the SPA's only crawlable surface.
+    expect(faq.textContent).toContain('There is a free tier');
+
+    fireEvent.click(triggers[4]!);
+    expect(triggers[4]!.getAttribute('aria-expanded')).toBe('true');
+    expect(triggers[0]!.getAttribute('aria-expanded')).toBe('false');
   });
 });

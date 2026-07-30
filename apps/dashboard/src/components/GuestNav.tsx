@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '../auth/AuthContext';
 import { cn } from '../ui/cn';
-import { MenuIcon, XIcon } from '../ui/icons';
+import { MenuIcon, ToggleMarkIcon, XIcon } from '../ui/icons';
 import { ThemeToggle } from '../ui/theme-toggle';
 
 /**
@@ -114,7 +114,9 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
 
   return (
     <>
-      <header className="pointer-events-none fixed top-0 right-0 left-0 z-50 flex justify-center px-4 pt-4 pb-4">
+      {/* px-6, matching every section's gutter: at px-4 the island was 8px wider
+          a side than the page content at every width below ~1200px. */}
+      <header className="pointer-events-none fixed top-0 right-0 left-0 z-50 flex justify-center px-6 pt-4 pb-4">
         <nav
           id="site-nav"
           aria-label="Main"
@@ -122,20 +124,21 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
           className={cn(
             // rounded-xl (10px) is the same radius as the hero's flag panel and the
             // mobile menu card, so the bar reads as one of the page's surfaces.
-            // max-w-6xl matches the page content grid, so its edges line up with
-            // the hero instead of sitting almost-but-not-quite inside it.
+            // max-w-page is the page content grid (theme.css) — the same token the
+            // hero, every section and the footer use, so the island's box edges are
+            // the page's left and right reference lines rather than nearly them.
             // The outer gap steps up in three stages rather than one: at `md` the
             // four chips need every pixel, by `lg` the island is wide enough for
             // the airier spacing the marketing site uses.
-            'pointer-events-auto flex w-full max-w-6xl items-center justify-between gap-2 rounded-xl border px-2 py-[0.55rem] pl-3 backdrop-blur-[18px] transition-[background-color,border-color,box-shadow] duration-300 motion-reduce:transition-none sm:px-4 sm:pl-[1.1rem] md:gap-3 lg:gap-6',
+            'pointer-events-auto flex w-full max-w-page items-center justify-between gap-2 rounded-xl border px-2 py-[0.55rem] pl-3 backdrop-blur-[18px] transition-[background-color,border-color,box-shadow] duration-300 motion-reduce:transition-none sm:px-4 sm:pl-[1.1rem] md:gap-3 lg:gap-6',
             scrolled ? SURFACE_SCROLLED : SURFACE_TOP,
           )}
         >
-          {/* Not a link — a guest reading this page is already home. */}
+          {/* Not a link — a guest reading this page is already home. The mark is a
+              switch in the on position: the product's own metaphor, and it holds
+              its shape at 20px where the old ◆ glyph depended on the font. */}
           <span className="flex shrink-0 items-center gap-2">
-            <span className="text-accent font-bold" aria-hidden>
-              ◆
-            </span>
+            <ToggleMarkIcon size={20} className="text-accent" />
             <span className="font-bold">ToggleFlow</span>
           </span>
 
@@ -210,11 +213,12 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
 
         {menuOpen && (
           // `top-full` lands the panel exactly the header's pb-4 below the island
-          // at any nav height — no magic offset to retune.
+          // at any nav height — no magic offset to retune. The inset tracks the
+          // header's px-6, so the panel is exactly as wide as the island above it.
           <div
             ref={menuRef}
             id="mobile-menu"
-            className="border-border bg-panel pointer-events-auto absolute top-full right-4 left-4 flex flex-col gap-1 rounded-xl border p-3 shadow-[0_16px_40px_rgba(0,0,0,0.14)] md:hidden dark:shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
+            className="border-border bg-panel pointer-events-auto absolute top-full right-6 left-6 flex flex-col gap-1 rounded-xl border p-3 shadow-[0_16px_40px_rgba(0,0,0,0.14)] md:hidden dark:shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
           >
             <nav aria-label="Page" className="flex flex-col gap-1">
               {NAV_LINKS.map((link) => (

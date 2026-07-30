@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { useAuth } from '../auth/AuthContext';
 import { cn } from '../ui/cn';
+import { ArrowUpIcon, ToggleMarkIcon } from '../ui/icons';
 
 /**
  * Footer for the public landing page — a brand column plus four link groups over
@@ -154,16 +155,20 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-border/60 border-t">
-      {/* max-w-6xl + px-6 is the page grid: the footer's edges line up with the hero and nav. */}
-      <div className="mx-auto max-w-6xl px-6 pt-12 pb-8 sm:pt-14">
+    <footer className="border-border/60 border-t px-6">
+      {/* The gutter is on the <footer>, OUTSIDE the cap: with border-box sizing an
+          inner `max-w-page px-6` spends the padding out of the 1152px, which put
+          the footer's content 24px inside the hero's edges on any display wide
+          enough to cap. The hairline above is unaffected — padding does not move a
+          block's border, so it still runs the full viewport. pt joins the sections'
+          rhythm (64/80px); pb-8 is a terminal, not a step in it. */}
+      <div className="mx-auto w-full max-w-page pt-16 pb-8 sm:pt-20">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-12">
           <div className="min-w-0">
-            {/* Not a link, for the same reason the nav's brand isn't: this is home. */}
+            {/* Not a link, for the same reason the nav's brand isn't: this is home.
+                Same mark and size as the nav's, so the page opens and closes on it. */}
             <span className="flex items-center gap-2">
-              <span className="text-accent font-bold" aria-hidden>
-                ◆
-              </span>
+              <ToggleMarkIcon size={20} className="text-accent" />
               <span className="font-bold">ToggleFlow</span>
             </span>
             {/* Restates the hero's positioning in one line — keep the two in step. */}
@@ -249,11 +254,9 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
               <span aria-hidden className="bg-border hidden h-3 w-px sm:block" />
               {/* #main is the <main> landmark at the top of the page, so this is a
                   real target and doubles as a keyboard route back to the content. */}
-              <a href="#main" className={META_LINK}>
-                Back to top{' '}
-                <span aria-hidden className="align-middle">
-                  ↑
-                </span>
+              <a href="#main" className={cn(META_LINK, 'inline-flex items-center gap-1.5')}>
+                Back to top
+                <ArrowUpIcon size={13} />
               </a>
             </div>
           </div>
