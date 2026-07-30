@@ -3,24 +3,9 @@ import { NavLink } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
 import { useWorkspace } from '../state/WorkspaceContext';
-import { isDark, toggleTheme } from '../ui/theme';
+import { ThemeToggle } from '../ui/theme-toggle';
 import { useToast } from '../ui/toast';
 import { ErrorNote, Modal } from './ui';
-
-function ThemeToggle() {
-  const [dark, setDark] = useState(isDark);
-  return (
-    <button
-      type="button"
-      className="ghost"
-      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
-      title={dark ? 'Light theme' : 'Dark theme'}
-      onClick={() => setDark(toggleTheme())}
-    >
-      {dark ? '☀' : '☾'}
-    </button>
-  );
-}
 
 function Switchers() {
   const ws = useWorkspace();

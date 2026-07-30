@@ -9,11 +9,11 @@
     "deploy": "wrangler deploy",
     "build": "tsup",
     "typecheck": "tsc --noEmit && tsc -p test --noEmit",
-    "test": "pnpm run build && vitest run",
+    "test": "npm run build && vitest run",
     "clean": "rm -rf dist .turbo .wrangler"
   },
   "dependencies": {
-    "@toggleflow/engine": "workspace:*"
+    "@toggleflow/engine": "*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260724.1",

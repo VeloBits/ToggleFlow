@@ -4,15 +4,21 @@
   "version": "0.0.1",
   "description": "VeloBits Control Plane — remote flags, kill switches, rollouts, and live config for tool-heavy apps",
   "type": "module",
-  "packageManager": "pnpm@11.5.0",
+  "packageManager": "npm@11.16.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22",
+    "npm": ">=10"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:coverage": "vitest run --coverage --config vitest.coverage.config.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -20,12 +26,18 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.7.0",
     "prettier": "^3.9.6",
     "turbo": "^2.10.6",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "workerd": true
   }
 }

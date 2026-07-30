@@ -1,0 +1,66 @@
+# Multi-stage production build for the dashboard SPA (apps/dashboard):
+# Vite build → static assets served by unprivileged nginx.
+#
+# Build args:
+#   APP_WORKSPACE — npm workspace name, e.g. @toggleflow/dashboard
+#   APP_PATH      — path from the monorepo root, e.g. apps/dashboard
+
+ARG APP_WORKSPACE=@toggleflow/dashboard
+ARG APP_PATH=apps/dashboard
+
+# ── Stage 1: Build ────────────────────────────────────────────────────────────
+# bookworm-slim rather than alpine: Tailwind v4 ships the native
+# @tailwindcss/oxide binary, which must be installed for THIS platform inside the
+# image (never copied from a Windows host). glibc keeps that path boring.
+FROM node:24-bookworm-slim AS builder
+
+ARG APP_WORKSPACE
+ARG APP_PATH
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY apps/api/package.json         ./apps/api/
+COPY apps/dashboard/package.json   ./apps/dashboard/
+COPY apps/edge-worker/package.json ./apps/edge-worker/
+COPY packages/engine/package.json  ./packages/engine/
+COPY packages/sdk-js/package.json  ./packages/sdk-js/
+
+RUN npm ci --loglevel=error --no-audit --no-fund
+
+# tsconfig.base.json is extended by every workspace tsconfig — without it esbuild
+# warns and silently falls back to default transform options.
+COPY tsconfig.base.json turbo.json ./
+COPY packages/     ./packages/
+COPY ${APP_PATH}/  ./${APP_PATH}/
+
+# Vite inlines these into the bundle at BUILD time (read in
+# apps/dashboard/src/auth/oidc.ts). A compose `env_file`/`environment:` is
+# runtime-only — it reaches nginx, never this stage — so they must be build args.
+ARG VITE_KEYCLOAK_URL
+ARG VITE_KEYCLOAK_REALM
+ARG VITE_KEYCLOAK_CLIENT_ID
+
+ENV VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL \
+    VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM \
+    VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID
+
+# dependsOn ["^build"] builds packages/engine first (the dashboard imports it).
+RUN npx turbo run build --filter=${APP_WORKSPACE}
+RUN find /app/${APP_PATH}/dist -name '*.map' -delete
+
+# ── Stage 2: Serve ────────────────────────────────────────────────────────────
+# nginx-unprivileged runs as the nginx user out of the box (writable cache/pid
+# paths, listens on 8080). Plain `USER nginx` on the stock nginx image
+# crash-loops — its master process needs root to create /var/cache/nginx/* and
+# the pid file.
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
+
+# Re-declare ARGs so they're available in this stage (they don't cross stages).
+ARG APP_PATH=apps/dashboard
+
+COPY docker/nginx.static.conf /etc/nginx/conf.d/default.conf
+COPY --chown=nginx:nginx --from=builder /app/${APP_PATH}/dist /usr/share/nginx/html
+
+EXPOSE 8080
+CMD ["nginx", "-g", "daemon off;"]

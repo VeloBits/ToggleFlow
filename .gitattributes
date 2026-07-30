@@ -1,0 +1,14 @@
+# Normalise line endings to LF in the repository. CRLF reaching a Linux
+# container produces errors that look nothing like a line-ending problem:
+#   Dockerfile with CRLF  → exec /bin/sh: no such file or directory
+#   *.sh with CRLF        → $'\r': command not found
+#   env file with CRLF    → a trailing \r INSIDE the value, so a DATABASE_URL
+#                           becomes "…/toggleflow\r" and Postgres rejects it
+* text=auto eol=lf
+
+Dockerfile*  text eol=lf
+*.sh         text eol=lf
+*.conf       text eol=lf
+.env*        text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
