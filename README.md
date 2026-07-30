@@ -1,6 +1,6 @@
 # ToggleFlow
 
-**VeloBits Control Plane** (working name) — a remote control plane for applications: register your tools/features once, then toggle them, roll them out gradually, and edit their configuration live from a dashboard — no redeploy.
+**ToggleFlow** — a feature flag and remote configuration platform for applications: register your tools/features once, then toggle them, roll them out gradually, and edit their configuration live from a dashboard — no redeploy. A VeloBits product.
 
 > **Status:** project scaffold only. Monorepo, toolchain, and CI are wired; no features implemented yet.
 
