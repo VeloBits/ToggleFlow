@@ -71,7 +71,7 @@ describe('listing', () => {
       pageHandlers('admin', { [`GET ${SEGMENTS_URL}`]: [segment({ description: null })] }),
     );
     await loaded();
-    expect(screen.queryByText(/—/)).toBeNull();
+    expect(screen.queryByText(/-/)).toBeNull();
   });
 
   it('shows an empty state', async () => {

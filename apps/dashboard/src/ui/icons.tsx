@@ -1,12 +1,12 @@
 import type { ReactNode, SVGProps } from 'react';
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
-  /** Width and height in px — icons are square. */
+  /** Width and height in px - icons are square. */
   size?: number | string;
 }
 
 /**
- * Stroke-based icon set (Feather/Lucide-style, 24×24 grid, currentColor) — the
+ * Stroke-based icon set (Feather/Lucide-style, 24×24 grid, currentColor) - the
  * same convention as fixmytext's `@velobits/design-system` icons, copied rather
  * than imported because that package is private and in a different workspace.
  * Icons are decorative by default (aria-hidden); pass `aria-hidden={undefined}`
@@ -83,7 +83,7 @@ export const ArrowUpIcon = createIcon(
 /*
  * Below here: the landing page's feature-card icons, kept in the order the cards
  * render in GuestHomePage so a copy change that reorders the grid has an obvious
- * counterpart here. They are drawn to read at 18px, the size the cards use —
+ * counterpart here. They are drawn to read at 18px, the size the cards use -
  * which is why a few depart from their Lucide originals (noted where they do).
  */
 
@@ -152,10 +152,10 @@ export const HistoryIcon = createIcon(
  * The "Canary releases" card. This is an audience, not a rocket, because no
  * rocket survives 18px: a hull with flared fins is topologically the letter A,
  * and the porthole lands exactly where A's crossbar goes. Rasterising the
- * candidates at 18px and magnifying the bitmap, every variant read as a glyph —
+ * candidates at 18px and magnifying the bitmap, every variant read as a glyph -
  * "A" for flared fins, a bell for a solid base, a fish for a capsule and flame.
  * An audience is also the truer metaphor: a canary release is defined by *who*
- * receives it — your team, then a beta segment, then everyone.
+ * receives it - your team, then a beta segment, then everyone.
  */
 export const UsersIcon = createIcon(
   'UsersIcon',
@@ -214,7 +214,7 @@ export const LayersIcon = createIcon(
 /*
  * Flag and environment state. These render at 13–15px inline with body copy, so
  * the three flag states are deliberately distinguishable by fill and silhouette
- * alone — colour carries no meaning any of them depend on.
+ * alone - colour carries no meaning any of them depend on.
  */
 
 export const CircleCheckIcon = createIcon(
@@ -257,7 +257,7 @@ export const DotIcon = createIcon(
 );
 
 /**
- * The brand mark — a switch in the "on" position, standing in for the wordmark's
+ * The brand mark - a switch in the "on" position, standing in for the wordmark's
  * former `◆`. It sits beside bold 19px text, so the knob is a solid disc rather
  * than a ring: a stroked knob greys out next to bold type at 18–20px. Its radius
  * (3.5) is heavier than a UI toggle's would be for the same reason, and it is

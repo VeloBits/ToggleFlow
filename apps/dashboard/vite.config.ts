@@ -16,7 +16,7 @@ export default defineConfig({
     proxy: {
       // Control-plane API during local dev; the API serves /v1/* at the root.
       // Overridable because `localhost` inside the dashboard container is the
-      // dashboard itself — Docker sets this to http://api-dev:4000. Only used
+      // dashboard itself - Docker sets this to http://api-dev:4000. Only used
       // when hitting :5173 directly; through the router on :3200, nginx strips
       // /api before Vite ever sees the request.
       '/api': {

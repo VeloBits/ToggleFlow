@@ -1,5 +1,5 @@
 /**
- * The versioned ruleset-snapshot format — THE contract between the snapshot
+ * The versioned ruleset-snapshot format - THE contract between the snapshot
  * builder (API), the KV payload, the edge worker, and the SDK.
  *
  * schemaVersion 1 is FROZEN once merged: any change to the wire format
@@ -40,7 +40,7 @@ const attribute = z.string().min(1);
 /**
  * A single attribute test. `plan` and `region` are conventional attribute
  * names, not special cases. A missing attribute matches NO operator
- * (including `neq`/`notIn`) except never `exists` — rules only fire on
+ * (including `neq`/`notIn`) except never `exists` - rules only fire on
  * known data.
  */
 export const conditionSchema = z.discriminatedUnion('operator', [

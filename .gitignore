@@ -6,7 +6,7 @@ dist/
 coverage/
 *.tsbuildinfo
 
-# env — keep .env.example tracked
+# env - keep .env.example tracked
 .env
 .env.*
 !.env.example

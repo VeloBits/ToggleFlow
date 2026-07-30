@@ -4,7 +4,7 @@
  */
 import { auditLog } from '../db/schema';
 
-/** Accepts a Db or a transaction — anything with drizzle's insert(). */
+/** Accepts a Db or a transaction - anything with drizzle's insert(). */
 type Writable = {
   insert: (table: typeof auditLog) => { values: (v: AuditEntry) => Promise<unknown> };
 };

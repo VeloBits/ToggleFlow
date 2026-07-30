@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 /**
  * Members: role changes, removal, and the read-only view a non-admin gets
- * (the list is still visible — only the controls are admin-gated).
+ * (the list is still visible - only the controls are admin-gated).
  */
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -66,7 +66,7 @@ describe('listing', () => {
     renderPage();
     await loaded();
     expect(screen.getByText('Dev User')).toBeTruthy();
-    expect(screen.getByText('—')).toBeTruthy();
+    expect(screen.getByText('-')).toBeTruthy();
   });
 
   it('surfaces a load failure', async () => {
@@ -187,7 +187,7 @@ describe('adding a member', () => {
       pageHandlers('admin', {
         [`POST ${MEMBERS_URL}`]: {
           status: 404,
-          body: { error: 'not_found', message: 'no such user — they must sign in once' },
+          body: { error: 'not_found', message: 'no such user - they must sign in once' },
         },
       }),
     );

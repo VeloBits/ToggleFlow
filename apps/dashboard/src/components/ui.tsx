@@ -1,4 +1,4 @@
-/** Small shared UI atoms — functional and clean over pretty (MVP admin surface). */
+/** Small shared UI atoms - functional and clean over pretty (MVP admin surface). */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { Dialog } from '../ui/dialog';

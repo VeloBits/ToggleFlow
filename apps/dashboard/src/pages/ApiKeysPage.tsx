@@ -116,8 +116,8 @@ export function ApiKeysPage() {
               value={form.kind}
               onChange={(e) => setForm({ ...form, kind: e.target.value as 'server' | 'client' })}
             >
-              <option value="server">server — secret, backend only</option>
-              <option value="client">client — safe to expose in browsers</option>
+              <option value="server">server - secret, backend only</option>
+              <option value="client">client - safe to expose in browsers</option>
             </select>
           </div>
           <ErrorNote error={create.error} />
@@ -140,7 +140,7 @@ export function ApiKeysPage() {
       {revealed && (
         <Modal title="Copy your key now" onClose={() => setRevealed(null)}>
           <p>
-            This is the only time the full key is shown. Store it somewhere safe — only a hash is
+            This is the only time the full key is shown. Store it somewhere safe - only a hash is
             kept.
           </p>
           <p className="reveal-token mono">{revealed.token}</p>

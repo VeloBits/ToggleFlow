@@ -2,8 +2,8 @@
  * Standalone migrator for containers and CI.
  *
  * Deliberately dependency-light: it uses drizzle-orm's programmatic migrator over
- * the committed SQL in apps/api/drizzle — the same path apps/api/test/helpers.ts
- * takes — so it needs neither drizzle-kit (a devDependency, pruned out of the
+ * the committed SQL in apps/api/drizzle - the same path apps/api/test/helpers.ts
+ * takes - so it needs neither drizzle-kit (a devDependency, pruned out of the
  * production image) nor drizzle.config.ts. `npm run db:migrate` stays the
  * bare-metal developer command; this is the one a prod-only-deps image can run.
  */

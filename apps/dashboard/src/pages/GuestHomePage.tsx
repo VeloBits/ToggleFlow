@@ -25,7 +25,7 @@ import {
 } from '../ui/icons';
 
 /**
- * Public landing page — the default screen for anyone who isn't signed in, and
+ * Public landing page - the default screen for anyone who isn't signed in, and
  * the only crawlable surface of the SPA, so it carries the product's SEO copy
  * (its <head> metadata lives in apps/dashboard/index.html).
  *
@@ -36,7 +36,7 @@ import {
  * Every section pairs GUTTER with CONTAINER (see both constants): one width and
  * one gutter for the whole page, shared with the nav island and the footer, so
  * this reads as a single column of content rather than five differently-inset
- * ones. Icons all come from ../ui/icons — no Unicode glyphs stand in for one,
+ * ones. Icons all come from ../ui/icons - no Unicode glyphs stand in for one,
  * since those inherit the font's metrics instead of the design system's.
  */
 
@@ -50,7 +50,7 @@ import {
  * itself: sizing is border-box (styles.css), so `max-w-page px-6` on one element
  * spends the gutter out of the 1152px and lands 24px inside the nav island's
  * edges. Gutter outside, and the cap resolves to the full 1152 at every width
- * wide enough to reach it — below that the box shrinks and the gutter holds.
+ * wide enough to reach it - below that the box shrinks and the gutter holds.
  */
 const CONTAINER = 'mx-auto w-full max-w-page';
 
@@ -72,7 +72,7 @@ const CARD = 'border-border bg-panel rounded-lg border p-5 leading-relaxed';
 interface Highlight {
   title: string;
   body: string;
-  /** Stroke icon from ../ui/icons — sized at the call site, never inline-styled. */
+  /** Stroke icon from ../ui/icons - sized at the call site, never inline-styled. */
   icon: ComponentType<IconProps>;
 }
 
@@ -80,7 +80,7 @@ const FEATURES: Highlight[] = [
   {
     icon: PowerIcon,
     title: 'Kill switches',
-    body: 'Turn any tool off in production instantly — no redeploy. Define the fallback users see: hide it, show a notice, or run an alternate path.',
+    body: 'Turn any tool off in production instantly - no redeploy. Define the fallback users see: hide it, show a notice, or run an alternate path.',
   },
   {
     icon: TrendingUpIcon,
@@ -90,7 +90,7 @@ const FEATURES: Highlight[] = [
   {
     icon: TargetIcon,
     title: 'Targeting & segments',
-    body: 'Reusable segments by plan, region, or any trait you send. The same rule model everywhere — no invented jargon.',
+    body: 'Reusable segments by plan, region, or any trait you send. The same rule model everywhere - no invented jargon.',
   },
   {
     icon: SlidersIcon,
@@ -105,7 +105,7 @@ const FEATURES: Highlight[] = [
   {
     icon: HistoryIcon,
     title: 'Audit trail',
-    body: 'Who flipped what, when, and why — per flag and org-wide, with scoped per-environment API keys and roles.',
+    body: 'Who flipped what, when, and why - per flag and org-wide, with scoped per-environment API keys and roles.',
   },
 ];
 
@@ -127,7 +127,7 @@ const STEPS: { step: string; title: string; body: string }[] = [
   },
 ];
 
-// The use cases people actually arrive searching for — kept to what the
+// The use cases people actually arrive searching for - kept to what the
 // platform genuinely does (see docs/ToggleFlow/TOGGLEFLOW_PRODUCT_BRIEF.md).
 const USE_CASES: Highlight[] = [
   {
@@ -140,7 +140,7 @@ const USE_CASES: Highlight[] = [
     // letter A, and who receives the release is what a canary actually is.
     icon: UsersIcon,
     title: 'Canary releases',
-    body: 'Release to your own team first, then a beta segment, then everyone. Same targeting rules — just a narrower audience while you watch it behave.',
+    body: 'Release to your own team first, then a beta segment, then everyone. Same targeting rules - just a narrower audience while you watch it behave.',
   },
   {
     icon: SplitIcon,
@@ -187,19 +187,19 @@ const FAQ: AccordionItem[] = [
     id: 'faq-rollouts',
     title: 'How do progressive rollouts and canary releases work?',
     content:
-      'You give a flag a percentage, and ToggleFlow buckets users deterministically — the same user always lands on the same side, so nobody flickers between versions. For a canary release, narrow the audience to a segment first, then widen the percentage as your confidence grows.',
+      'You give a flag a percentage, and ToggleFlow buckets users deterministically - the same user always lands on the same side, so nobody flickers between versions. For a canary release, narrow the audience to a segment first, then widen the percentage as your confidence grows.',
   },
   {
     id: 'faq-ab-testing',
     title: 'Can I run A/B tests with ToggleFlow?',
     content:
-      'Yes, for the assignment half: percentage splits and segment targeting decide which variant each user gets, consistently everywhere the SDK runs. Measurement stays in your analytics tool — ToggleFlow does not compute statistical significance for you.',
+      'Yes, for the assignment half: percentage splits and segment targeting decide which variant each user gets, consistently everywhere the SDK runs. Measurement stays in your analytics tool - ToggleFlow does not compute statistical significance for you.',
   },
   {
     id: 'faq-availability',
     title: 'What happens if ToggleFlow goes down?',
     content:
-      'Your app keeps working. The read path is a separate delivery plane on Cloudflare Workers and KV that keeps serving the last published ruleset even when the control plane is unavailable, and the server SDK evaluates from its own in-memory copy — so a flag check never waits on us.',
+      'Your app keeps working. The read path is a separate delivery plane on Cloudflare Workers and KV that keeps serving the last published ruleset even when the control plane is unavailable, and the server SDK evaluates from its own in-memory copy - so a flag check never waits on us.',
   },
   {
     id: 'faq-languages',
@@ -215,7 +215,7 @@ const FAQ: AccordionItem[] = [
   },
 ];
 
-// Real `@toggleflow/sdk` API (server client) — keep in step with packages/sdk-js.
+// Real `@toggleflow/sdk` API (server client) - keep in step with packages/sdk-js.
 const SNIPPET = `import { createServerClient } from '@toggleflow/sdk';
 
 const flags = createServerClient({
@@ -279,7 +279,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    // The hairline is full-bleed on purpose — it is the page's section rule, not
+    // The hairline is full-bleed on purpose - it is the page's section rule, not
     // part of the content box, so it runs edge to edge behind the container.
     <section id={id} className={`border-border/60 scroll-mt-24 border-t py-16 sm:py-20 ${GUTTER}`}>
       <div className={CONTAINER}>
@@ -315,7 +315,7 @@ export function GuestHomePage() {
           that clearance, not section rhythm. The island is ~64px tall
           below `sm` (44px touch controls) and ~52px from `sm` up (32px ones),
           both offset 16px from the top. 128/144px therefore leaves ~48px of air
-          on a phone and ~76px on a desktop — it used to be 32px on the phone,
+          on a phone and ~76px on a desktop - it used to be 32px on the phone,
           i.e. the tighter gap sat under the *taller* bar.
         */}
         <section className={`pt-32 pb-16 sm:pt-36 sm:pb-20 ${GUTTER}`}>
@@ -328,7 +328,7 @@ export function GuestHomePage() {
                 Two beats, each on its own line at every width: the promise and
                 the safety net. `block` spans rather than a <br> so the break is
                 layout, not punctuation, and screen readers read one sentence at
-                a time. The keyword phrase moved into the paragraph below — this
+                a time. The keyword phrase moved into the paragraph below - this
                 page is the SPA's only crawlable surface, so it still has to say
                 "feature flag and remote configuration" in prose.
               */}
@@ -338,7 +338,7 @@ export function GuestHomePage() {
               </h1>
               <p className="text-muted mb-8 max-w-xl text-[16px] leading-relaxed">
                 ToggleFlow is the feature flag and remote configuration platform for your app: kill
-                switches, progressive rollouts, targeting, and live config — changed from a
+                switches, progressive rollouts, targeting, and live config - changed from a
                 dashboard and delivered in seconds. No redeploy, no waiting on a release.
               </p>
               <div className="flex flex-wrap items-center gap-3">
@@ -425,7 +425,7 @@ export function GuestHomePage() {
               <p className="text-muted mt-6 max-w-[68ch] text-[13px] leading-relaxed">
                 One evaluation engine backs the SDK, the REST API, and the edge worker, so a flag
                 answers the same way everywhere. The React adapter hides tools in the UI, and the
-                Express and Fastify middleware maps routes to flags — guarding a route-shaped tool
+                Express and Fastify middleware maps routes to flags - guarding a route-shaped tool
                 takes no per-tool code at all.
               </p>
             </div>
@@ -469,7 +469,7 @@ export function GuestHomePage() {
           <div className={CONTAINER}>
             <h2 className="mb-3 text-[22px]">Ship your next feature behind a flag</h2>
             <p className="text-muted mx-auto mb-7 max-w-lg leading-relaxed">
-              Create an organization, add your first project, and flip a real flag in minutes — on
+              Create an organization, add your first project, and flip a real flag in minutes - on
               the free tier.
             </p>
             <div className="flex flex-wrap justify-center gap-3">

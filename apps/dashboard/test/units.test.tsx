@@ -158,7 +158,7 @@ describe('GuestHomePage', () => {
     // the hosted IdP walks returning users through the same authorize call, so a
     // second near-equal button only split the click.
     expect(screen.queryByText('Sign in')).toBeNull();
-    // Nav, hero, closing section, footer — sign-up is reachable from four places
+    // Nav, hero, closing section, footer - sign-up is reachable from four places
     // and every one of them has to carry the path, not just the first.
     const ctas = screen.getAllByText('Get started free');
     expect(ctas.length).toBe(4);
@@ -245,7 +245,7 @@ describe('GuestHomePage', () => {
 
   // GuestNav and GuestFooter hardcode hrefs that only resolve because
   // GuestHomePage names its sections to match. Nothing else fails loudly when
-  // one of the three drifts — a nav chip just silently scrolls nowhere.
+  // one of the three drifts - a nav chip just silently scrolls nowhere.
   it('points every in-page nav and footer anchor at a section that exists', () => {
     renderAt('/');
     const hrefs = [...document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')]
@@ -276,7 +276,7 @@ describe('GuestHomePage', () => {
   });
 
   // The accordion's own behaviour is covered in test/accordion.test.tsx; this is
-  // the wiring — that the FAQ reaches it, opens on exactly one item, and that
+  // the wiring - that the FAQ reaches it, opens on exactly one item, and that
   // every answer is still in the HTML for a crawler even while collapsed.
   it('renders the FAQ as an accordion with one item open', () => {
     renderAt('/');

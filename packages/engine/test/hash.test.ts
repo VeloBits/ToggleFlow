@@ -1,7 +1,7 @@
 /**
  * The hash and bucketing math are part of the frozen v1 contract: the pinned
  * values below must NEVER change. If one of these tests fails, the change
- * breaks rollout consistency for every deployed evaluator — bump the
+ * breaks rollout consistency for every deployed evaluator - bump the
  * schemaVersion instead of touching the hash.
  */
 import { describe, expect, it } from 'vitest';

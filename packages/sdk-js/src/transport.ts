@@ -1,6 +1,6 @@
 /**
  * Update-delivery abstraction (brief §8). Clients only ever expose
- * `subscribe()` / `waitForReady()` / `close()` — HOW updates arrive is an
+ * `subscribe()` / `waitForReady()` / `close()` - HOW updates arrive is an
  * internal transport. Today that is ETag polling; an SSE/streaming transport
  * implements the same interface and slots in WITHOUT any public API change.
  */
@@ -15,7 +15,7 @@ export interface UpdateTransport {
 
 export interface PollingOptions {
   intervalMs: number;
-  /** One refresh cycle. Must handle its own errors — the transport only drives cadence. */
+  /** One refresh cycle. Must handle its own errors - the transport only drives cadence. */
   tick(): Promise<void>;
 }
 

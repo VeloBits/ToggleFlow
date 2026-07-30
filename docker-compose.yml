@@ -1,9 +1,9 @@
-# ToggleFlow — unified compose for the whole monorepo.
+# ToggleFlow - unified compose for the whole monorepo.
 #
 # Profiles:
-#   dev   — tsx watch / vite / wrangler dev with the repo bind-mounted (hot reload)
-#   prod  — built artifacts: API on node, dashboard on static nginx
-#   tools — one-shot database chores (migrate, seed)
+#   dev   - tsx watch / vite / wrangler dev with the repo bind-mounted (hot reload)
+#   prod  - built artifacts: API on node, dashboard on static nginx
+#   tools - one-shot database chores (migrate, seed)
 #
 # Usage:
 #   docker compose --profile dev  up --build
@@ -18,7 +18,7 @@
 #
 # Both routers publish host :3200, so dev and prod cannot run simultaneously.
 #
-# PREREQUISITE — start ../velobits-infra first:
+# PREREQUISITE - start ../velobits-infra first:
 #   cd ../velobits-infra && docker compose up -d
 # It owns Keycloak and CREATES the `velobits-net` network this stack joins as
 # external. Without it, `up` fails with "network velobits-net declared as
@@ -26,7 +26,7 @@
 #
 # NOTE ON KEYCLOAK: velobits-infra pins KC_HOSTNAME=localhost, so every token's
 # `iss` is http://localhost:8080/realms/Velobits no matter which Host header the
-# request carried — while that address is unreachable from inside a container.
+# request carried - while that address is unreachable from inside a container.
 # apps/api therefore takes KEYCLOAK_URL (the issuer it validates `iss` against)
 # and KEYCLOAK_INTERNAL_URL (the base it fetches JWKS from) separately.
 #
@@ -38,8 +38,8 @@
 name: toggleflow
 
 services:
-  # ── Postgres — every profile ────────────────────────────────────────────────
-  # Infrastructure all three profiles need, so it is not scoped to one — `tools`
+  # ── Postgres - every profile ────────────────────────────────────────────────
+  # Infrastructure all three profiles need, so it is not scoped to one - `tools`
   # included, or `--profile tools run --rm seed` fails with "depends on undefined
   # service postgres". No -<profile> suffix on the container name: one container
   # serves them all, and forking it per profile would fork the data volume too.
@@ -52,7 +52,7 @@ services:
       POSTGRES_PASSWORD: toggleflow
       POSTGRES_DB: toggleflow
     ports:
-      # 5434 on the host — 5432 is the usual system default and 5433 is taken by
+      # 5434 on the host - 5432 is the usual system default and 5433 is taken by
       # the fixmytext stack's velobits-dev-db (see the VeloBits dev port map).
       # Published in both profiles because apps/api's integration tests run on
       # the HOST against this database.
@@ -66,7 +66,7 @@ services:
       timeout: 3s
       retries: 10
 
-  # ── Engine watcher — dev ────────────────────────────────────────────────────
+  # ── Engine watcher - dev ────────────────────────────────────────────────────
   # packages/engine is the only internal dependency of api / dashboard /
   # edge-worker, and it resolves through its package.json "exports" to dist/.
   # dist/ is gitignored (absent from a fresh clone AND from the bind mount) and
@@ -89,7 +89,7 @@ services:
       # Whole-repo bind mount for hot reload, plus anonymous volumes masking every
       # node_modules so each container keeps its own Linux-native install. npm
       # workspaces hoists to the root but can still nest per-workspace trees, so
-      # all of them are masked — a pnpm setup would need fewer.
+      # all of them are masked - a pnpm setup would need fewer.
       - .:/app
       - /app/node_modules
       - /app/apps/api/node_modules
@@ -116,11 +116,11 @@ services:
       retries: 40
       start_period: 5s
 
-  # ── Migrate — dev + tools ───────────────────────────────────────────────────
+  # ── Migrate - dev + tools ───────────────────────────────────────────────────
   # One-shot. Uses drizzle-orm's programmatic migrator over the committed SQL in
   # apps/api/drizzle (see apps/api/src/scripts/migrate.ts), so it needs neither
   # drizzle-kit nor drizzle.config.ts. Idempotent, so running it on every `up` is
-  # safe. `restart: 'no'` — a one-shot that exits 0 would otherwise be restarted
+  # safe. `restart: 'no'` - a one-shot that exits 0 would otherwise be restarted
   # forever.
   migrate:
     profiles: ['dev', 'tools']
@@ -146,7 +146,7 @@ services:
         condition: service_healthy
     restart: 'no'
 
-  # ── Seed — tools ────────────────────────────────────────────────────────────
+  # ── Seed - tools ────────────────────────────────────────────────────────────
   # Idempotent (apps/api/src/db/seed.ts exits early if "Demo Org" exists).
   # Run explicitly:  docker compose --profile tools run --rm seed
   seed:
@@ -171,7 +171,7 @@ services:
         condition: service_healthy
     restart: 'no'
 
-  # ── API — dev ───────────────────────────────────────────────────────────────
+  # ── API - dev ───────────────────────────────────────────────────────────────
   api-dev:
     profiles: ['dev']
     build:
@@ -191,7 +191,7 @@ services:
       - /app/packages/engine/node_modules
       - /app/packages/sdk-js/node_modules
       # KV handoff: this container's in-process miniflare WRITES the local KV
-      # store that edge-worker-dev's workerd READS — two separate workerd
+      # store that edge-worker-dev's workerd READS - two separate workerd
       # processes over one SQLite-backed store. A NAMED volume, not the bind
       # mount: SQLite advisory locking over a Windows/WSL2 bind mount is the most
       # reliable way to produce SQLITE_BUSY and a corrupt store. .wrangler/ is
@@ -202,7 +202,7 @@ services:
       PORT: '4000'
       HOST: '0.0.0.0'
       DATABASE_URL: postgres://toggleflow:toggleflow@postgres:5432/toggleflow
-      # The ISSUER — must match the `iss` Keycloak mints (pinned to localhost by
+      # The ISSUER - must match the `iss` Keycloak mints (pinned to localhost by
       # velobits-infra's KC_HOSTNAME), even though it is unreachable from here.
       KEYCLOAK_URL: http://localhost:8080
       # ...which is why the JWKS *fetch* gets its own base, resolved over
@@ -214,7 +214,7 @@ services:
       # Must equal the kv_namespaces id in apps/edge-worker/wrangler.jsonc, or
       # writer and reader address different namespaces in the same store.
       KV_NAMESPACE_ID: toggleflow-rulesets-dev
-      # ABSOLUTE, not the CWD-relative default in apps/api/src/env.ts — that
+      # ABSOLUTE, not the CWD-relative default in apps/api/src/env.ts - that
       # default assumes cwd=apps/api, and this container's cwd is /app.
       KV_PERSIST_PATH: /app/apps/edge-worker/.wrangler/state/v3/kv
       PUBLISH_DEBOUNCE_MS: '500'
@@ -233,7 +233,7 @@ services:
       engine-dev:
         condition: service_healthy
     networks:
-      # `default` re-listed explicitly — without it this service loses DNS for
+      # `default` re-listed explicitly - without it this service loses DNS for
       # postgres and stops being reachable as a router upstream.
       - default
       - velobits
@@ -254,7 +254,7 @@ services:
       retries: 5
       start_period: 30s
 
-  # ── API — prod ──────────────────────────────────────────────────────────────
+  # ── API - prod ──────────────────────────────────────────────────────────────
   api-prod:
     profiles: ['prod']
     build:
@@ -307,7 +307,7 @@ services:
       retries: 5
       start_period: 20s
 
-  # ── Migrate — prod ──────────────────────────────────────────────────────────
+  # ── Migrate - prod ──────────────────────────────────────────────────────────
   # Same image as api-prod, so the second build is a pure cache hit: its runtime
   # stage carries dist/scripts/migrate.js and the drizzle/ SQL folder. api-prod
   # gates on this completing successfully.
@@ -328,7 +328,7 @@ services:
         condition: service_healthy
     restart: 'no'
 
-  # ── Dashboard — dev ─────────────────────────────────────────────────────────
+  # ── Dashboard - dev ─────────────────────────────────────────────────────────
   dashboard-dev:
     profiles: ['dev']
     build:
@@ -348,7 +348,7 @@ services:
       - /app/packages/engine/node_modules
       - /app/packages/sdk-js/node_modules
     environment:
-      # Vite's own /api proxy, used only when hitting :5173 DIRECTLY — through the
+      # Vite's own /api proxy, used only when hitting :5173 DIRECTLY - through the
       # router on :3200, nginx strips /api first. See apps/dashboard/vite.config.ts.
       VITE_DEV_API_PROXY: http://api-dev:4000
       # See engine-dev: without polling, HMR never fires over a Windows bind mount.
@@ -374,7 +374,7 @@ services:
       retries: 10
       start_period: 20s
 
-  # ── Dashboard — prod ────────────────────────────────────────────────────────
+  # ── Dashboard - prod ────────────────────────────────────────────────────────
   dashboard-prod:
     profiles: ['prod']
     build:
@@ -394,14 +394,14 @@ services:
     container_name: toggleflow-dashboard-prod
     restart: unless-stopped
     healthcheck:
-      # wget is fine here — the nginx runtime is alpine/busybox.
+      # wget is fine here - the nginx runtime is alpine/busybox.
       test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/']
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
 
-  # ── Edge worker — dev ───────────────────────────────────────────────────────
+  # ── Edge worker - dev ───────────────────────────────────────────────────────
   # Dev profile only: real production is `wrangler deploy` to Cloudflare, so a
   # local prod container would simulate nothing meaningful.
   edge-worker-dev:
@@ -411,7 +411,7 @@ services:
       dockerfile: docker/Dockerfile.node
       args:
         APP_WORKSPACE: '@toggleflow/edge-worker'
-        # wrangler dev binds 127.0.0.1 by default — --ip 0.0.0.0 is what makes the
+        # wrangler dev binds 127.0.0.1 by default - --ip 0.0.0.0 is what makes the
         # published port and the router upstream reachable.
         DEV_ARGS: '--ip 0.0.0.0 --port 8787'
     container_name: toggleflow-edge-dev
@@ -425,7 +425,7 @@ services:
       - /app/apps/edge-worker/node_modules
       - /app/packages/engine/node_modules
       - /app/packages/sdk-js/node_modules
-      # Reader side of the KV handoff — see api-dev.
+      # Reader side of the KV handoff - see api-dev.
       - wrangler-state:/app/apps/edge-worker/.wrangler
     environment:
       # No TTY under compose: keep wrangler out of its interactive dev session and
@@ -447,10 +447,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      # workerd's first boot is slow — the edge-worker test suite allows 60s.
+      # workerd's first boot is slow - the edge-worker test suite allows 60s.
       start_period: 45s
 
-  # ── Router — dev ────────────────────────────────────────────────────────────
+  # ── Router - dev ────────────────────────────────────────────────────────────
   router:
     profiles: ['dev']
     build:
@@ -481,7 +481,7 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── Router — prod ───────────────────────────────────────────────────────────
+  # ── Router - prod ───────────────────────────────────────────────────────────
   router-prod:
     profiles: ['prod']
     build:
@@ -506,7 +506,7 @@ services:
 
 # ── Networks ──────────────────────────────────────────────────────────────────
 # ../velobits-infra owns and creates this network along with Keycloak. Only the
-# API services join it — they fetch Keycloak's JWKS at http://keycloak-dev:8080.
+# API services join it - they fetch Keycloak's JWKS at http://keycloak-dev:8080.
 # Nothing else needs shared infra; the browser reaches Keycloak on its published
 # host port. Any service that declares `networks:` MUST re-list `default` too
 # (see api-dev), or it loses intra-stack DNS.

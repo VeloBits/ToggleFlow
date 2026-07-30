@@ -55,7 +55,7 @@ const isStatusShape = (v: unknown): v is { status: number; body?: unknown } =>
 
 /**
  * Installs a `fetch` that resolves the handler table. An unhandled route is a
- * test bug, not a 404 — it fails loudly so a renamed endpoint cannot silently
+ * test bug, not a 404 - it fails loudly so a renamed endpoint cannot silently
  * turn into an empty page.
  */
 export function stubFetch(handlers: Handlers): FetchStub {

@@ -359,7 +359,7 @@ export function ToolDetailPage() {
       </div>
       <p className="muted">
         {tool.name}
-        {tool.description ? ` — ${tool.description}` : ''}{' '}
+        {tool.description ? ` - ${tool.description}` : ''}{' '}
         {tool.tags.map((tag) => (
           <span key={tag} className="tag">
             {tag}

@@ -6,14 +6,14 @@ import { MenuIcon, ToggleMarkIcon, XIcon } from '../ui/icons';
 import { ThemeToggle } from '../ui/theme-toggle';
 
 /**
- * Floating "island" nav for the public landing page — a fixed, centred bar that
+ * Floating "island" nav for the public landing page - a fixed, centred bar that
  * gains weight past 40px of scroll but never changes size, so nothing under it
  * shifts. Below `md` the section links collapse into a disclosure panel, while
- * the theme toggle stays in the island at every width — it is a preference, not
+ * the theme toggle stays in the island at every width - it is a preference, not
  * navigation, so burying it behind a hamburger would be a step backwards.
  *
- * "Get started free" is the only auth affordance. There is no /login screen —
- * the hosted IdP takes returning users through the same authorize call — so a
+ * "Get started free" is the only auth affordance. There is no /login screen -
+ * the hosted IdP takes returning users through the same authorize call - so a
  * second Sign in chip only split the click between two buttons of near-equal
  * weight and made the accent action read as optional (see GuestHomePage).
  *
@@ -26,7 +26,7 @@ import { ThemeToggle } from '../ui/theme-toggle';
  * The hrefs are a hard contract with GuestHomePage's section ids: the anchors,
  * the scroll target and the aria-current highlight all key off the same string,
  * so a rename has to happen in both files at once. Labels are deliberately the
- * short, conventional SaaS words — four chips have to survive a tablet-width
+ * short, conventional SaaS words - four chips have to survive a tablet-width
  * island, and "Developers" tells a visitor what the section is *for* where
  * "How it works" only promised an explanation.
  */
@@ -54,8 +54,8 @@ const FOCUS = 'focus-visible:ring-accent focus-visible:ring-2 focus-visible:outl
 
 /**
  * Section anchor as a pill hover-chip. Muted, so the accent stays with the CTA.
- * The horizontal padding is tight at `md` — four chips plus the brand and the
- * action cluster leave under 100px of slack on a 768px island — and relaxes at
+ * The horizontal padding is tight at `md` - four chips plus the brand and the
+ * action cluster leave under 100px of slack on a 768px island - and relaxes at
  * `lg`, where the original 0.85rem rhythm from velobits-website fits again.
  */
 const LINK = `text-muted hover:bg-highlight hover:text-text rounded-pill px-2.5 py-[0.42rem] text-[13px] font-medium whitespace-nowrap transition-colors duration-150 motion-reduce:transition-none lg:px-[0.85rem] ${FOCUS}`;
@@ -124,7 +124,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
           className={cn(
             // rounded-xl (10px) is the same radius as the hero's flag panel and the
             // mobile menu card, so the bar reads as one of the page's surfaces.
-            // max-w-page is the page content grid (theme.css) — the same token the
+            // max-w-page is the page content grid (theme.css) - the same token the
             // hero, every section and the footer use, so the island's box edges are
             // the page's left and right reference lines rather than nearly them.
             // The outer gap steps up in three stages rather than one: at `md` the
@@ -134,7 +134,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
             scrolled ? SURFACE_SCROLLED : SURFACE_TOP,
           )}
         >
-          {/* Not a link — a guest reading this page is already home. The mark is a
+          {/* Not a link - a guest reading this page is already home. The mark is a
               switch in the on position: the product's own metaphor, and it holds
               its shape at 20px where the old ◆ glyph depended on the font. */}
           <span className="flex shrink-0 items-center gap-2">
@@ -164,7 +164,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
           </div>
 
           {/*
-            Utility items first, then the hairline, then the CTA — so the accent
+            Utility items first, then the hairline, then the CTA - so the accent
             fill is the last thing in the bar and stays the visual terminus.
           */}
           <div className="flex shrink-0 items-center gap-1 sm:gap-2.5 lg:gap-3">
@@ -173,7 +173,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
                 // 44px square below `sm`, where the hamburger is its neighbour and
                 // touch is the input mode; it drops to 32px exactly where the CTA
                 // appears, because 32px lands within a pixel of that button's
-                // computed height — a 44px hover circle beside a 31px pill reads
+                // computed height - a 44px hover circle beside a 31px pill reads
                 // as two unrelated controls. Vertical centring is the flex row's.
                 'text-muted hover:bg-highlight hover:text-text rounded-pill h-11 w-11 p-0 transition-colors duration-150 motion-reduce:transition-none sm:h-8 sm:w-8',
                 FOCUS,
@@ -213,7 +213,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
 
         {menuOpen && (
           // `top-full` lands the panel exactly the header's pb-4 below the island
-          // at any nav height — no magic offset to retune. The inset tracks the
+          // at any nav height - no magic offset to retune. The inset tracks the
           // header's px-6, so the panel is exactly as wide as the island above it.
           <div
             ref={menuRef}

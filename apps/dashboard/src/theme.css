@@ -5,12 +5,12 @@
  * utilities (a later layer) override it without `!important` while it still
  * beats Preflight. Unlayered, `button { border-radius; padding }` and
  * `a { color }` would win over every utility. Imported here rather than in
- * main.tsx — a second unlayered import would defeat this.
+ * main.tsx - a second unlayered import would defeat this.
  */
 @import './styles.css' layer(components);
 
 /*
- * VeloBits theme bridge — VSCode Dark+/Light inspired, same palette as
+ * VeloBits theme bridge - VSCode Dark+/Light inspired, same palette as
  * fixmytext's design system (frontend/packages/design-system/theme.css +
  * shell tokens.css). Values live as runtime CSS variables in styles.css
  * (:root = light, body.dark = dark); the inline tokens below expose them
@@ -43,8 +43,8 @@
 @theme {
   /*
    * The public page grid, as `max-w-page`. One token because the landing page's
-   * content box is asserted in four separate places — the nav island, the hero,
-   * every section, and the footer — and their left/right edges only line up
+   * content box is asserted in four separate places - the nav island, the hero,
+   * every section, and the footer - and their left/right edges only line up
    * while all four agree. 72rem/1152px is the widest of them, which is what the
    * nav island and footer already used. The authenticated shell does not use
    * this: it is a fluid full-viewport chrome (see .app-shell in styles.css).

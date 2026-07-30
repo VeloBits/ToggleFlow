@@ -1,4 +1,4 @@
-/** Pure client-side filtering for the tools list — fast at 254+ rows. */
+/** Pure client-side filtering for the tools list - fast at 254+ rows. */
 import type { FlagRow } from '../api/client';
 
 export interface ToolFilter {

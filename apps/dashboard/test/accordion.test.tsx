@@ -46,7 +46,7 @@ describe('Accordion open state', () => {
     expect(items.every((item) => !isOpen(String(item.title)))).toBe(true);
   });
 
-  it('opening a row closes the one that was open — single-expand', () => {
+  it('opening a row closes the one that was open - single-expand', () => {
     render(<Accordion items={items} defaultOpenId="sdk" />);
     fireEvent.click(trigger('What does it cost'));
     expect(isOpen('What does it cost')).toBe(true);
@@ -91,7 +91,7 @@ describe('Accordion ARIA wiring', () => {
     render(<Accordion items={items} defaultOpenId="sdk" />);
     const collapsed = panelFor('What does it cost');
 
-    // Server-rendered text must still be there — this page is the only crawlable surface.
+    // Server-rendered text must still be there - this page is the only crawlable surface.
     expect(collapsed.textContent).toContain('Free while in beta.');
     expect(collapsed.getAttribute('aria-hidden')).toBe('true');
     expect(collapsed.hasAttribute('inert')).toBe(true);

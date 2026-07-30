@@ -1,8 +1,8 @@
 /**
  * Route→flag middleware (roadmap decision 1.2): map routes to tools once and
- * every matched route is guarded — zero per-tool code. A disabled tool
+ * every matched route is guarded - zero per-tool code. A disabled tool
  * answers with its configured fallback (e.g. 503 + message) before your
- * handler ever runs. Framework adapters use structural types only — no
+ * handler ever runs. Framework adapters use structural types only - no
  * express/fastify dependency.
  */
 import type { JsonObject, ToolEvaluation } from '@toggleflow/engine';

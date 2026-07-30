@@ -1,4 +1,4 @@
-/* VeloBits palette (VSCode Light) — mirrors fixmytext shell tokens.css */
+/* VeloBits palette (VSCode Light) - mirrors fixmytext shell tokens.css */
 :root {
   --bg: #f8f8f8;
   --bg2: #eaeaeb;
@@ -20,7 +20,7 @@
   font-family: var(--font-display);
 }
 
-/* VSCode Dark+ — mirrors fixmytext body.dark */
+/* VSCode Dark+ - mirrors fixmytext body.dark */
 body.dark {
   --bg: #1e1e1e;
   --bg2: #2d2d2d;

@@ -188,7 +188,7 @@ describe('bulk upsert (CLI-sync target)', () => {
     expect(config.json().value).toEqual({ limit: 5, fallback: { mode: 'hide' } });
   });
 
-  it('is idempotent — the same manifest again is all unchanged', async () => {
+  it('is idempotent - the same manifest again is all unchanged', async () => {
     const res = await h.app.inject(
       manifest([
         {

@@ -99,7 +99,7 @@ const loaded = () => waitFor(() => expect(screen.getByText('tool.summarize')).to
 /**
  * Positive gate on both panels. Waiting for "Loading flag state…" to DISAPPEAR
  * would pass instantly on the first render, before the tool query has even
- * resolved — that text is absent before the panel exists, not only after.
+ * resolved - that text is absent before the panel exists, not only after.
  */
 const flagReady = () =>
   waitFor(() => {
@@ -120,7 +120,7 @@ describe('header', () => {
   it('renders key, name, description, and tags', async () => {
     renderPage();
     await loaded();
-    expect(screen.getByText(/Summarize — Shortens text/)).toBeTruthy();
+    expect(screen.getByText(/Summarize - Shortens text/)).toBeTruthy();
     expect(screen.getByText('text')).toBeTruthy();
   });
 
@@ -129,7 +129,7 @@ describe('header', () => {
       pageHandlers('admin', { [`GET /v1/tools/${TOOL_ID}`]: toolDetail({ description: null }) }),
     );
     await loaded();
-    expect(screen.queryByText(/—/)).toBeNull();
+    expect(screen.queryByText(/-/)).toBeNull();
   });
 
   it('shows a loading state, then the tool', async () => {
@@ -261,7 +261,7 @@ describe('flag panel', () => {
     );
   });
 
-  it('sends null when the rollout is cleared — empty means everyone', async () => {
+  it('sends null when the rollout is cleared - empty means everyone', async () => {
     const { stub } = renderPage(
       pageHandlers('admin', {
         [`GET /v1/environments/${ENV_ID}/flags`]: [flagRow({ rolloutPercent: 25 })],
@@ -481,7 +481,7 @@ describe('config history', () => {
   it('offers restore only for versions that are not current', async () => {
     renderPage();
     await flagReady();
-    // v3 is current, v2 is not — so exactly one restore button.
+    // v3 is current, v2 is not - so exactly one restore button.
     expect(screen.getAllByText('restore')).toHaveLength(1);
   });
 

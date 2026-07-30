@@ -2,8 +2,8 @@
 # Vite build → static assets served by unprivileged nginx.
 #
 # Build args:
-#   APP_WORKSPACE — npm workspace name, e.g. @toggleflow/dashboard
-#   APP_PATH      — path from the monorepo root, e.g. apps/dashboard
+#   APP_WORKSPACE - npm workspace name, e.g. @toggleflow/dashboard
+#   APP_PATH      - path from the monorepo root, e.g. apps/dashboard
 
 ARG APP_WORKSPACE=@toggleflow/dashboard
 ARG APP_PATH=apps/dashboard
@@ -28,7 +28,7 @@ COPY packages/sdk-js/package.json  ./packages/sdk-js/
 
 RUN npm ci --loglevel=error --no-audit --no-fund
 
-# tsconfig.base.json is extended by every workspace tsconfig — without it esbuild
+# tsconfig.base.json is extended by every workspace tsconfig - without it esbuild
 # warns and silently falls back to default transform options.
 COPY tsconfig.base.json turbo.json ./
 COPY packages/     ./packages/
@@ -36,7 +36,7 @@ COPY ${APP_PATH}/  ./${APP_PATH}/
 
 # Vite inlines these into the bundle at BUILD time (read in
 # apps/dashboard/src/auth/oidc.ts). A compose `env_file`/`environment:` is
-# runtime-only — it reaches nginx, never this stage — so they must be build args.
+# runtime-only - it reaches nginx, never this stage - so they must be build args.
 ARG VITE_KEYCLOAK_URL
 ARG VITE_KEYCLOAK_REALM
 ARG VITE_KEYCLOAK_CLIENT_ID
@@ -52,7 +52,7 @@ RUN find /app/${APP_PATH}/dist -name '*.map' -delete
 # ── Stage 2: Serve ────────────────────────────────────────────────────────────
 # nginx-unprivileged runs as the nginx user out of the box (writable cache/pid
 # paths, listens on 8080). Plain `USER nginx` on the stock nginx image
-# crash-loops — its master process needs root to create /var/cache/nginx/* and
+# crash-loops - its master process needs root to create /var/cache/nginx/* and
 # the pid file.
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
 

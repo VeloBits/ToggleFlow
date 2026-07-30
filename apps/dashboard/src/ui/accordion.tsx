@@ -4,7 +4,7 @@ import { cn } from './cn';
 import { ChevronDownIcon } from './icons';
 
 export interface AccordionItem {
-  /** Stable id — also seeds the trigger/panel element ids. */
+  /** Stable id - also seeds the trigger/panel element ids. */
   id: string;
   title: ReactNode;
   content: ReactNode;
@@ -46,7 +46,7 @@ const FOCUS = 'focus-visible:ring-accent focus-visible:ring-2 focus-visible:outl
 /**
  * `styles.css` lands in Tailwind's `components` layer and styles bare `button`
  * (border, background, radius, padding). Utilities beat it, but only where one
- * is actually written — hence the explicit `border-0`, `bg-transparent`, own
+ * is actually written - hence the explicit `border-0`, `bg-transparent`, own
  * padding and own radius. Drop any of those and the row grows a 6px-rounded
  * panel-coloured box inside the container.
  *
@@ -89,7 +89,7 @@ export function Accordion({ items, defaultOpenId, headingLevel = 3, className }:
 
   // `h2` | `h3` | `h4` as a tag name: the host page decides where the accordion
   // sits in its outline, and a heading that lies about its depth is worse than
-  // no heading. The heading needs `m-0` — styles.css gives h1–h3 a 0.5rem
+  // no heading. The heading needs `m-0` - styles.css gives h1–h3 a 0.5rem
   // bottom margin, which would push every row off its divider.
   const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4';
 
@@ -119,7 +119,7 @@ export function Accordion({ items, defaultOpenId, headingLevel = 3, className }:
         focusTrigger(items.length - 1);
         break;
       default:
-        // Everything else — crucially Tab, Enter and Space — stays native.
+        // Everything else - crucially Tab, Enter and Space - stays native.
         return;
     }
     event.preventDefault();
@@ -169,7 +169,7 @@ export function Accordion({ items, defaultOpenId, headingLevel = 3, className }:
             {/*
               Collapsed panels stay MOUNTED, unlike the pattern's usual `hidden`.
               This landing page is the product's only crawlable surface, so every
-              answer has to be in the served HTML for search and AI crawlers —
+              answer has to be in the served HTML for search and AI crawlers -
               `hidden` (or unmounting) would ship an FAQ with no content in it.
 
               The trade-off that buys is that a zero-height-but-rendered panel is

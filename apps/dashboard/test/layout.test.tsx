@@ -50,7 +50,7 @@ function renderLayout(handlers: Handlers = workspaceHandlers()): { stub: FetchSt
 
 /**
  * Waits for all three switchers to be populated. Gating on the Project select
- * alone is not enough — the environments query resolves one tick later, and
+ * alone is not enough - the environments query resolves one tick later, and
  * asserting before that reads an empty select.
  */
 const ready = () =>

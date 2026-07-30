@@ -1,5 +1,5 @@
 /**
- * React adapter — subpath export (`@toggleflow/sdk/react`) so React stays an
+ * React adapter - subpath export (`@toggleflow/sdk/react`) so React stays an
  * optional peer dependency; the main entry never imports it.
  */
 import type { JsonObject } from '@toggleflow/engine';
@@ -45,7 +45,7 @@ export function useFlagDetails(toolKey: string): EvaluatedFlag | undefined {
   return useSyncExternalStore(subscribe, read, read);
 }
 
-/** `false` while loading or when the tool is disabled/unknown — safe default. */
+/** `false` while loading or when the tool is disabled/unknown - safe default. */
 export function useFlag(toolKey: string): boolean {
   return useFlagDetails(toolKey)?.enabled ?? false;
 }

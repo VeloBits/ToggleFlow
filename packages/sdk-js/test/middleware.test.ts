@@ -60,7 +60,7 @@ describe('matchRoute', () => {
 describe('expressToolGuard', () => {
   const guard = expressToolGuard({ client, routes });
 
-  it('answers disabled tools with the configured fallback — zero per-tool code', () => {
+  it('answers disabled tools with the configured fallback - zero per-tool code', () => {
     const sent: Sent = {};
     let nextCalled = false;
     guard({ method: 'POST', path: '/api/translate' }, expressRes(sent), () => {

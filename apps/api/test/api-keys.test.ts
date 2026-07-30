@@ -45,7 +45,7 @@ describe('API keys', () => {
     expect(token.startsWith(body.prefix)).toBe(true);
     expect(body).not.toHaveProperty('keyHash');
 
-    // Stored form is prefix + hash only — never the token.
+    // Stored form is prefix + hash only - never the token.
     const [row] = await h.db.select().from(apiKeys).where(eq(apiKeys.id, keyId));
     expect(row!.keyHash).not.toBe(token);
     expect(row!.keyHash).toMatch(/^[0-9a-f]{64}$/);

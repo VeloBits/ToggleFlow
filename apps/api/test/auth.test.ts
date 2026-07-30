@@ -65,7 +65,7 @@ describe('first-login provisioning', () => {
     expect(entries.map((e) => e.action)).toContain('org.bootstrap');
   });
 
-  it('is idempotent — a second request reuses the same user and org', async () => {
+  it('is idempotent - a second request reuses the same user and org', async () => {
     const token = await h.signToken('first-login');
     const res = await h.app.inject({ method: 'GET', url: '/v1/me', headers: h.authed(token) });
     expect(res.statusCode).toBe(200);

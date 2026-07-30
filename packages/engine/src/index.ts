@@ -1,12 +1,12 @@
 /**
- * @toggleflow/engine — the shared flag/config evaluation engine.
+ * @toggleflow/engine - the shared flag/config evaluation engine.
  *
  * Written once, run in three places: the control-plane API (snapshot
  * builder), the JS SDK (Node + browser), and the Cloudflare edge worker.
  * Keep this package runtime-agnostic: no Node, DOM, or Workers APIs.
  *
  * The v1 ruleset-snapshot schema and the bucketing hash exported here are
- * FROZEN — wire-format changes require a schemaVersion bump.
+ * FROZEN - wire-format changes require a schemaVersion bump.
  */
 export {
   SCHEMA_VERSION,

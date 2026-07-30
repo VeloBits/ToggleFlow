@@ -51,7 +51,7 @@ export function createKeycloakVerifier(opts: {
   /**
    * Base for the JWKS network fetch; defaults to `issuer`. These differ inside a
    * container: Keycloak pins the `iss` claim to its configured frontend URL
-   * (http://localhost:8080/...), which a container cannot reach — so the fetch
+   * (http://localhost:8080/...), which a container cannot reach - so the fetch
    * goes to http://keycloak-dev:8080/... over the shared network while `iss`
    * validation still compares against `issuer`.
    */

@@ -2,7 +2,7 @@
  * KV clients for the delivery-plane handoff. The control plane only ever
  * WRITES here; the edge worker only ever reads (repo-guide boundary).
  *
- * KV key layout — the entire contract between the two planes:
+ * KV key layout - the entire contract between the two planes:
  *   ruleset:{environmentId}  published ruleset snapshot JSON (frozen engine
  *                            schema). Metadata { contentHash, version } lets
  *                            the worker serve ETag/304 without parsing the body.

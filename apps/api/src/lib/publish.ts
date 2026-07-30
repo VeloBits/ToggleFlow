@@ -1,8 +1,8 @@
 /**
- * The publish pipeline (Phase 4 — fills the Phase 3 stub): every mutation
+ * The publish pipeline (Phase 4 - fills the Phase 3 stub): every mutation
  * schedules a debounced publish; each publish builds the environment's
  * ruleset, stamps a monotonic version + content hash, persists it to
- * ruleset_versions (Postgres is the source of truth — KV is always
+ * ruleset_versions (Postgres is the source of truth - KV is always
  * republishable from here), THEN writes to KV. API-key hashes are published
  * separately so the worker can authenticate without touching origin or DB.
  */
@@ -46,12 +46,12 @@ export class Publisher {
     private readonly opts: { debounceMs: number; logger?: Logger },
   ) {}
 
-  /** Debounced — call freely on every mutation. */
+  /** Debounced - call freely on every mutation. */
   scheduleRuleset(environmentId: string): void {
     this.schedule(`ruleset:${environmentId}`, () => this.publishRuleset(environmentId));
   }
 
-  /** Debounced — call on API-key create/revoke. */
+  /** Debounced - call on API-key create/revoke. */
   scheduleKeys(environmentId: string): void {
     this.schedule(`keys:${environmentId}`, () => this.publishKeys(environmentId));
   }

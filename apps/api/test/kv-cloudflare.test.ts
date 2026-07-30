@@ -1,7 +1,7 @@
 /**
  * The production KV client, driven against a stubbed `fetch`. This is the one
- * path that cannot be exercised for real in CI — it talks to api.cloudflare.com
- * — so the contract is pinned here instead: URL shape, auth header, the
+ * path that cannot be exercised for real in CI - it talks to api.cloudflare.com
+ * - so the contract is pinned here instead: URL shape, auth header, the
  * multipart body, and which HTTP statuses are errors versus expected misses.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -80,7 +80,7 @@ describe('getWithMetadata', () => {
   it('treats a 404 as an empty entry and never asks for metadata', async () => {
     const spy = stubFetch(ok('', 404));
     expect(await client().getWithMetadata('missing')).toEqual({ value: null, metadata: null });
-    // A miss is normal — the second round trip would be wasted.
+    // A miss is normal - the second round trip would be wasted.
     expect(spy).toHaveBeenCalledOnce();
   });
 
@@ -109,7 +109,7 @@ describe('delete', () => {
     expect(init?.method).toBe('DELETE');
   });
 
-  it('tolerates a 404 — deleting an absent key is a no-op', async () => {
+  it('tolerates a 404 - deleting an absent key is a no-op', async () => {
     stubFetch(ok('', 404));
     await expect(client().delete('missing')).resolves.toBeUndefined();
   });

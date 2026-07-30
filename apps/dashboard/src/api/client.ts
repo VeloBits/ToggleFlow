@@ -118,7 +118,7 @@ export interface ApiKey {
   prefix: string;
   createdAt: string;
   revokedAt: string | null;
-  /** Present only in the creation response — shown exactly once. */
+  /** Present only in the creation response - shown exactly once. */
   token?: string;
 }
 

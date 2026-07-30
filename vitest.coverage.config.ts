@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 /**
  * Root config for the MERGED coverage run (`npm run test:coverage`).
  *
- * `npm test` stays on turbo — it runs each workspace's own vitest in parallel
+ * `npm test` stays on turbo - it runs each workspace's own vitest in parallel
  * and is the fast dev loop. This config exists because coverage thresholds only
  * mean something across the whole monorepo: `packages/engine` sitting at 95%
  * should be allowed to offset the dashboard, which a per-package gate cannot
@@ -15,7 +15,7 @@ import { defineConfig } from 'vitest/config';
  *
  * NOT named vitest.config.ts on purpose. Vitest walks UP from a package
  * directory looking for a config, so a root `vitest.config.ts` is inherited by
- * every package that lacks its own (engine, sdk-js, edge-worker) — which then
+ * every package that lacks its own (engine, sdk-js, edge-worker) - which then
  * tries to resolve `projects` relative to itself and dies with "No projects
  * were found". The name keeps it out of auto-discovery; package.json passes it
  * explicitly via --config.
@@ -26,7 +26,7 @@ export default defineConfig({
 
     // apps/api's suites share one Postgres and TRUNCATE all 13 tables between
     // files. Under `projects` every suite lands in one pool, so this has to be
-    // set here — apps/api/vitest.config.ts's copy is ignored in this mode.
+    // set here - apps/api/vitest.config.ts's copy is ignored in this mode.
     // Costs ~30s of wall clock and buys determinism.
     fileParallelism: false,
 
@@ -41,7 +41,7 @@ export default defineConfig({
 
       exclude: [
         // apps/edge-worker's 28 tests boot the BUILT bundle (dist/index.js) in
-        // real workerd via Miniflare — a separate process that in-process v8
+        // real workerd via Miniflare - a separate process that in-process v8
         // instrumentation cannot see, so src/ reports a structural 0%. The
         // tests still run and still gate CI; only the denominator changes.
         // Measuring it for real means porting to @cloudflare/vitest-pool-workers.
@@ -54,7 +54,7 @@ export default defineConfig({
       /**
        * The 70% gate is monorepo-wide, so a well-covered package can carry a
        * weaker one. The per-package globs are no-regression floors, set a few
-       * points below what each package measured when this landed — they do NOT
+       * points below what each package measured when this landed - they do NOT
        * replace the global numbers (glob-matched files stay in the overall
        * calculation), they stop one package quietly rotting behind the average.
        *

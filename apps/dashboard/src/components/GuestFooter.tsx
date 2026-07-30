@@ -5,20 +5,20 @@ import { cn } from '../ui/cn';
 import { ArrowUpIcon, ToggleMarkIcon } from '../ui/icons';
 
 /**
- * Footer for the public landing page — a brand column plus four link groups over
+ * Footer for the public landing page - a brand column plus four link groups over
  * a bottom bar. It replaces the single thin strip the page shipped with, which
  * carried one sentence and a second Sign in button.
  *
  * Structure and rhythm are lifted from velobits-website's Footer so the two
  * VeloBits properties read as one company: brand mark + blurb + social buttons
  * on the left, uppercase group headings, a hairline above a copyright bar. The
- * palette is not lifted — that site is dark-only lime, this has to hold up in
+ * palette is not lifted - that site is dark-only lime, this has to hold up in
  * light and dark on ToggleFlow's own tokens.
  *
  * Every href here resolves to something that actually exists: an id on this
  * page, the GitHub repo, or velobits.dev. The two Legal entries are the only
  * placeholders (see LINK_GROUPS) and are called out there. Groups are short on
- * purpose — a footer that advertises a changelog, status page, and docs site
+ * purpose - a footer that advertises a changelog, status page, and docs site
  * that nobody has built yet is worse than a footer with three honest links.
  */
 
@@ -73,7 +73,7 @@ const LINK_GROUPS: FooterGroup[] = [
   {
     id: 'footer-legal',
     title: 'Legal',
-    // TODO: both of these need real routes (or hosted pages) before launch —
+    // TODO: both of these need real routes (or hosted pages) before launch -
     // '#' is a holding pattern, matching velobits-website's footer, not a
     // destination. Nothing else in this footer is a placeholder, and nothing
     // here promises a policy exists: the labels are the standard two names a
@@ -101,7 +101,7 @@ function GitHubIcon({ size = 17 }: { size?: number }) {
 /**
  * GitHub only. The sibling site keeps an x.com handle in its brand config but
  * its footer renders GitHub alone, and an unverified handle in a launch footer
- * is a dead end with a logo on it. One real icon beats five invented ones — add
+ * is a dead end with a logo on it. One real icon beats five invented ones - add
  * a network here the day the account exists.
  */
 const SOCIAL_LINKS: { label: string; href: string; icon: ReactNode }[] = [
@@ -113,13 +113,13 @@ const FOCUS = 'focus-visible:ring-accent focus-visible:ring-2 focus-visible:outl
 
 /**
  * Group link. `text-muted` is explicit because styles.css sets `a { color:
- * var(--accent) }` — utilities win (styles.css is imported into the components
+ * var(--accent) }` - utilities win (styles.css is imported into the components
  * layer) but only where one is actually written. `py-1.5` is for the thumb, not
  * the look: it lifts each row to ~30px so stacked links are tappable at 320px.
  */
 const LINK = `text-muted hover:text-text rounded-sm py-1.5 text-[13px] leading-snug transition-colors duration-150 motion-reduce:transition-none ${FOCUS}`;
 
-/** Bottom-bar link — smaller, same treatment. */
+/** Bottom-bar link - smaller, same treatment. */
 const META_LINK = `text-muted hover:text-text rounded-sm text-[12.5px] transition-colors duration-150 motion-reduce:transition-none ${FOCUS}`;
 
 /**
@@ -150,7 +150,7 @@ const isExternal = (href: string) => href.startsWith('http');
 
 export function GuestFooter({ returnTo }: { returnTo: string }) {
   const { signup } = useAuth();
-  // Computed, not hardcoded — a stale copyright year is the cheapest way to look
+  // Computed, not hardcoded - a stale copyright year is the cheapest way to look
   // abandoned. This is a static landing page render, so no need to keep it live.
   const year = new Date().getFullYear();
 
@@ -159,7 +159,7 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
       {/* The gutter is on the <footer>, OUTSIDE the cap: with border-box sizing an
           inner `max-w-page px-6` spends the padding out of the 1152px, which put
           the footer's content 24px inside the hero's edges on any display wide
-          enough to cap. The hairline above is unaffected — padding does not move a
+          enough to cap. The hairline above is unaffected - padding does not move a
           block's border, so it still runs the full viewport. pt joins the sections'
           rhythm (64/80px); pb-8 is a terminal, not a step in it. */}
       <div className="mx-auto w-full max-w-page pt-16 pb-8 sm:pt-20">
@@ -171,10 +171,10 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
               <ToggleMarkIcon size={20} className="text-accent" />
               <span className="font-bold">ToggleFlow</span>
             </span>
-            {/* Restates the hero's positioning in one line — keep the two in step. */}
+            {/* Restates the hero's positioning in one line - keep the two in step. */}
             <p className="text-muted mt-3 max-w-[34ch] text-[13px] leading-relaxed">
               Feature flags and remote configuration for modern apps. Kill switches, progressive
-              rollouts, targeting, and versioned config — without a redeploy.
+              rollouts, targeting, and versioned config - without a redeploy.
             </p>
             {/* Carries returnTo like every other auth entry point, so a visitor who
                 landed on a deep link still lands there after the Keycloak round trip.
@@ -209,7 +209,7 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
                  * <nav> borrows it as its accessible name. Size/weight/margin are
                  * explicit: theme.css's base layer makes h2 18px/600 and styles.css
                  * gives it a bottom margin. Headings sit at full text strength
-                 * against muted links — the page spends its accent on eyebrows and
+                 * against muted links - the page spends its accent on eyebrows and
                  * CTAs, and four accent headings down here would shout over both.
                  */}
                 <h2
@@ -240,7 +240,7 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
         </div>
 
         {/* Hairline, then the bottom bar. A plain border, not the sibling site's
-            gradient rule — that reads as decoration on a light background. */}
+            gradient rule - that reads as decoration on a light background. */}
         <div className="border-border/60 mt-12 border-t pt-6">
           <div
             className={cn(
@@ -250,7 +250,7 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
           >
             <p>© {year} VeloBits. All rights reserved.</p>
             <div className="flex flex-wrap items-center gap-3">
-              <span>ToggleFlow — a VeloBits product</span>
+              <span>ToggleFlow - a VeloBits product</span>
               <span aria-hidden className="bg-border hidden h-3 w-px sm:block" />
               {/* #main is the <main> landmark at the top of the page, so this is a
                   real target and doubles as a keyboard route back to the content. */}
