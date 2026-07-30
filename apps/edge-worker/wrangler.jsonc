@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-07-01",
   // KV namespace holding published ruleset snapshots.
-  // The id below is the LOCAL dev id — it must match the API's KV_NAMESPACE_ID
+  // The id below is the LOCAL dev id - it must match the API's KV_NAMESPACE_ID
   // so the control plane's miniflare writes land where `wrangler dev` reads
   // (shared persist at .wrangler/state/v3/kv). Before the first real deploy:
   // `wrangler kv namespace create RULESETS` and paste the generated id here.

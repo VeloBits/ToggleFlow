@@ -11,7 +11,7 @@ export interface SegmentOption {
 }
 
 /**
- * Single-select segmented control (Radix ToggleGroup) — designed for the
+ * Single-select segmented control (Radix ToggleGroup) - designed for the
  * env switcher (dashboard v2) but generic. Selection can never be empty.
  */
 export function SegmentedControl({

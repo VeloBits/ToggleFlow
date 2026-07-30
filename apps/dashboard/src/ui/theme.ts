@@ -1,4 +1,4 @@
-/** Light/dark theme switching — same convention as fixmytext (`body.dark`). */
+/** Light/dark theme switching - same convention as fixmytext (`body.dark`). */
 const STORAGE_KEY = 'tf.theme';
 
 export function initTheme() {

@@ -213,7 +213,7 @@ export function registerToolRoutes(app: FastifyInstance): void {
   });
 
   /**
-   * Bulk upsert — the CLI-sync target (roadmap decision 1.1). Idempotent:
+   * Bulk upsert - the CLI-sync target (roadmap decision 1.1). Idempotent:
    * unchanged entries are counted, not rewritten. With archiveMissing=true,
    * registry tools absent from the manifest are archived (never deleted).
    */

@@ -1,6 +1,6 @@
 /**
  * Exercises the REAL local-KV path (workerd via miniflare) end to end:
- * an API mutation must land a readable snapshot in miniflare-persisted KV —
+ * an API mutation must land a readable snapshot in miniflare-persisted KV -
  * the same storage `wrangler dev` will read in Phase 5.
  */
 import { mkdtempSync, rmSync } from 'node:fs';

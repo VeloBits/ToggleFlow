@@ -2,7 +2,7 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig((options) => ({
   // Separate entries so React stays an optional peer dep behind the
-  // `@toggleflow/sdk/react` subpath — importing the main entry never
+  // `@toggleflow/sdk/react` subpath - importing the main entry never
   // touches React.
   entry: ['src/index.ts', 'src/react.ts'],
   format: ['esm', 'cjs'],

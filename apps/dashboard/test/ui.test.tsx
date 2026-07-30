@@ -82,7 +82,7 @@ describe('StatusChip', () => {
     expect(screen.getByText('ON')).toBeTruthy();
   });
 
-  it('renders 0% rather than ON — a zero rollout is not the same as off', () => {
+  it('renders 0% rather than ON - a zero rollout is not the same as off', () => {
     render(<StatusChip enabled rolloutPercent={0} />);
     expect(screen.getByText('0%')).toBeTruthy();
   });
@@ -112,7 +112,7 @@ describe('ConfirmButton', () => {
       // The disarm runs in a setTimeout, so the re-render needs an act scope.
       act(() => vi.advanceTimersByTime(4000));
       expect(screen.getByRole('button').textContent).toBe('Disable');
-      // The next click only arms again — it must not execute.
+      // The next click only arms again - it must not execute.
       fireEvent.click(screen.getByRole('button'));
       expect(onConfirm).not.toHaveBeenCalled();
     } finally {
@@ -177,7 +177,7 @@ describe('Dialog / Modal', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('closes on Escape — Radix owns the key handling', async () => {
+  it('closes on Escape - Radix owns the key handling', async () => {
     const onClose = vi.fn();
     render(
       <Dialog title="Closable" onClose={onClose}>
@@ -219,7 +219,7 @@ describe('SegmentedControl', () => {
     expect(onValueChange).toHaveBeenCalledWith('prod');
   });
 
-  it('ignores a deselect — the selection can never be empty', () => {
+  it('ignores a deselect - the selection can never be empty', () => {
     const onValueChange = vi.fn();
     render(
       <SegmentedControl

@@ -1,19 +1,19 @@
 # Single-stage Node image for every workspace command that needs monorepo source
 # plus a full (dev-inclusive) install:
-#   dev    — engine watcher, api (tsx watch), dashboard (vite), edge worker (wrangler dev)
-#   tools  — migrate / seed one-shots
+#   dev    - engine watcher, api (tsx watch), dashboard (vite), edge worker (wrangler dev)
+#   tools  - migrate / seed one-shots
 #
 # The base MUST be glibc (Debian), never alpine. TWO workspaces spawn workerd,
-# which Cloudflare ships as a glibc-linked binary — on musl it dies with
+# which Cloudflare ships as a glibc-linked binary - on musl it dies with
 # `spawn .../workerd-linux-64/bin/workerd ENOENT`:
 #   apps/edge-worker  via `wrangler dev`
-#   apps/api          via `miniflare` — a RUNTIME dependency, dynamically
+#   apps/api          via `miniflare` - a RUNTIME dependency, dynamically
 #                     imported whenever KV_MODE=miniflare, which is the zod
 #                     default in apps/api/src/env.ts. Easy to miss.
 #
 # Build args:
-#   APP_WORKSPACE — npm workspace name, e.g. @toggleflow/api
-#   DEV_ARGS      — extra args forwarded to that workspace's `dev` script
+#   APP_WORKSPACE - npm workspace name, e.g. @toggleflow/api
+#   DEV_ARGS      - extra args forwarded to that workspace's `dev` script
 
 FROM node:24-bookworm-slim
 

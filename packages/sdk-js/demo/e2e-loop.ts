@@ -5,7 +5,7 @@
  *
  * 1. Boots a server client against the edge worker (poll: TF_POLL_MS, default 3s;
  *    production default is 30s).
- * 2. Logs every applied ruleset update — flip the flag via the API and watch
+ * 2. Logs every applied ruleset update - flip the flag via the API and watch
  *    it arrive within one poll interval.
  * 3. Kill the edge worker: errors are logged but evaluations keep serving
  *    from the cached ruleset (stale-if-error).
@@ -34,7 +34,7 @@ const client = createServerClient({
   environmentId,
   serverKey,
   pollIntervalMs,
-  onError: (err) => console.log(`[${stamp()}] ERROR ${err.message} — serving stale ruleset`),
+  onError: (err) => console.log(`[${stamp()}] ERROR ${err.message} - serving stale ruleset`),
 });
 
 client.subscribe(({ version }) => {

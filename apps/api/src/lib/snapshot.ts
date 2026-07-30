@@ -31,7 +31,7 @@ export interface SnapshotContent {
   >;
 }
 
-/** JSON.stringify with recursively sorted object keys — hash input must be canonical. */
+/** JSON.stringify with recursively sorted object keys - hash input must be canonical. */
 export function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(',')}]`;

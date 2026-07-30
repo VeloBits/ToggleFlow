@@ -9,7 +9,7 @@ const environmentParams = z.object({ environmentId: z.uuid() });
 export function registerPublishRoutes(app: FastifyInstance): void {
   /**
    * Manual republish: force-rebuilds the ruleset AND the API-key hashes and
-   * rewrites both KV entries even when content is unchanged — the recovery
+   * rewrites both KV entries even when content is unchanged - the recovery
    * path when KV was wiped or drifted (Postgres is the source of truth).
    */
   app.post('/v1/environments/:environmentId/publish', async (req) => {

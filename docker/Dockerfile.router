@@ -1,4 +1,4 @@
-# nginx reverse proxy — the single entry point for the whole stack.
+# nginx reverse proxy - the single entry point for the whole stack.
 #
 # apps/dashboard/src/api/client.ts hardcodes fetch(`/api${path}`) with no
 # configurable base URL, so serving the SPA same-origin with something that

@@ -1,6 +1,6 @@
 /**
  * The dev seed script. It is a documented setup step (`npm run db:seed`), so a
- * silent break costs every new developer an afternoon — and it is the one place
+ * silent break costs every new developer an afternoon - and it is the one place
  * the interesting prod flag states (a kill switch, a 25% rollout) are asserted
  * end to end.
  *
@@ -160,7 +160,7 @@ describe('dev seed', () => {
     expect(value.fallback.message).toMatch(/temporarily unavailable/);
   });
 
-  it('is safe to re-run — the second pass skips instead of duplicating', async () => {
+  it('is safe to re-run - the second pass skips instead of duplicating', async () => {
     await runSeed();
     expect(logs.some((l) => l.startsWith('Seeded:'))).toBe(true);
 

@@ -1,15 +1,15 @@
 /**
- * @toggleflow/sdk — the JS/TS client SDK.
+ * @toggleflow/sdk - the JS/TS client SDK.
  *
  *  - Server client (secret key): boot-fetches the full ruleset, caches it in
  *    memory, evaluates locally via @toggleflow/engine (~0ms per check),
  *    ETag-polls in the background, and serves stale on any outage.
  *  - Browser client (client key): fetches already-evaluated flags from the
- *    edge — targeting rules never ship to the browser.
+ *    edge - targeting rules never ship to the browser.
  *  - Route→flag middleware for Express/Fastify: zero per-tool code.
  *  - React adapter lives behind the `@toggleflow/sdk/react` subpath.
  *
- * Updates arrive through a transport-agnostic subscribe interface — SSE will
+ * Updates arrive through a transport-agnostic subscribe interface - SSE will
  * replace polling later without breaking changes (brief §8).
  */
 export {

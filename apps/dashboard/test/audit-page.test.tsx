@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 /**
  * Audit log: actor resolution against the member list, the before/after detail
- * cell, and cursor pagination — which only offers "Load older" on a full page.
+ * cell, and cursor pagination - which only offers "Load older" on a full page.
  */
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

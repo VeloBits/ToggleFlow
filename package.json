@@ -2,7 +2,7 @@
   "name": "toggleflow",
   "private": true,
   "version": "0.0.1",
-  "description": "VeloBits Control Plane — remote flags, kill switches, rollouts, and live config for tool-heavy apps",
+  "description": "ToggleFlow — feature flags, remote configuration, progressive rollouts, and kill switches for modern apps",
   "type": "module",
   "packageManager": "npm@11.16.0",
   "engines": {

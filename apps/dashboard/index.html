@@ -3,7 +3,78 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ToggleFlow</title>
+
+    <!--
+      This is a Vite SPA: the guest landing page is the crawlable surface, so its
+      metadata is static here rather than injected at runtime. Keep it in step
+      with the copy in src/pages/GuestHomePage.tsx.
+    -->
+    <title>ToggleFlow - Feature Flags &amp; Remote Configuration Platform</title>
+    <meta
+      name="description"
+      content="ToggleFlow is a feature flag and remote configuration platform for developers. Ship behind flags, run progressive rollouts and canary releases - no redeploy."
+    />
+    <link rel="canonical" href="https://toggleflow.dev/" />
+
+    <!-- Matches --bg in src/styles.css so the browser chrome follows the theme. -->
+    <meta name="theme-color" content="#f8f8f8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1e1e1e" media="(prefers-color-scheme: dark)" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ToggleFlow" />
+    <meta property="og:url" content="https://toggleflow.dev/" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:title"
+      content="ToggleFlow - Feature Flags &amp; Remote Configuration Platform"
+    />
+    <meta
+      property="og:description"
+      content="Feature management for tool-heavy apps: kill switches, progressive rollouts, targeting, and versioned remote config - changed from a dashboard, live in seconds."
+    />
+
+    <!-- `summary`, not `summary_large_image`: there is no share image asset yet. -->
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="ToggleFlow - Feature Flags &amp; Remote Configuration Platform"
+    />
+    <meta
+      name="twitter:description"
+      content="Feature management for tool-heavy apps: kill switches, progressive rollouts, targeting, and versioned remote config - changed from a dashboard, live in seconds."
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "ToggleFlow",
+            "url": "https://toggleflow.dev/",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Web",
+            "description": "A feature flag and remote configuration platform: register your tools and features once, then toggle them, roll them out progressively, and edit their configuration live from a dashboard - no redeploy.",
+            "featureList": [
+              "Feature flags and kill switches with a defined fallback",
+              "Percentage-based progressive rollouts and canary releases",
+              "Targeting by segment, plan, or region",
+              "Versioned remote configuration with diff and one-click rollback",
+              "Per-environment scoped API keys, roles, and a full audit trail",
+              "JavaScript and TypeScript SDK plus a plain REST API"
+            ],
+            "publisher": { "@id": "https://toggleflow.dev/#velobits" }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://toggleflow.dev/#velobits",
+            "name": "VeloBits",
+            "url": "https://velobits.dev",
+            "brand": { "@type": "Brand", "name": "ToggleFlow" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

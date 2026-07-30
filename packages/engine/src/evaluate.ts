@@ -24,7 +24,7 @@ export interface ToolEvaluation {
   reason: EvaluationReason;
   /** The tool's live config value (null when none is set, or the tool is unknown). */
   config: JsonObject | null;
-  /** `config.fallback` when present — what to serve when the tool is disabled. */
+  /** `config.fallback` when present - what to serve when the tool is disabled. */
   fallback: JsonValue | null;
 }
 
@@ -108,7 +108,7 @@ export function evaluateTool(
   return evaluate(toolKey, tool, snapshot, context);
 }
 
-/** Evaluate every tool in the snapshot for one user — the edge worker's evaluated-flags payload. */
+/** Evaluate every tool in the snapshot for one user - the edge worker's evaluated-flags payload. */
 export function evaluateAll(
   snapshot: RulesetSnapshot,
   context: UserContext,

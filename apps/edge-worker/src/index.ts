@@ -1,9 +1,9 @@
 /**
- * ToggleFlow delivery plane — the public read API (see API.md).
+ * ToggleFlow delivery plane - the public read API (see API.md).
  *
  * Serves published, versioned ruleset snapshots from KV at the edge. This
  * path is the product's uptime promise: it keeps serving the last published
- * snapshot even when the control plane is down. Read-only — it NEVER calls
+ * snapshot even when the control plane is down. Read-only - it NEVER calls
  * the origin server or the database; even API-key auth runs off hashes the
  * control plane published to KV.
  */
@@ -70,7 +70,7 @@ async function handleRuleset(request: Request, env: Env, url: URL): Promise<Resp
 }
 
 /**
- * Already-evaluated flags for one user — the browser endpoint. Client-key
+ * Already-evaluated flags for one user - the browser endpoint. Client-key
  * auth (server keys also accepted); evaluation happens HERE via the shared
  * engine, so targeting rules and segments never reach the browser and the
  * payload stays tiny even at fixmytext scale (254 tools).
@@ -160,6 +160,6 @@ export default {
     if (url.pathname === '/v1/flags') {
       return handleFlags(request, env, url);
     }
-    return errorResponse(404, 'not_found', 'unknown route — see API.md');
+    return errorResponse(404, 'not_found', 'unknown route - see API.md');
   },
 } satisfies ExportedHandler<Env>;

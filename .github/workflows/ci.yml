@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, develop]
   # `branches` filters on the PR's BASE, not its head. Without it every pull
-  # request runs — including feature -> sandbox, where sandbox is the shared
+  # request runs - including feature -> sandbox, where sandbox is the shared
   # integration branch and CI is not wanted. The trade-off is deliberate:
   # nothing gates a merge into sandbox, and breakage surfaces one step later at
   # the sandbox -> develop PR.
@@ -85,7 +85,7 @@ jobs:
 
       # One merged coverage run across every workspace instead of `npm test`.
       # It runs the same 179 tests, so nothing is lost by replacing the plain
-      # test step — and it must come after Build because apps/edge-worker's
+      # test step - and it must come after Build because apps/edge-worker's
       # suite boots dist/index.js in workerd. Thresholds live in
       # vitest.config.ts and fail the step on their own.
       - name: Test + coverage
@@ -93,7 +93,7 @@ jobs:
         env:
           # Set explicitly rather than relying on the zod default: every var in
           # apps/api/src/env.ts has one, so a mis-wired database never throws at
-          # boot — it fails at the first query, much further from the cause.
+          # boot - it fails at the first query, much further from the cause.
           DATABASE_URL: postgres://toggleflow:toggleflow@localhost:5434/toggleflow
 
       - name: Upload coverage report
@@ -117,7 +117,7 @@ jobs:
       # ../velobits-infra owns velobits-net and does not exist in CI. api-prod
       # joins it as external, so it must exist or `up` errors out. No Keycloak is
       # needed here: /health sits outside the /v1/ auth hook and jose's
-      # createRemoteJWKSet fetches lazily — only an authenticated request would
+      # createRemoteJWKSet fetches lazily - only an authenticated request would
       # try to reach it.
       - name: Create the external network the compose file expects
         run: docker network create velobits-net || true
@@ -136,12 +136,12 @@ jobs:
           echo "router did not become ready" >&2
           exit 1
 
-      - name: Smoke — the stack through one origin
+      - name: Smoke - the stack through one origin
         run: |
           set -euo pipefail
           # Dashboard: nginx serves the built SPA at the webroot.
           curl -sf http://localhost:3200/ | grep -q '<div id="root"'
-          # SPA history fallback — react-router-dom owns /tools client-side, so a
+          # SPA history fallback - react-router-dom owns /tools client-side, so a
           # deep link must return the app shell rather than a 404.
           curl -sf -o /dev/null http://localhost:3200/tools
           # Control plane, through the /api prefix strip.
@@ -149,12 +149,12 @@ jobs:
           # Migrations actually ran (api-prod gates on service_completed_successfully).
           docker compose --profile prod exec -T postgres \
             psql -U toggleflow -d toggleflow -c '\dt' | grep -q ' tools '
-          # Unauthenticated /v1/* is rejected — proves the auth hook is wired.
+          # Unauthenticated /v1/* is rejected - proves the auth hook is wired.
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3200/api/v1/me)" = 401
           # The delivery plane is Cloudflare-only in prod, so /edge/* must 404
           # rather than fall through to the SPA fallback and return HTML with a 200.
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3200/edge/health)" = 404
-          # Exactly one of each security header — the router hides the static
+          # Exactly one of each security header - the router hides the static
           # image's duplicates.
           test "$(curl -sI http://localhost:3200/ | grep -ci '^x-frame-options:')" = 1
 

@@ -3,7 +3,7 @@
  * browsers, and Workers, so no node:crypto / WebCrypto (also enforced by
  * `types: []`).
  *
- * The hash and bucketing math are PART OF THE FROZEN v1 CONTRACT — every
+ * The hash and bucketing math are PART OF THE FROZEN v1 CONTRACT - every
  * evaluator (SDK, edge worker) must bucket a given flagKey+userKey
  * identically, or users flicker in and out of rollouts depending on where
  * the flag is checked.

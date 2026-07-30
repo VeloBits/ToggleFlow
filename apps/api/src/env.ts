@@ -12,7 +12,7 @@ const envSchema = z.object({
   // Container-only override for the JWKS *network fetch*. The `iss` claim
   // Keycloak mints is pinned by KC_HOSTNAME=localhost in the velobits-infra
   // stack, so KEYCLOAK_URL (and therefore keycloakIssuer) must stay
-  // http://localhost:8080 to match it — but that address is unreachable from
+  // http://localhost:8080 to match it - but that address is unreachable from
   // inside a container. Set this to http://keycloak-dev:8080 there, and leave it
   // unset on bare metal.
   KEYCLOAK_INTERNAL_URL: z.string().optional(),

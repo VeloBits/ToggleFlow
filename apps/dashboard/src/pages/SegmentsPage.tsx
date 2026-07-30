@@ -168,7 +168,7 @@ export function SegmentsPage() {
               <td className="mono">{segment.key}</td>
               <td>
                 {segment.name}
-                {segment.description && <span className="muted"> — {segment.description}</span>}
+                {segment.description && <span className="muted"> - {segment.description}</span>}
               </td>
               <td className="mono">{JSON.stringify(segment.rules)}</td>
               <td>

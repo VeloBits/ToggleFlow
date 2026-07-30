@@ -1,8 +1,8 @@
 # Multi-stage production build for the control-plane API (apps/api).
 #
 # Build args:
-#   APP_WORKSPACE — npm workspace name, e.g. @toggleflow/api
-#   APP_PATH      — path from the monorepo root, e.g. apps/api
+#   APP_WORKSPACE - npm workspace name, e.g. @toggleflow/api
+#   APP_PATH      - path from the monorepo root, e.g. apps/api
 #
 # BOTH stages are glibc (Debian), not alpine: `miniflare` is a RUNTIME dependency
 # of apps/api and boots workerd when KV_MODE=miniflare. Cloudflare's workerd
@@ -15,7 +15,7 @@ ARG APP_PATH=apps/api
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM node:24-bookworm-slim AS builder
 
-# Re-declare the global ARGs — Docker ARGs do not cross stage boundaries.
+# Re-declare the global ARGs - Docker ARGs do not cross stage boundaries.
 ARG APP_WORKSPACE
 ARG APP_PATH
 
@@ -31,14 +31,14 @@ COPY packages/sdk-js/package.json  ./packages/sdk-js/
 
 RUN npm ci --loglevel=error --no-audit --no-fund
 
-# tsconfig.base.json is extended by every workspace tsconfig — tsup/tsc hard-fail
+# tsconfig.base.json is extended by every workspace tsconfig - tsup/tsc hard-fail
 # (TS5083) without it in the build context.
 COPY tsconfig.base.json turbo.json ./
 COPY packages/     ./packages/
 COPY ${APP_PATH}/  ./${APP_PATH}/
 
 # turbo.json's build task has dependsOn ["^build"], so this builds
-# packages/engine first — apps/api imports @toggleflow/engine, which resolves to
+# packages/engine first - apps/api imports @toggleflow/engine, which resolves to
 # dist/, which is .dockerignored and therefore absent from the build context.
 RUN npx turbo run build --filter=${APP_WORKSPACE}
 
@@ -66,7 +66,7 @@ COPY --from=builder --chown=node:node /app/${APP_PATH}/package.json ./apps/api/
 COPY --from=builder --chown=node:node /app/${APP_PATH}/dist         ./apps/api/dist
 # Committed SQL migrations + meta journal. dist/scripts/migrate.js resolves this
 # folder from its own module URL, so the one-shot migrate service can reuse this
-# image — drizzle-kit is a devDependency and was pruned above.
+# image - drizzle-kit is a devDependency and was pruned above.
 COPY --from=builder --chown=node:node /app/${APP_PATH}/drizzle      ./apps/api/drizzle
 
 USER node

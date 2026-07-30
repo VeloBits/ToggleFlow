@@ -4,7 +4,7 @@ import { cn } from './cn';
 import { MoonIcon, SunIcon } from './icons';
 import { isDark, toggleTheme } from './theme';
 
-/** Light/dark switch — shared by the app shell topbar and the public guest home. */
+/** Light/dark switch - shared by the app shell topbar and the public guest home. */
 export function ThemeToggle({ className }: { className?: string }) {
   const [dark, setDark] = useState(isDark);
   return (

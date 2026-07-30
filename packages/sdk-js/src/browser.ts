@@ -1,7 +1,7 @@
 /**
- * Browser client — cosmetic enforcement (brief §6): hide disabled tools and
+ * Browser client - cosmetic enforcement (brief §6): hide disabled tools and
  * show fallback notices so users never click a dead button. Fetches
- * ALREADY-EVALUATED flags for the current user from the edge — targeting
+ * ALREADY-EVALUATED flags for the current user from the edge - targeting
  * rules never reach the browser. Same subscribe abstraction as the server
  * client, so SSE can replace polling without breaking changes.
  */
@@ -27,7 +27,7 @@ export interface BrowserClientOptions {
   /** Base URL of the delivery API (the edge worker). */
   edgeUrl: string;
   environmentId: string;
-  /** Client key (tf_cli_...) — designed to be public. */
+  /** Client key (tf_cli_...) - designed to be public. */
   clientKey: string;
   /** The current user; drives targeting and deterministic % rollouts. */
   user: UserContextInput;

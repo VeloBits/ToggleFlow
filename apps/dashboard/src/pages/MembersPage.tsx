@@ -63,7 +63,7 @@ export function MembersPage() {
         <tbody>
           {(membersQuery.data ?? []).map((member) => (
             <tr key={member.userId}>
-              <td>{member.displayName ?? '—'}</td>
+              <td>{member.displayName ?? '-'}</td>
               <td>{member.email}</td>
               <td>
                 {isAdmin ? (
@@ -101,7 +101,7 @@ export function MembersPage() {
       {adding && (
         <Modal title="Add member" onClose={() => setAdding(false)}>
           <p className="muted">
-            They need a ToggleFlow account already (one sign-in is enough) — invitations come later.
+            They need a ToggleFlow account already (one sign-in is enough) - invitations come later.
           </p>
           <div className="field">
             <label htmlFor="member-email">Email</label>

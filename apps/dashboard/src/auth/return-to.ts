@@ -5,7 +5,7 @@
  */
 export function safeReturnTo(value: unknown): string {
   if (typeof value !== 'string' || !value.startsWith('/')) return '/';
-  // `//host` and `/\host` are protocol-relative — they leave the app.
+  // `//host` and `/\host` are protocol-relative - they leave the app.
   if (/^\/[/\\]/.test(value)) return '/';
   // Returning to the callback would re-run a spent auth code.
   if (value.startsWith('/auth/')) return '/';

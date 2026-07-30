@@ -97,7 +97,7 @@ export function registerConfigRoutes(app: FastifyInstance): void {
       .orderBy(desc(configVersions.version));
   });
 
-  /** One-click rollback: a NEW version copying an old one — history stays append-only. */
+  /** One-click rollback: a NEW version copying an old one - history stays append-only. */
   app.post('/v1/environments/:environmentId/tools/:toolId/config/rollback', async (req) => {
     const { environmentId, toolId } = configParams.parse(req.params);
     const body = rollbackBody.parse(req.body);

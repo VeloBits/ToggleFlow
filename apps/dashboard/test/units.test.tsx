@@ -151,19 +151,29 @@ describe('GuestHomePage', () => {
       </MemoryRouter>,
     );
 
-  it('is the landing page and offers sign-in without a login screen', () => {
+  it('is the landing page, and sign-up is its only auth entry point', () => {
     renderAt('/');
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('control plane');
-    fireEvent.click(screen.getAllByText('Sign in')[0]!);
-    expect(auth.login).toHaveBeenCalledWith('/');
-    fireEvent.click(screen.getAllByText('Get started free')[0]!);
-    expect(auth.signup).toHaveBeenCalledWith('/');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Ship faster');
+    // Sign in is gone from the nav and the footer: there is no /login screen, and
+    // the hosted IdP walks returning users through the same authorize call, so a
+    // second near-equal button only split the click.
+    expect(screen.queryByText('Sign in')).toBeNull();
+    // Nav, hero, closing section, footer - sign-up is reachable from four places
+    // and every one of them has to carry the path, not just the first.
+    const ctas = screen.getAllByText('Get started free');
+    expect(ctas.length).toBe(4);
+    for (const cta of ctas) {
+      auth.signup.mockClear();
+      fireEvent.click(cta);
+      expect(auth.signup).toHaveBeenCalledWith('/');
+    }
+    expect(auth.login).not.toHaveBeenCalled();
   });
 
-  it('carries the requested path into sign-in so deep links survive', () => {
+  it('carries the requested path into sign-up so deep links survive', () => {
     renderAt('/tools/abc?env=prod');
-    fireEvent.click(screen.getAllByText('Sign in')[0]!);
-    expect(auth.login).toHaveBeenCalledWith('/tools/abc?env=prod');
+    fireEvent.click(screen.getAllByText('Get started free')[0]!);
+    expect(auth.signup).toHaveBeenCalledWith('/tools/abc?env=prod');
   });
 
   it('weights the nav island past 40px of scroll', () => {
@@ -192,7 +202,8 @@ describe('GuestHomePage', () => {
     expect([...menu.querySelectorAll('a')].map((link) => link.getAttribute('href'))).toEqual([
       '#features',
       '#how',
-      '#why',
+      '#use-cases',
+      '#faq',
     ]);
 
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -230,5 +241,57 @@ describe('GuestHomePage', () => {
     fireEvent.click(features);
     expect(features.getAttribute('aria-current')).toBe('location');
     expect(how.getAttribute('aria-current')).toBeNull();
+  });
+
+  // GuestNav and GuestFooter hardcode hrefs that only resolve because
+  // GuestHomePage names its sections to match. Nothing else fails loudly when
+  // one of the three drifts - a nav chip just silently scrolls nowhere.
+  it('points every in-page nav and footer anchor at a section that exists', () => {
+    renderAt('/');
+    const hrefs = [...document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')]
+      .map((link) => link.getAttribute('href')!)
+      // '#' is the Legal placeholder pair in the footer, pending real routes.
+      .filter((href) => href !== '#');
+    expect(hrefs).toContain('#use-cases');
+    expect(hrefs).toContain('#faq');
+    for (const href of hrefs) {
+      expect(document.getElementById(href.slice(1)), `${href} has no target`).toBeTruthy();
+    }
+  });
+
+  it('renders the footer link groups and carries the path into its CTA', () => {
+    renderAt('/tools/abc?env=prod');
+    const footer = document.querySelector('footer')!;
+    expect([...footer.querySelectorAll('h2')].map((heading) => heading.textContent)).toEqual([
+      'Product',
+      'Developers',
+      'Company',
+      'Legal',
+    ]);
+    const cta = [...footer.querySelectorAll('button')].find(
+      (button) => button.textContent === 'Get started free',
+    )!;
+    fireEvent.click(cta);
+    expect(auth.signup).toHaveBeenCalledWith('/tools/abc?env=prod');
+  });
+
+  // The accordion's own behaviour is covered in test/accordion.test.tsx; this is
+  // the wiring - that the FAQ reaches it, opens on exactly one item, and that
+  // every answer is still in the HTML for a crawler even while collapsed.
+  it('renders the FAQ as an accordion with one item open', () => {
+    renderAt('/');
+    const faq = document.getElementById('faq')!;
+    const triggers = [...faq.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')];
+    expect(triggers.length).toBe(7);
+    expect(triggers.filter((trigger) => trigger.getAttribute('aria-expanded') === 'true')).toEqual([
+      triggers[0],
+    ]);
+    expect(triggers[0]!.textContent).toContain('What are feature flags?');
+    // Collapsed answers stay in the DOM: this page is the SPA's only crawlable surface.
+    expect(faq.textContent).toContain('There is a free tier');
+
+    fireEvent.click(triggers[4]!);
+    expect(triggers[4]!.getAttribute('aria-expanded')).toBe('true');
+    expect(triggers[0]!.getAttribute('aria-expanded')).toBe('false');
   });
 });

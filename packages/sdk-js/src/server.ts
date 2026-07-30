@@ -1,11 +1,11 @@
 /**
- * Server client — the authoritative enforcement point (brief §6).
+ * Server client - the authoritative enforcement point (brief §6).
  *
  * Boot-fetches the full ruleset from the delivery API, caches it in memory,
- * and evaluates locally via @toggleflow/engine — a flag check costs ~0ms and
+ * and evaluates locally via @toggleflow/engine - a flag check costs ~0ms and
  * never leaves the process. Background ETag polling (default 30s) picks up
  * changes; on ANY fetch error the last good ruleset keeps serving
- * (stale-if-error) — the platform being down never breaks your app.
+ * (stale-if-error) - the platform being down never breaks your app.
  */
 import {
   evaluateAll,
@@ -39,7 +39,7 @@ export interface ServerClientOptions {
   environmentId: string;
   /** Secret server key (tf_srv_...). Never expose to browsers. */
   serverKey: string;
-  /** Poll cadence; default 30s. (Polling is an internal transport — see transport.ts.) */
+  /** Poll cadence; default 30s. (Polling is an internal transport - see transport.ts.) */
   pollIntervalMs?: number;
   /** Optional snapshot JSON for cold start: evaluate instantly, before the first fetch. */
   bootstrap?: unknown;
@@ -113,7 +113,7 @@ export class ToggleFlowServerClient {
     return this.snapshot ? evaluateAll(this.snapshot, normalize(user)) : {};
   }
 
-  /** The tool's live config value — user-independent. */
+  /** The tool's live config value - user-independent. */
   getConfig(toolKey: string): JsonObject | null {
     return this.snapshot?.tools[toolKey]?.config ?? null;
   }
@@ -131,14 +131,14 @@ export class ToggleFlowServerClient {
   /**
    * Notifies on every applied ruleset update. The interface is
    * transport-agnostic: when SSE replaces polling, subscribers see the same
-   * events — no code change.
+   * events - no code change.
    */
   subscribe(listener: (update: ServerUpdate) => void): Unsubscribe {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
 
-  /** Force one refresh cycle now (rarely needed — polling runs by itself). */
+  /** Force one refresh cycle now (rarely needed - polling runs by itself). */
   refreshNow(): Promise<void> {
     return this.transport.refreshNow();
   }

@@ -2,7 +2,7 @@
  * Boots the BUILT worker bundle (dist/index.js) in real workerd via
  * miniflare, seeds KV the way the Phase 4 publisher writes it, and drives
  * both endpoints over HTTP. The engine's golden fixtures run through the
- * full worker path — evaluated results must match the frozen expectations.
+ * full worker path - evaluated results must match the frozen expectations.
  *
  * Zero-origin by construction: the only binding is KV; there is no API/DB
  * to call. (The live "origin dead" check is wrangler dev + stopped API.)
@@ -47,7 +47,7 @@ beforeAll(async () => {
     metadata: { contentHash: 'targeting-hash-1', version: 12 },
   });
   // The kill-switch fixture also says env-prod internally; seed it under its
-  // own KV key — the worker routes purely by KV key.
+  // own KV key - the worker routes purely by KV key.
   await kv.put(`ruleset:${KILL_ENV}`, JSON.stringify(killSwitchFixture.snapshot), {
     metadata: { contentHash: 'kill-hash-1', version: 7 },
   });
@@ -65,7 +65,7 @@ afterAll(async () => {
   await mf.dispose();
 });
 
-describe('key auth (zero origin calls — hashes come from KV)', () => {
+describe('key auth (zero origin calls - hashes come from KV)', () => {
   it('rejects missing, malformed, and wrong keys with 401', async () => {
     for (const init of [
       {},
@@ -77,7 +77,7 @@ describe('key auth (zero origin calls — hashes come from KV)', () => {
     }
   });
 
-  it('rejects client keys on the ruleset endpoint — rules never reach browsers', async () => {
+  it('rejects client keys on the ruleset endpoint - rules never reach browsers', async () => {
     const res = await call(`/v1/ruleset?environment=${TARGETING_ENV}`, authed(CLIENT_KEY));
     expect(res.status).toBe(401);
   });
@@ -174,7 +174,7 @@ describe('GET /v1/flags (edge evaluation)', () => {
       authed(CLIENT_KEY),
     );
     const text = await res.text();
-    // JSON property forms — a tool KEY may legitimately contain these words.
+    // JSON property forms - a tool KEY may legitimately contain these words.
     expect(text).not.toContain('"targetingRules"');
     expect(text).not.toContain('"segments"');
     expect(text).not.toContain('"conditions"');
@@ -208,7 +208,7 @@ describe('CORS', () => {
     expect(unauthorized.headers.get('access-control-allow-origin')).toBe('*');
   });
 
-  it('rejects writes — the API is read-only', async () => {
+  it('rejects writes - the API is read-only', async () => {
     const res = await call(`/v1/ruleset?environment=${TARGETING_ENV}`, {
       method: 'POST',
       ...authed(SERVER_KEY),

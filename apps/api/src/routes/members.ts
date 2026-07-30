@@ -1,6 +1,6 @@
 /**
  * Org member management (backs the dashboard's members page). Members must
- * already have a ToggleFlow account (first Keycloak sign-in provisions it) —
+ * already have a ToggleFlow account (first Keycloak sign-in provisions it) -
  * adding is by email lookup, not invitation. The org must always keep at
  * least one admin.
  */
@@ -57,7 +57,7 @@ export function registerMemberRoutes(app: FastifyInstance): void {
       throw new HttpError(
         404,
         'user_not_found',
-        'no ToggleFlow account with that email — they must sign in once first',
+        'no ToggleFlow account with that email - they must sign in once first',
       );
     }
     const member = await app.db.transaction(async (tx) => {

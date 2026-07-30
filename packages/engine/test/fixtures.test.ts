@@ -3,7 +3,7 @@
  * cases of (toolKey, user context) → expected evaluation. Later SDK and
  * edge-worker tests reuse the same files (import from
  * `@toggleflow/engine/fixtures/<name>.json`) and must produce identical
- * results — that is the point of the shared engine.
+ * results - that is the point of the shared engine.
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';

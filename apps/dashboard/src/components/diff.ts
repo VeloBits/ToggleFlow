@@ -8,7 +8,7 @@ export interface DiffLine {
 export function diffLines(before: string, after: string): DiffLine[] {
   const a = before.split('\n');
   const b = after.split('\n');
-  // LCS table — config payloads are small; O(n*m) is fine here.
+  // LCS table - config payloads are small; O(n*m) is fine here.
   const lcs: number[][] = Array.from({ length: a.length + 1 }, () =>
     new Array<number>(b.length + 1).fill(0),
   );

@@ -16,7 +16,7 @@ const keyCreateBody = z.object({
   kind: z.enum(['server', 'client']),
 });
 
-/** Public representation — the hash never leaves the database. */
+/** Public representation - the hash never leaves the database. */
 const toPublic = (key: typeof apiKeys.$inferSelect) => ({
   id: key.id,
   environmentId: key.environmentId,
