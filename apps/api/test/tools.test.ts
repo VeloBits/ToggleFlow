@@ -120,13 +120,29 @@ describe('tools CRUD', () => {
   });
 
   it('returns tool detail with per-environment flag states', async () => {
+    // A new project ships with Production alone, so add a second environment
+    // here - otherwise "per-environment" is asserted against a single row and
+    // the invariant (one flag-state per tool per env) goes untested.
+    const staging = await h.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ws.projectId}/environments`,
+      headers: h.authed(ws.adminToken),
+      payload: { key: 'staging', name: 'Staging' },
+    });
+    expect(staging.statusCode).toBe(201);
+
     const res = await h.app.inject({
       method: 'GET',
       url: `/v1/tools/${toolId}`,
       headers: h.authed(viewerToken),
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().flagStates).toHaveLength(3);
+    expect(
+      res
+        .json()
+        .flagStates.map((s: { environmentId: string }) => s.environmentId)
+        .sort(),
+    ).toEqual([ws.environments[0]!.id, staging.json().id].sort());
   });
 
   it('restricts hard delete to admins', async () => {

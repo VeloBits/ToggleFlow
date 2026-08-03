@@ -1,13 +1,18 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { useAuth } from './auth/AuthContext';
 import { CallbackPage } from './auth/CallbackPage';
 import { Layout } from './components/Layout';
 import { ApiKeysPage } from './pages/ApiKeysPage';
 import { AuditPage } from './pages/AuditPage';
+import { EnvironmentsPage } from './pages/EnvironmentsPage';
 import { GuestHomePage } from './pages/GuestHomePage';
+import { HomePage } from './pages/HomePage';
 import { MembersPage } from './pages/MembersPage';
+import { BillingPage, IntegrationsPage, WebhooksPage } from './pages/PlannedPages';
+import { SearchPage } from './pages/SearchPage';
 import { SegmentsPage } from './pages/SegmentsPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { ToolDetailPage } from './pages/ToolDetailPage';
 import { ToolsPage } from './pages/ToolsPage';
 import { WorkspaceProvider } from './state/WorkspaceContext';
@@ -30,13 +35,28 @@ export function App() {
           ) : (
             <WorkspaceProvider>
               <Layout>
+                {/*
+                  Every path here has a row in nav-items.ts, and every row there
+                  has a path here - the two lists are read together, so a nav
+                  item that goes nowhere is visible as a missing line.
+                */}
                 <Routes>
-                  <Route path="/" element={<ToolsPage />} />
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/flags" element={<ToolsPage />} />
                   <Route path="/tools/:toolId" element={<ToolDetailPage />} />
                   <Route path="/segments" element={<SegmentsPage />} />
+                  <Route path="/environments" element={<EnvironmentsPage />} />
                   <Route path="/keys" element={<ApiKeysPage />} />
                   <Route path="/audit" element={<AuditPage />} />
-                  <Route path="/members" element={<MembersPage />} />
+                  <Route path="/webhooks" element={<WebhooksPage />} />
+                  <Route path="/integrations" element={<IntegrationsPage />} />
+                  <Route path="/team" element={<MembersPage />} />
+                  <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  {/* Pre-refactor paths, kept so existing bookmarks survive. */}
+                  <Route path="/members" element={<Navigate to="/team" replace />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>
             </WorkspaceProvider>

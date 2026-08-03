@@ -13,11 +13,19 @@ export function Dialog({
   onClose,
   children,
   className,
+  onOpenAutoFocus,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   className?: string;
+  /**
+   * Radix focuses the first tabbable element on open, which here is the header
+   * close button. A dialog whose point is a text field (the scope switcher)
+   * passes this to redirect that initial focus; everything else leaves the
+   * default alone.
+   */
+  onOpenAutoFocus?: (event: Event) => void;
 }) {
   return (
     <DialogPrimitive.Root
@@ -31,6 +39,7 @@ export function Dialog({
         <DialogPrimitive.Overlay className="modal-backdrop" />
         <DialogPrimitive.Content
           aria-describedby={undefined}
+          onOpenAutoFocus={onOpenAutoFocus}
           className={cn(
             'modal fixed top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 outline-none',
             className,

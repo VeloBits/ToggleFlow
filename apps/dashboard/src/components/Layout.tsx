@@ -1,130 +1,79 @@
-import { useState, type ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+/**
+ * The authenticated shell: a fixed top bar over a nav rail and the page.
+ *
+ * The rail is a real grid column at `md` and up and an overlay drawer below
+ * it. Both render the same <AppSidebar>, so a nav item added to nav-items.ts
+ * appears in both without either being kept in sync by hand.
+ */
+import { useEffect, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 
-import { useAuth } from '../auth/AuthContext';
-import { useWorkspace } from '../state/WorkspaceContext';
-import { ThemeToggle } from '../ui/theme-toggle';
-import { useToast } from '../ui/toast';
-import { ErrorNote, Modal } from './ui';
-
-function Switchers() {
-  const ws = useWorkspace();
-  const toast = useToast();
-  const [creating, setCreating] = useState(false);
-  const [name, setName] = useState('');
-  const [error, setError] = useState<unknown>(null);
-
-  return (
-    <>
-      <select
-        aria-label="Organization"
-        value={ws.orgId ?? ''}
-        onChange={(e) => ws.selectOrg(e.target.value)}
-      >
-        {ws.me?.orgs.map((org) => (
-          <option key={org.id} value={org.id}>
-            {org.name}
-          </option>
-        ))}
-      </select>
-      {ws.projects.length === 0 ? (
-        ws.role === 'admin' && (
-          <button type="button" onClick={() => setCreating(true)}>
-            ＋ New project
-          </button>
-        )
-      ) : (
-        <select
-          aria-label="Project"
-          value={ws.projectId ?? ''}
-          onChange={(e) =>
-            e.target.value === '__new__' ? setCreating(true) : ws.selectProject(e.target.value)
-          }
-        >
-          {ws.projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-          {ws.role === 'admin' && <option value="__new__">＋ New project…</option>}
-        </select>
-      )}
-      <select
-        aria-label="Environment"
-        value={ws.environmentId ?? ''}
-        onChange={(e) => ws.selectEnvironment(e.target.value)}
-      >
-        {ws.environments.map((env) => (
-          <option key={env.id} value={env.id}>
-            {env.name} ({env.key})
-          </option>
-        ))}
-      </select>
-      {creating && (
-        <Modal title="New project" onClose={() => setCreating(false)}>
-          <div className="field">
-            <label htmlFor="project-name">Name</label>
-            <input id="project-name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <ErrorNote error={error} />
-          <div className="row">
-            <button
-              type="button"
-              className="primary"
-              disabled={!name.trim()}
-              onClick={() => {
-                ws.createProject(name.trim())
-                  .then(() => {
-                    setCreating(false);
-                    setName('');
-                    setError(null);
-                    toast('Project created with dev/staging/prod environments');
-                  })
-                  .catch(setError);
-              }}
-            >
-              Create (with dev/staging/prod)
-            </button>
-            <button type="button" onClick={() => setCreating(false)}>
-              Cancel
-            </button>
-          </div>
-        </Modal>
-      )}
-    </>
-  );
-}
+import { XIcon } from '../ui/icons';
+import { AppSidebar } from './nav/AppSidebar';
+import { AppTopbar, BrandMark } from './nav/AppTopbar';
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
-  const ws = useWorkspace();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  // A drawer left open across a navigation would cover the page the user just
+  // asked for. Rail clicks close it themselves; this also covers the cases
+  // that do not go through a nav row (browser back, a link inside the page).
+  useEffect(() => setDrawerOpen(false), [pathname]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDrawerOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [drawerOpen]);
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <span className="brand">ToggleFlow</span>
-        <Switchers />
-        <span className="spacer" />
-        <span className="who">
-          {ws.me?.user.displayName ?? ws.me?.user.email ?? user?.profile.email}
-          {ws.role ? ` · ${ws.role}` : ''}
-        </span>
-        <ThemeToggle />
-        <button type="button" onClick={() => void logout()}>
-          Sign out
-        </button>
-      </header>
-      <div className="body">
-        <nav className="sidenav">
-          <NavLink to="/" end>
-            Tools
-          </NavLink>
-          <NavLink to="/segments">Segments</NavLink>
-          <NavLink to="/keys">API keys</NavLink>
-          <NavLink to="/audit">Audit log</NavLink>
-          <NavLink to="/members">Members</NavLink>
-        </nav>
-        <main className="content">{children}</main>
+    <div className="bg-bg flex h-screen flex-col">
+      <AppTopbar onOpenSidebar={() => setDrawerOpen(true)} />
+
+      <div className="flex min-h-0 flex-1">
+        {/* `md:flex` rather than a responsive grid: the drawer copy below has
+            to leave the flow entirely, and a grid column cannot. */}
+        <aside className="border-border hidden w-60 shrink-0 border-r md:flex">
+          <AppSidebar />
+        </aside>
+
+        {drawerOpen && (
+          <>
+            <div
+              aria-hidden
+              onClick={() => setDrawerOpen(false)}
+              className="fixed inset-0 z-40 bg-black/45 md:hidden"
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation"
+              className="border-border bg-panel fixed inset-y-0 left-0 z-50 flex w-[17rem] flex-col border-r md:hidden"
+            >
+              <div className="border-border flex h-13 shrink-0 items-center justify-between border-b px-3">
+                <BrandMark />
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={() => setDrawerOpen(false)}
+                  aria-label="Close navigation menu"
+                  className="text-muted hover:bg-highlight hover:text-text focus-visible:ring-accent inline-flex size-8 items-center justify-center rounded-md border-0 bg-transparent p-0 focus-visible:ring-2 focus-visible:outline-none"
+                >
+                  <XIcon size={18} />
+                </button>
+              </div>
+              <div className="min-h-0 flex-1">
+                <AppSidebar onNavigate={() => setDrawerOpen(false)} />
+              </div>
+            </div>
+          </>
+        )}
+
+        <main className="min-w-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</main>
       </div>
     </div>
   );

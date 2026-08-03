@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useWorkspace } from '../src/state/WorkspaceContext';
 import {
+  DEV_ENV_ID,
   ENV_ID,
   ORG_ID,
   PROJECT_ID,
@@ -24,7 +25,6 @@ import {
 
 const SECOND_ORG = '99999999-9999-4999-8999-999999999999';
 const SECOND_PROJECT = '88888888-8888-4888-8888-888888888888';
-const PROD_ENV = '44444444-4444-4444-8444-444444444444';
 
 beforeEach(() => {
   localStorage.clear();
@@ -52,7 +52,7 @@ function Probe() {
       <button type="button" onClick={() => ws.selectProject(SECOND_PROJECT)}>
         pick project
       </button>
-      <button type="button" onClick={() => ws.selectEnvironment(PROD_ENV)}>
+      <button type="button" onClick={() => ws.selectEnvironment(DEV_ENV_ID)}>
         pick env
       </button>
       <button type="button" onClick={() => void ws.createProject('Fresh')}>
@@ -71,13 +71,37 @@ const renderProbe = (handlers: Handlers = workspaceHandlers()) => {
 const settled = () => waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('no'));
 
 describe('default selection', () => {
-  it('picks the first org, project, and environment', async () => {
+  it('picks the first org and project, and the production environment', async () => {
     renderProbe();
     await settled();
     expect(screen.getByTestId('org').textContent).toBe(ORG_ID);
     expect(screen.getByTestId('project').textContent).toBe(PROJECT_ID);
     expect(screen.getByTestId('env').textContent).toBe(ENV_ID);
-    expect(screen.getByTestId('env-name').textContent).toBe('Development');
+    expect(screen.getByTestId('env-name').textContent).toBe('Production');
+  });
+
+  it('prefers production over list order when picking an environment', async () => {
+    // Production listed last: order must not decide which environment opens.
+    renderProbe({
+      ...workspaceHandlers(),
+      [`GET /v1/projects/${PROJECT_ID}/environments`]: [
+        { id: DEV_ENV_ID, key: 'dev', name: 'Development' },
+        { id: ENV_ID, key: 'prod', name: 'Production' },
+      ],
+    });
+    await settled();
+    expect(screen.getByTestId('env').textContent).toBe(ENV_ID);
+  });
+
+  it('falls back to the first environment when there is no production', async () => {
+    renderProbe({
+      ...workspaceHandlers(),
+      [`GET /v1/projects/${PROJECT_ID}/environments`]: [
+        { id: DEV_ENV_ID, key: 'dev', name: 'Development' },
+      ],
+    });
+    await settled();
+    expect(screen.getByTestId('env').textContent).toBe(DEV_ENV_ID);
   });
 
   it('exposes the caller role for the active org', async () => {
@@ -106,11 +130,11 @@ describe('default selection', () => {
 
 describe('stored overrides', () => {
   it('restores a remembered environment', async () => {
-    localStorage.setItem('tf.environment', PROD_ENV);
+    localStorage.setItem('tf.environment', DEV_ENV_ID);
     renderProbe();
     await settled();
-    expect(screen.getByTestId('env').textContent).toBe(PROD_ENV);
-    expect(screen.getByTestId('env-name').textContent).toBe('Production');
+    expect(screen.getByTestId('env').textContent).toBe(DEV_ENV_ID);
+    expect(screen.getByTestId('env-name').textContent).toBe('Development');
   });
 
   it('ignores a remembered org the user no longer belongs to', async () => {
@@ -131,7 +155,7 @@ describe('stored overrides', () => {
 describe('selection cascade', () => {
   it('clears the project and environment when the org changes', async () => {
     localStorage.setItem('tf.project', PROJECT_ID);
-    localStorage.setItem('tf.environment', PROD_ENV);
+    localStorage.setItem('tf.environment', DEV_ENV_ID);
     renderProbe();
     await settled();
 
@@ -144,7 +168,7 @@ describe('selection cascade', () => {
   });
 
   it('clears only the environment when the project changes', async () => {
-    localStorage.setItem('tf.environment', PROD_ENV);
+    localStorage.setItem('tf.environment', DEV_ENV_ID);
     renderProbe();
     await settled();
 
@@ -157,8 +181,8 @@ describe('selection cascade', () => {
     renderProbe();
     await settled();
     fireEvent.click(screen.getByText('pick env'));
-    expect(localStorage.getItem('tf.environment')).toBe(PROD_ENV);
-    await waitFor(() => expect(screen.getByTestId('env').textContent).toBe(PROD_ENV));
+    expect(localStorage.getItem('tf.environment')).toBe(DEV_ENV_ID);
+    await waitFor(() => expect(screen.getByTestId('env').textContent).toBe(DEV_ENV_ID));
   });
 });
 

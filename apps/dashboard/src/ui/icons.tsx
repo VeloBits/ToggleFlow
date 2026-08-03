@@ -72,6 +72,31 @@ export const XIcon = createIcon(
 
 export const ChevronDownIcon = createIcon('ChevronDownIcon', <path d="m6 9 6 6 6-6" />);
 
+export const ChevronRightIcon = createIcon('ChevronRightIcon', <path d="m9 18 6-6-6-6" />);
+
+/**
+ * The affordance on a picker trigger. A lone chevron-down reads as "expand";
+ * the opposed pair says "this value is one of a set you can swap between",
+ * which is what the org/project/env triggers actually do.
+ */
+export const ChevronsUpDownIcon = createIcon(
+  'ChevronsUpDownIcon',
+  <>
+    <path d="m7 15 5 5 5-5" />
+    <path d="m7 9 5-5 5 5" />
+  </>,
+);
+
+export const CheckIcon = createIcon('CheckIcon', <path d="M20 6 9 17l-5-5" />);
+
+export const PlusIcon = createIcon(
+  'PlusIcon',
+  <>
+    <path d="M5 12h14" />
+    <path d="M12 5v14" />
+  </>,
+);
+
 export const ArrowUpIcon = createIcon(
   'ArrowUpIcon',
   <>
@@ -254,6 +279,157 @@ export const CircleHalfIcon = createIcon(
 export const DotIcon = createIcon(
   'DotIcon',
   <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />,
+);
+
+/*
+ * Below here: the authenticated shell's chrome - sidebar nav glyphs, the scope
+ * pickers' entity marks, and the account footer. They render at 15-16px in the
+ * sidebar rail, so each one is checked to still read as itself at that size
+ * rather than borrowed wholesale from a 24px reference.
+ */
+
+export const HomeIcon = createIcon(
+  'HomeIcon',
+  <>
+    <path d="M3 10.5 12 3l9 7.5" />
+    <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+  </>,
+);
+
+export const SearchIcon = createIcon(
+  'SearchIcon',
+  <>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" />
+  </>,
+);
+
+/**
+ * The Flags nav item and the product's primary noun. Lucide's `flag` is a bare
+ * outline whose pole and cloth meet at a thin acute angle that fills in at
+ * 15px; this one squares the hoist and gives the cloth a single wave, so the
+ * silhouette survives. Deliberately not the `ToggleMarkIcon` - that is the
+ * brand mark, and reusing it for a nav row makes the row look like a logo.
+ */
+export const FlagIcon = createIcon(
+  'FlagIcon',
+  <>
+    <path d="M5 21V4" />
+    <path d="M5 15V4h6l1 1.5h7l-2.5 4L19 14h-7l-1-1.5H5" />
+  </>,
+);
+
+/**
+ * Segments - a filtered subset. Lucide's `filter` funnel at 15px loses the
+ * distinction between its neck and its stem; three tracks with a handle on
+ * each (a filter-list glyph) keeps three separate horizontals, which is also
+ * the truer metaphor: a segment is rules narrowing an audience.
+ */
+export const FilterIcon = createIcon(
+  'FilterIcon',
+  <>
+    <path d="M3 6h18" />
+    <path d="M7 12h10" />
+    <path d="M10 18h4" />
+  </>,
+);
+
+export const KeyIcon = createIcon(
+  'KeyIcon',
+  <>
+    <circle cx="7.5" cy="15.5" r="4.5" />
+    <path d="m10.8 12.2 8.2-8.2" />
+    <path d="m16 7 2.5 2.5" />
+  </>,
+);
+
+/**
+ * Webhooks. Lucide's mark is three arcs meeting at a hub, which at 15px merges
+ * into a blob. Drawn instead as what a webhook literally is - an event (the
+ * filled origin dot) pushed out to your endpoint (the bar on the right). Four
+ * strokes, no two of them close enough to fuse.
+ */
+export const WebhookIcon = createIcon(
+  'WebhookIcon',
+  <>
+    <circle cx="4.5" cy="12" r="2.5" fill="currentColor" stroke="none" />
+    <path d="M9 12h7" />
+    <path d="m13 8 4 4-4 4" />
+    <path d="M20.5 4v16" />
+  </>,
+);
+
+/** Integrations - a plug going into a socket. */
+export const PlugIcon = createIcon(
+  'PlugIcon',
+  <>
+    <path d="M9 3v5" />
+    <path d="M15 3v5" />
+    <path d="M6 8h12v3a6 6 0 0 1-12 0Z" />
+    <path d="M12 17v4" />
+  </>,
+);
+
+export const CreditCardIcon = createIcon(
+  'CreditCardIcon',
+  <>
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <path d="M2 10h20" />
+  </>,
+);
+
+/*
+ * Settings deliberately has no icon of its own: the sidebar reuses the
+ * existing `SlidersIcon`. A gear is the obvious choice, but a gear at 15px is
+ * a circle inside a ring of teeth - the same silhouette as `SunIcon`, which
+ * sits four rows below it in the account footer's theme toggle. Two controls
+ * in one rail that resolve to the same shape is worse than a slightly less
+ * conventional glyph.
+ */
+
+/** The org entity mark, in the org picker trigger and its menu rows. */
+export const BuildingIcon = createIcon(
+  'BuildingIcon',
+  <>
+    <path d="M4 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16" />
+    <path d="M15 9h3a2 2 0 0 1 2 2v10" />
+    <path d="M2 21h20" />
+    <path d="M8 7h3" />
+    <path d="M8 11h3" />
+    <path d="M8 15h3" />
+  </>,
+);
+
+/** The project entity mark. */
+export const FolderIcon = createIcon(
+  'FolderIcon',
+  <path d="M3 7a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.6.8L11.5 7H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />,
+);
+
+export const LogOutIcon = createIcon(
+  'LogOutIcon',
+  <>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <path d="M16 17l5-5-5-5" />
+    <path d="M21 12H9" />
+  </>,
+);
+
+export const UserIcon = createIcon(
+  'UserIcon',
+  <>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
+  </>,
+);
+
+/** Collapse/expand the sidebar rail: a frame with its left column filled. */
+export const PanelLeftIcon = createIcon(
+  'PanelLeftIcon',
+  <>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M9 4v16" />
+  </>,
 );
 
 /**

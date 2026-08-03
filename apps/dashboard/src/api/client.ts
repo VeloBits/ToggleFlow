@@ -48,9 +48,15 @@ export const api = {
 
 export type Role = 'admin' | 'developer' | 'viewer';
 
+export interface Org {
+  id: string;
+  name: string;
+  role: Role;
+}
+
 export interface Me {
   user: { id: string; email: string; displayName: string | null };
-  orgs: { id: string; name: string; role: Role }[];
+  orgs: Org[];
 }
 
 export interface Environment {

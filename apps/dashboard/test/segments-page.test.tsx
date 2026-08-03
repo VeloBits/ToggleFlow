@@ -71,7 +71,11 @@ describe('listing', () => {
       pageHandlers('admin', { [`GET ${SEGMENTS_URL}`]: [segment({ description: null })] }),
     );
     await loaded();
-    expect(screen.queryByText(/-/)).toBeNull();
+    // Anchored, because the separator is rendered as " - description" and
+    // Testing Library trims it to "- description". A bare /-/ also matches the
+    // segment key "beta-users", so it can never be null and the assertion was
+    // failing for a reason unrelated to the separator.
+    expect(screen.queryByText(/^-\s/)).toBeNull();
   });
 
   it('shows an empty state', async () => {

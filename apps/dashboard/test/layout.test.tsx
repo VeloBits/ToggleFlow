@@ -1,14 +1,20 @@
 // @vitest-environment happy-dom
 /**
- * The app shell: org/project/environment switchers, the admin-only project
- * creation path, identity display, theme toggle, and nav.
+ * The app shell: the top bar's org/project/environment pickers and their
+ * create flows, the sidebar's navigation, and the account footer that now
+ * owns identity, theme and sign-out.
+ *
+ * The pickers are Radix menus, so the rows only exist once the trigger is
+ * opened - `openPicker` is the entry point for anything that asserts on them.
  */
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider } from '../src/auth/AuthContext';
 import { Layout } from '../src/components/Layout';
+import { NAV_ITEMS } from '../src/components/nav/nav-items';
 import {
+  DEV_ENV_ID,
   ORG_ID,
   PROJECT_ID,
   environments,
@@ -18,12 +24,12 @@ import {
   stubAuth,
   stubFetch,
   workspaceHandlers,
-  type Handlers,
   type FetchStub,
+  type Handlers,
 } from './harness';
 
 const SECOND_PROJECT = '88888888-8888-4888-8888-888888888888';
-const PROD_ENV = '44444444-4444-4444-8444-444444444444';
+const SECOND_ORG = '99999999-9999-4999-8999-999999999999';
 
 beforeEach(() => {
   localStorage.clear();
@@ -48,33 +54,65 @@ function renderLayout(handlers: Handlers = workspaceHandlers()): { stub: FetchSt
   return { stub };
 }
 
-/**
- * Waits for all three switchers to be populated. Gating on the Project select
- * alone is not enough - the environments query resolves one tick later, and
- * asserting before that reads an empty select.
- */
+/** All three pickers are populated - the environments query resolves last. */
 const ready = () =>
-  waitFor(() => {
-    expect(screen.getByLabelText('Project')).toBeTruthy();
-    expect((screen.getByLabelText('Environment') as HTMLSelectElement).value).not.toBe('');
-  });
+  waitFor(() => expect(screen.getByLabelText('Environment: Production')).toBeTruthy());
+
+/**
+ * Opens a scope menu by its trigger's accessible name and returns the menu.
+ *
+ * Enter rather than a click: Radix opens a DropdownMenu on `pointerdown`,
+ * which fireEvent.click does not produce, and the keyboard path is one the
+ * shell has to support anyway.
+ */
+async function openPicker(name: RegExp): Promise<HTMLElement> {
+  fireEvent.keyDown(screen.getByLabelText(name), { key: 'Enter' });
+  return await screen.findByRole('menu');
+}
 
 describe('shell', () => {
-  it('renders the brand, nav, and page children', async () => {
+  it('renders the brand, every nav item, and the page children', async () => {
     renderLayout();
     await ready();
 
     expect(screen.getByText('ToggleFlow')).toBeTruthy();
     expect(screen.getByText('page body')).toBeTruthy();
-    for (const label of ['Tools', 'Segments', 'API keys', 'Audit log', 'Members']) {
-      expect(screen.getByText(label)).toBeTruthy();
+
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    for (const item of NAV_ITEMS) {
+      expect(within(nav).getByText(item.label)).toBeTruthy();
     }
   });
 
-  it('shows the display name and role', async () => {
+  it('marks unbuilt surfaces rather than hiding them', async () => {
     renderLayout();
     await ready();
-    expect(screen.getByText(/Dev User · admin/)).toBeTruthy();
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    // Webhooks, Integrations and Billing are routed but not implemented.
+    expect(within(nav).getAllByText('Soon')).toHaveLength(3);
+  });
+
+  it('keeps identity, theme and sign-out out of the top bar', async () => {
+    renderLayout();
+    await ready();
+    const topbar = screen.getByRole('navigation', { name: 'Scope' });
+    expect(within(topbar).queryByText(/Dev User/)).toBeNull();
+    expect(within(topbar).queryByText('Sign out')).toBeNull();
+    expect(within(topbar).queryByLabelText(/theme/i)).toBeNull();
+  });
+});
+
+describe('account footer', () => {
+  const openAccount = async () => {
+    fireEvent.keyDown(screen.getByLabelText('Account menu'), { key: 'Enter' });
+    return await screen.findByRole('menu');
+  };
+
+  it('shows the display name with the org and role', async () => {
+    renderLayout();
+    await ready();
+    expect(screen.getByText('Dev User')).toBeTruthy();
+    expect(screen.getByText('VeloBits · admin')).toBeTruthy();
   });
 
   it('falls back to the email when there is no display name', async () => {
@@ -83,11 +121,10 @@ describe('shell', () => {
       'GET /v1/me': { user: { ...me().user, displayName: null }, orgs: me().orgs },
     });
     await ready();
-    expect(screen.getByText(/dev@velobits\.test · admin/)).toBeTruthy();
+    expect(screen.getByText('dev@velobits.test')).toBeTruthy();
   });
 
   it('signs out through the UserManager', async () => {
-    stubAuth();
     const auth = stubAuth();
     stubFetch(workspaceHandlers());
     renderWithProviders(
@@ -99,47 +136,114 @@ describe('shell', () => {
     );
     await ready();
 
-    fireEvent.click(screen.getByText('Sign out'));
+    const menu = await openAccount();
+    fireEvent.click(within(menu).getByText('Sign out'));
     expect(auth.signoutRedirect).toHaveBeenCalled();
   });
-});
 
-describe('switchers', () => {
-  it('lists orgs, projects, and environments', async () => {
+  it('flips the theme from the footer and relabels itself without closing', async () => {
     renderLayout();
     await ready();
 
-    expect(screen.getByLabelText('Organization')).toHaveProperty('value', ORG_ID);
-    expect(screen.getByLabelText('Project')).toHaveProperty('value', PROJECT_ID);
-    // Environments render as "Name (key)".
-    expect(screen.getByText('Production (prod)')).toBeTruthy();
+    const menu = await openAccount();
+    fireEvent.click(within(menu).getByText('Switch to dark theme'));
+    expect(document.body.classList.contains('dark')).toBe(true);
+
+    // The menu stays open, so the inverse action is available immediately.
+    fireEvent.click(within(menu).getByText('Switch to light theme'));
+    expect(document.body.classList.contains('dark')).toBe(false);
+  });
+});
+
+describe('scope pickers', () => {
+  it('lists orgs with their role', async () => {
+    renderLayout();
+    await ready();
+    const menu = await openPicker(/^Organization: VeloBits$/);
+    expect(
+      within(menu)
+        .getByRole('menuitemradio', { name: /VeloBits/ })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    expect(within(menu).getByText('admin')).toBeTruthy();
+  });
+
+  it('switching project persists it and resets the environment', async () => {
+    localStorage.setItem('tf.environment', DEV_ENV_ID);
+    renderLayout({
+      ...workspaceHandlers(),
+      [`GET /v1/orgs/${ORG_ID}/projects`]: [project(), { id: SECOND_PROJECT, name: 'Second' }],
+      [`GET /v1/projects/${SECOND_PROJECT}/environments`]: environments(),
+    });
+    await waitFor(() => expect(screen.getByLabelText('Environment: Development')).toBeTruthy());
+
+    const menu = await openPicker(/^Project: Control Plane$/);
+    fireEvent.click(within(menu).getByRole('menuitemradio', { name: 'Second' }));
+
+    expect(localStorage.getItem('tf.project')).toBe(SECOND_PROJECT);
+    expect(localStorage.getItem('tf.environment')).toBeNull();
+  });
+
+  it('switching org clears the project and environment below it', async () => {
+    localStorage.setItem('tf.project', PROJECT_ID);
+    renderLayout({
+      ...workspaceHandlers(),
+      'GET /v1/me': {
+        user: me().user,
+        orgs: [...me().orgs, { id: SECOND_ORG, name: 'Other Co', role: 'viewer' }],
+      },
+      [`GET /v1/orgs/${SECOND_ORG}/projects`]: [],
+    });
+    await ready();
+
+    const menu = await openPicker(/^Organization: VeloBits$/);
+    fireEvent.click(within(menu).getByRole('menuitemradio', { name: /Other Co/ }));
+
+    expect(localStorage.getItem('tf.org')).toBe(SECOND_ORG);
+    expect(localStorage.getItem('tf.project')).toBeNull();
+    expect(localStorage.getItem('tf.environment')).toBeNull();
   });
 
   it('switching environment persists the choice', async () => {
     renderLayout();
     await ready();
 
-    fireEvent.change(screen.getByLabelText('Environment'), { target: { value: PROD_ENV } });
-    expect(localStorage.getItem('tf.environment')).toBe(PROD_ENV);
+    const menu = await openPicker(/^Environment: Production$/);
+    fireEvent.click(within(menu).getByRole('menuitemradio', { name: /Development/ }));
+    expect(localStorage.getItem('tf.environment')).toBe(DEV_ENV_ID);
   });
 
-  it('switching project persists it and resets the environment', async () => {
-    localStorage.setItem('tf.environment', PROD_ENV);
+  it('offers a filterable switcher once there are more orgs than fit inline', async () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({
+      id: `org-${i}`,
+      name: `Org ${i}`,
+      role: 'admin' as const,
+    }));
     renderLayout({
       ...workspaceHandlers(),
-      [`GET /v1/orgs/${ORG_ID}/projects`]: [project(), { id: SECOND_PROJECT, name: 'Second' }],
-      [`GET /v1/projects/${SECOND_PROJECT}/environments`]: environments(),
+      'GET /v1/me': { user: me().user, orgs: [...me().orgs, ...many] },
     });
     await ready();
 
-    fireEvent.change(screen.getByLabelText('Project'), { target: { value: SECOND_PROJECT } });
-    expect(localStorage.getItem('tf.project')).toBe(SECOND_PROJECT);
-    expect(localStorage.getItem('tf.environment')).toBeNull();
+    const menu = await openPicker(/^Organization: VeloBits$/);
+    // Only the inline window is listed; the rest are behind the switcher.
+    expect(within(menu).getAllByRole('menuitemradio')).toHaveLength(8);
+    fireEvent.click(within(menu).getByText('Browse all 13…'));
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Switch organization'), {
+      target: { value: 'org 11' },
+    });
+    expect(within(dialog).getByText('Org 11')).toBeTruthy();
+    expect(within(dialog).queryByText('Org 10')).toBeNull();
+
+    fireEvent.click(within(dialog).getByText('Org 11'));
+    expect(localStorage.getItem('tf.org')).toBe('org-11');
   });
 });
 
 describe('project creation', () => {
-  it('offers a create option to admins and creates from the modal', async () => {
+  it('creates from the project picker and switches to the result', async () => {
     const created = { id: SECOND_PROJECT, name: 'Fresh' };
     const { stub } = renderLayout({
       ...workspaceHandlers(),
@@ -148,11 +252,10 @@ describe('project creation', () => {
     });
     await ready();
 
-    fireEvent.change(screen.getByLabelText('Project'), { target: { value: '__new__' } });
-    expect(screen.getByText('New project')).toBeTruthy();
+    const menu = await openPicker(/^Project: Control Plane$/);
+    fireEvent.click(within(menu).getByText('Create project'));
 
-    const submit = screen.getByText('Create (with dev/staging/prod)');
-    // Guarded until a name is typed.
+    const submit = await screen.findByText('Create project', { selector: 'button' });
     expect(submit).toHaveProperty('disabled', true);
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: '  Fresh  ' } });
@@ -161,13 +264,14 @@ describe('project creation', () => {
     stub.set({ [`GET /v1/orgs/${ORG_ID}/projects`]: [project(), created] });
     fireEvent.click(submit);
 
-    await waitFor(() => expect(screen.getByText(/Project created/)).toBeTruthy());
-    // Name is trimmed before it reaches the API.
-    const call = stub.calls.find((c) => c.key === `POST /v1/orgs/${ORG_ID}/projects`);
-    expect(call?.body).toEqual({ name: 'Fresh' });
+    await waitFor(() => expect(screen.getByText(/Project “Fresh” created/)).toBeTruthy());
+    // Trimmed before it reaches the API.
+    expect(stub.calls.find((c) => c.key === `POST /v1/orgs/${ORG_ID}/projects`)?.body).toEqual({
+      name: 'Fresh',
+    });
   });
 
-  it('surfaces a creation failure in the modal and keeps it open', async () => {
+  it('surfaces a creation failure and keeps the dialog open', async () => {
     renderLayout({
       ...workspaceHandlers(),
       [`POST /v1/orgs/${ORG_ID}/projects`]: {
@@ -177,54 +281,141 @@ describe('project creation', () => {
     });
     await ready();
 
-    fireEvent.change(screen.getByLabelText('Project'), { target: { value: '__new__' } });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Nope' } });
-    fireEvent.click(screen.getByText('Create (with dev/staging/prod)'));
+    const menu = await openPicker(/^Project: Control Plane$/);
+    fireEvent.click(within(menu).getByText('Create project'));
+    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'Nope' } });
+    fireEvent.click(screen.getByText('Create project', { selector: 'button' }));
 
     await waitFor(() => expect(screen.getByText('role too low')).toBeTruthy());
-    expect(screen.getByText('New project')).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
-  it('closes the modal on cancel', async () => {
-    renderLayout();
-    await ready();
-
-    fireEvent.change(screen.getByLabelText('Project'), { target: { value: '__new__' } });
-    fireEvent.click(screen.getByText('Cancel'));
-    expect(screen.queryByText('New project')).toBeNull();
-  });
-
-  it('offers a bare create button when the org has no projects', async () => {
+  it('promotes creation to a top-bar button when the org has no projects', async () => {
     renderLayout({ ...workspaceHandlers(), [`GET /v1/orgs/${ORG_ID}/projects`]: [] });
-    await waitFor(() => expect(screen.getByText('＋ New project')).toBeTruthy());
-    // No project select exists to hang the "__new__" option off.
-    expect(screen.queryByLabelText('Project')).toBeNull();
+    await waitFor(() => expect(screen.getByText('Create project')).toBeTruthy());
+    // There is no project to select, so no project picker is rendered.
+    expect(screen.queryByLabelText(/^Project:/)).toBeNull();
   });
 
-  it('hides project creation from non-admins', async () => {
+  it('tells a non-admin with no projects that there are none, without a create action', async () => {
     renderLayout({ ...workspaceHandlers('developer'), [`GET /v1/orgs/${ORG_ID}/projects`]: [] });
-    await waitFor(() => expect(screen.getByText(/developer/)).toBeTruthy());
-    expect(screen.queryByText('＋ New project')).toBeNull();
+    await waitFor(() => expect(screen.getByText('No projects yet')).toBeTruthy());
+    expect(screen.queryByText('Create project')).toBeNull();
   });
 
-  it('offers no __new__ option to a viewer who does have projects', async () => {
+  it('disables project creation for a viewer who does have projects', async () => {
     renderLayout(workspaceHandlers('viewer'));
     await ready();
-    expect(screen.queryByText('＋ New project…')).toBeNull();
+    const menu = await openPicker(/^Project: Control Plane$/);
+    expect(
+      within(menu).getByRole('menuitem', { name: 'Create project' }).getAttribute('data-disabled'),
+    ).not.toBeNull();
   });
 });
 
-describe('theme toggle', () => {
-  it('flips the theme and relabels itself', async () => {
+describe('organization creation', () => {
+  it('creates an org and switches to it', async () => {
+    const { stub } = renderLayout({
+      ...workspaceHandlers(),
+      'POST /v1/orgs': { id: SECOND_ORG, name: 'Acme', role: 'admin' },
+      [`GET /v1/orgs/${SECOND_ORG}/projects`]: [],
+    });
+    await ready();
+
+    const menu = await openPicker(/^Organization: VeloBits$/);
+    fireEvent.click(within(menu).getByText('Create organization'));
+
+    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'Acme' } });
+    stub.set({
+      'GET /v1/me': {
+        user: me().user,
+        orgs: [...me().orgs, { id: SECOND_ORG, name: 'Acme', role: 'admin' }],
+      },
+    });
+    fireEvent.click(screen.getByText('Create organization', { selector: 'button' }));
+
+    await waitFor(() => expect(localStorage.getItem('tf.org')).toBe(SECOND_ORG));
+    expect(stub.calls.find((c) => c.key === 'POST /v1/orgs')?.body).toEqual({ name: 'Acme' });
+  });
+
+  it('is offered to every member, not just admins', async () => {
+    renderLayout(workspaceHandlers('viewer'));
+    await ready();
+    const menu = await openPicker(/^Organization: VeloBits$/);
+    expect(
+      within(menu)
+        .getByRole('menuitem', { name: 'Create organization' })
+        .getAttribute('data-disabled'),
+    ).toBeNull();
+  });
+});
+
+describe('environment creation', () => {
+  it('derives the key from the name and creates', async () => {
+    const created = { id: 'env-new', key: 'load-testing', name: 'Load Testing' };
+    const { stub } = renderLayout({
+      ...workspaceHandlers(),
+      [`POST /v1/projects/${PROJECT_ID}/environments`]: created,
+    });
+    await ready();
+
+    const menu = await openPicker(/^Environment: Production$/);
+    fireEvent.click(within(menu).getByText('Create environment'));
+
+    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'Load Testing' } });
+    expect(screen.getByLabelText('Key')).toHaveProperty('value', 'load-testing');
+
+    stub.set({
+      [`GET /v1/projects/${PROJECT_ID}/environments`]: [...environments(), created],
+    });
+    fireEvent.click(screen.getByText('Create environment', { selector: 'button' }));
+
+    await waitFor(() => expect(screen.getByText(/Load Testing.*created/)).toBeTruthy());
+    expect(
+      stub.calls.find((c) => c.key === `POST /v1/projects/${PROJECT_ID}/environments`)?.body,
+    ).toEqual({ key: 'load-testing', name: 'Load Testing' });
+  });
+
+  it('refuses a key the API would reject', async () => {
     renderLayout();
     await ready();
 
-    const toggle = screen.getByLabelText('Switch to dark theme');
-    fireEvent.click(toggle);
-    expect(document.body.classList.contains('dark')).toBe(true);
+    const menu = await openPicker(/^Environment: Production$/);
+    fireEvent.click(within(menu).getByText('Create environment'));
+    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'QA' } });
+    fireEvent.change(screen.getByLabelText('Key'), { target: { value: '-nope!' } });
 
-    // The control now offers the inverse action.
-    fireEvent.click(screen.getByLabelText('Switch to light theme'));
-    expect(document.body.classList.contains('dark')).toBe(false);
+    expect(screen.getByText('Create environment', { selector: 'button' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+    expect(screen.getByText(/Lowercase letters, digits and dashes only/)).toBeTruthy();
+  });
+
+  it('is not offered to a developer', async () => {
+    renderLayout(workspaceHandlers('developer'));
+    await ready();
+    const menu = await openPicker(/^Environment: Production$/);
+    expect(
+      within(menu)
+        .getByRole('menuitem', { name: 'Create environment' })
+        .getAttribute('data-disabled'),
+    ).not.toBeNull();
+  });
+});
+
+describe('environment colour', () => {
+  it('marks production and development differently', async () => {
+    renderLayout();
+    await ready();
+    const menu = await openPicker(/^Environment: Production$/);
+
+    const prod = within(menu).getByRole('menuitemradio', { name: /Production/ });
+    const dev = within(menu).getByRole('menuitemradio', { name: /Development/ });
+    expect(prod.querySelector('.bg-off')).toBeTruthy();
+    expect(dev.querySelector('.bg-accent')).toBeTruthy();
+    // Colour is never the only signal - both rows also carry their key.
+    expect(within(menu).getByText('prod')).toBeTruthy();
+    expect(within(menu).getByText('dev')).toBeTruthy();
   });
 });

@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConfigVersion, FlagRow, Tool, ToolConfig } from '../src/api/client';
 import { ToolDetailPage } from '../src/pages/ToolDetailPage';
 import {
+  DEV_ENV_ID,
   ENV_ID,
   renderWithProviders,
   stubAuth,
@@ -21,7 +22,6 @@ import {
 } from './harness';
 
 const TOOL_ID = 't1';
-const PROD_ENV = '44444444-4444-4444-8444-444444444444';
 const CONFIG_BASE = (envId = ENV_ID) => `/v1/environments/${envId}/tools/${TOOL_ID}/config`;
 
 const toolDetail = (over: Partial<Tool> = {}) => ({
@@ -197,10 +197,15 @@ describe('archive', () => {
 
 describe('flag panel', () => {
   it('shows the current state and flips the kill switch without confirming in dev', async () => {
+    // Production is the default selection, so the non-prod path has to ask for
+    // the dev environment explicitly.
+    localStorage.setItem('tf.environment', DEV_ENV_ID);
     const { stub } = renderPage(
-      pageHandlers('admin', {
-        [`PATCH /v1/environments/${ENV_ID}/tools/${TOOL_ID}/flag`]: { ok: true },
-      }),
+      pageHandlers(
+        'admin',
+        { [`PATCH /v1/environments/${DEV_ENV_ID}/tools/${TOOL_ID}/flag`]: { ok: true } },
+        DEV_ENV_ID,
+      ),
     );
     await flagReady();
     expect(screen.getByText('Flag state in Development')).toBeTruthy();
@@ -209,20 +214,18 @@ describe('flag panel', () => {
     fireEvent.click(screen.getByText('Turn OFF (kill switch)'));
     await waitFor(() =>
       expect(
-        stub.calls.find((c) => c.key === `PATCH /v1/environments/${ENV_ID}/tools/${TOOL_ID}/flag`)
-          ?.body,
+        stub.calls.find(
+          (c) => c.key === `PATCH /v1/environments/${DEV_ENV_ID}/tools/${TOOL_ID}/flag`,
+        )?.body,
       ).toEqual({ enabled: false }),
     );
   });
 
   it('requires a second click in prod', async () => {
-    localStorage.setItem('tf.environment', PROD_ENV);
     const { stub } = renderPage(
-      pageHandlers(
-        'admin',
-        { [`PATCH /v1/environments/${PROD_ENV}/tools/${TOOL_ID}/flag`]: { ok: true } },
-        PROD_ENV,
-      ),
+      pageHandlers('admin', {
+        [`PATCH /v1/environments/${ENV_ID}/tools/${TOOL_ID}/flag`]: { ok: true },
+      }),
     );
     await flagReady();
     expect(screen.getByText('production changes ask for confirmation')).toBeTruthy();
@@ -326,13 +329,20 @@ describe('flag panel', () => {
   });
 
   it('surfaces a rejected flag patch', async () => {
+    // In dev, so a single click reaches the API - the prod double-click is a
+    // separate concern with its own test above.
+    localStorage.setItem('tf.environment', DEV_ENV_ID);
     renderPage(
-      pageHandlers('admin', {
-        [`PATCH /v1/environments/${ENV_ID}/tools/${TOOL_ID}/flag`]: {
-          status: 403,
-          body: { error: 'forbidden', message: 'role too low' },
+      pageHandlers(
+        'admin',
+        {
+          [`PATCH /v1/environments/${DEV_ENV_ID}/tools/${TOOL_ID}/flag`]: {
+            status: 403,
+            body: { error: 'forbidden', message: 'role too low' },
+          },
         },
-      }),
+        DEV_ENV_ID,
+      ),
     );
     await flagReady();
 

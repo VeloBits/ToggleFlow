@@ -7,11 +7,18 @@ import { environments, flagStates, projects, tools } from '../db/schema';
 import { writeAudit } from '../lib/audit';
 import { notFound } from '../lib/errors';
 
-const DEFAULT_ENVIRONMENTS = [
-  { key: 'dev', name: 'Development' },
-  { key: 'staging', name: 'Staging' },
-  { key: 'prod', name: 'Production' },
-] as const;
+/**
+ * A new project gets Production and nothing else.
+ *
+ * This used to seed dev/staging/prod. Two of those three were furniture: every
+ * project carried a Staging its team may never deploy to, and an environment
+ * with no API key and no SDK polling it is worse than absent - it dilutes the
+ * env switcher, and "which environment am I editing?" is the one catastrophic
+ * mistake this product exists to prevent. Production is the environment that
+ * always means something, so it is the only one created for you; the rest are
+ * one click away in the environment switcher.
+ */
+const DEFAULT_ENVIRONMENTS = [{ key: 'prod', name: 'Production' }] as const;
 
 const orgParams = z.object({ orgId: z.uuid() });
 const projectParams = z.object({ projectId: z.uuid() });
