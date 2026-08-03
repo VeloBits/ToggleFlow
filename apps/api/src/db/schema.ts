@@ -86,7 +86,11 @@ export const projects = pgTable(
   (t) => [index('projects_org_id_idx').on(t.orgId)],
 );
 
-/** dev/staging/prod are created by default (API-level behavior); custom keys allowed. */
+/**
+ * A project is created with `prod` alone (API-level behavior, routes/projects.ts);
+ * any other key is added explicitly, optionally inheriting an existing
+ * environment's configuration (lib/environment-inheritance.ts).
+ */
 export const environments = pgTable(
   'environments',
   {

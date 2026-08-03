@@ -16,7 +16,11 @@ import { useWorkspace } from '../../state/WorkspaceContext';
 import { cn } from '../../ui/cn';
 import { BuildingIcon, FolderIcon, MenuIcon, PlusIcon, ToggleMarkIcon } from '../../ui/icons';
 import { useToast } from '../../ui/toast';
-import { CreateEnvironmentDialog, NameDialog } from './CreateScopeDialogs';
+import {
+  CreateEnvironmentDialog,
+  NameDialog,
+  environmentCreatedMessage,
+} from './CreateScopeDialogs';
 import { environmentTone } from './environment-tone';
 import { ScopePicker, ScopeSeparator } from './ScopePicker';
 
@@ -171,8 +175,13 @@ export function AppTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
       )}
       {creating === 'environment' && (
         <CreateEnvironmentDialog
+          environments={ws.environments}
+          defaultInheritFromId={ws.environmentId}
           onCreate={(input) =>
-            ws.createEnvironment(input).then(() => toast(`Environment “${input.name}” created`))
+            ws.createEnvironment(input).then((created) => {
+              toast(environmentCreatedMessage(created));
+              return created;
+            })
           }
           onClose={close}
         />

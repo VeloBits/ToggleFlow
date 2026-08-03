@@ -126,11 +126,15 @@ describe('mutations', () => {
     );
   });
 
-  it('creates one and selects it', async () => {
+  it('creates one and selects it, inheriting the current environment', async () => {
     const created = { id: 'env-qa', key: 'qa', name: 'QA' };
     const { stub } = renderPage({
       ...workspaceHandlers(),
-      [`POST /v1/projects/${PROJECT_ID}/environments`]: created,
+      [`POST /v1/projects/${PROJECT_ID}/environments`]: {
+        ...created,
+        inheritedFrom: { id: ENV_ID, key: 'prod', name: 'Production' },
+        copied: [{ key: 'flagStates', label: 'flag states', count: 3 }],
+      },
     });
     await loaded();
 
@@ -144,7 +148,18 @@ describe('mutations', () => {
     await waitFor(() => expect(localStorage.getItem('tf.environment')).toBe('env-qa'));
     expect(
       stub.calls.find((c) => c.key === `POST /v1/projects/${PROJECT_ID}/environments`)?.body,
-    ).toEqual({ key: 'qa', name: 'QA' });
+    ).toEqual({ key: 'qa', name: 'QA', inheritFromEnvironmentId: ENV_ID });
+    expect(screen.getAllByText(/3 flag states from Production/).length).toBeGreaterThan(0);
+  });
+
+  it('duplicates a row by pre-selecting it as the inheritance source', async () => {
+    renderPage();
+    await loaded();
+
+    // Development is the second row, and is not the current environment - so
+    // this proves the row identity is what seeds the dialog, not the selection.
+    fireEvent.click(screen.getAllByText('Duplicate')[1]!);
+    expect(await screen.findByLabelText('Inherit from')).toHaveProperty('value', DEV_ENV_ID);
   });
 
   it('surfaces a failed rename', async () => {

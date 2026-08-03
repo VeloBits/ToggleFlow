@@ -1,11 +1,12 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { requireOrgRole, resolveEnvironment, resolveProject } from '../auth/rbac';
 import { environments, flagStates, projects, tools } from '../db/schema';
 import { writeAudit } from '../lib/audit';
-import { notFound } from '../lib/errors';
+import { badRequest, notFound } from '../lib/errors';
+import { inheritEnvironment, type CopiedResource } from '../lib/environment-inheritance';
 
 /**
  * A new project gets Production and nothing else.
@@ -32,6 +33,12 @@ const environmentBody = z.object({
     .max(50)
     .regex(/^[a-z0-9][a-z0-9-]*$/, 'lowercase letters, digits, and dashes only'),
   name: z.string().min(1).max(200),
+  /**
+   * Copy this environment's configuration into the new one as a starting
+   * snapshot (lib/environment-inheritance.ts). Absent or null = blank
+   * environment, which stays the behaviour for any caller that predates this.
+   */
+  inheritFromEnvironmentId: z.uuid().nullish(),
 });
 const environmentPatchBody = z.object({ name: z.string().min(1).max(200) });
 
@@ -145,7 +152,30 @@ export function registerProjectRoutes(app: FastifyInstance): void {
     const body = environmentBody.parse(req.body);
     const scope = await resolveProject(app.db, req.auth, projectId, 'admin');
 
-    const environment = await app.db.transaction(async (tx) => {
+    /*
+     * Resolved before the transaction opens, and constrained to this project by
+     * the same query that fetches it: a caller who passes a valid environment
+     * id from a project they can also see must not be able to siphon its
+     * configuration in here. 400 rather than 404 because the id is a field in
+     * the body the client controls, not the resource being addressed.
+     */
+    let inheritFrom: { id: string; key: string; name: string } | null = null;
+    if (body.inheritFromEnvironmentId) {
+      const [source] = await app.db
+        .select({ id: environments.id, key: environments.key, name: environments.name })
+        .from(environments)
+        .where(
+          and(
+            eq(environments.id, body.inheritFromEnvironmentId),
+            eq(environments.projectId, projectId),
+          ),
+        );
+      if (!source)
+        throw badRequest('inheritFromEnvironmentId is not an environment of this project');
+      inheritFrom = source;
+    }
+
+    const created = await app.db.transaction(async (tx) => {
       const [row] = await tx
         .insert(environments)
         .values({ projectId, key: body.key, name: body.name })
@@ -162,18 +192,38 @@ export function registerProjectRoutes(app: FastifyInstance): void {
           .values(toolRows.map((t) => ({ toolId: t.id, environmentId: row.id })))
           .onConflictDoNothing();
       }
+
+      // Inside the same transaction as the insert above, so a failed copy can
+      // never leave a half-inherited environment behind.
+      const copied: CopiedResource[] = inheritFrom
+        ? await inheritEnvironment({
+            tx,
+            fromEnvironmentId: inheritFrom.id,
+            toEnvironmentId: row.id,
+            actorId: req.auth.user.id,
+          })
+        : [];
+
       await writeAudit(tx, {
         orgId: scope.orgId,
         actorId: req.auth.user.id,
         action: 'environment.create',
         entityType: 'environment',
         entityId: row.id,
-        after: { key: row.key, name: row.name, projectId },
+        after: {
+          key: row.key,
+          name: row.name,
+          projectId,
+          ...(inheritFrom && {
+            inheritedFrom: { id: inheritFrom.id, key: inheritFrom.key },
+            copied: Object.fromEntries(copied.map((c) => [c.key, c.count])),
+          }),
+        },
       });
-      return row;
+      return { ...row, inheritedFrom: inheritFrom, copied };
     });
-    app.publisher.scheduleRuleset(environment.id);
-    return reply.status(201).send(environment);
+    app.publisher.scheduleRuleset(created.id);
+    return reply.status(201).send(created);
   });
 
   app.patch('/v1/environments/:environmentId', async (req) => {

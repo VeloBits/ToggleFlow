@@ -5,7 +5,16 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
-import { api, type Environment, type Me, type Org, type Project, type Role } from '../api/client';
+import {
+  api,
+  type CreateEnvironmentInput,
+  type CreatedEnvironment,
+  type Environment,
+  type Me,
+  type Org,
+  type Project,
+  type Role,
+} from '../api/client';
 
 interface WorkspaceState {
   me: Me | null;
@@ -26,7 +35,8 @@ interface WorkspaceState {
   selectEnvironment: (environmentId: string) => void;
   createOrg: (name: string) => Promise<void>;
   createProject: (name: string) => Promise<void>;
-  createEnvironment: (input: { key: string; name: string }) => Promise<void>;
+  /** Resolves with what the API copied, so the caller can report it. */
+  createEnvironment: (input: CreateEnvironmentInput) => Promise<CreatedEnvironment>;
 }
 
 const WorkspaceContext = createContext<WorkspaceState | null>(null);
@@ -131,10 +141,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   );
 
   const createEnvironment = useCallback(
-    async (input: { key: string; name: string }) => {
-      const created = await api.post<Environment>(`/v1/projects/${projectId}/environments`, input);
+    async (input: CreateEnvironmentInput) => {
+      const created = await api.post<CreatedEnvironment>(
+        `/v1/projects/${projectId}/environments`,
+        input,
+      );
       await queryClient.invalidateQueries({ queryKey: ['environments', projectId] });
+      // An inherited environment arrives with flag state and config already in
+      // it, so the per-environment queries for the project are stale too.
+      await queryClient.invalidateQueries({ queryKey: ['flags'] });
       selectEnvironment(created.id);
+      return created;
     },
     [projectId, queryClient, selectEnvironment],
   );

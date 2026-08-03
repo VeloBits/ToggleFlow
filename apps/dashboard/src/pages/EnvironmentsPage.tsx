@@ -13,7 +13,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { api, type Environment } from '../api/client';
-import { CreateEnvironmentDialog } from '../components/nav/CreateScopeDialogs';
+import {
+  CreateEnvironmentDialog,
+  environmentCreatedMessage,
+} from '../components/nav/CreateScopeDialogs';
 import { environmentTone } from '../components/nav/environment-tone';
 import { EmptyState, PageHeader, Panel } from '../components/page';
 import { ConfirmButton, ErrorNote } from '../components/ui';
@@ -27,7 +30,12 @@ export function EnvironmentsPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const isAdmin = ws.role === 'admin';
-  const [creating, setCreating] = useState(false);
+  /**
+   * Non-null while the dialog is open, carrying which environment it should
+   * offer to inherit from - `null` inside means "blank". A bare boolean could
+   * not express "open, defaulting to blank".
+   */
+  const [creating, setCreating] = useState<{ inheritFromId: string | null } | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
 
@@ -86,7 +94,11 @@ export function EnvironmentsPage() {
         }
         actions={
           isAdmin && (
-            <button type="button" className="primary" onClick={() => setCreating(true)}>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => setCreating({ inheritFromId: ws.environmentId })}
+            >
               <PlusIcon size={14} className="mr-1 inline align-[-2px]" />
               New environment
             </button>
@@ -168,6 +180,15 @@ export function EnvironmentsPage() {
                       )}
                       {isAdmin && (
                         <>
+                          {/* The shortest path to "another environment like this
+                              one" - opens the create dialog with this row
+                              pre-selected as the inheritance source. */}
+                          <button
+                            type="button"
+                            onClick={() => setCreating({ inheritFromId: environment.id })}
+                          >
+                            Duplicate
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
@@ -213,10 +234,15 @@ export function EnvironmentsPage() {
 
       {creating && (
         <CreateEnvironmentDialog
+          environments={environments}
+          defaultInheritFromId={creating.inheritFromId}
           onCreate={(input) =>
-            ws.createEnvironment(input).then(() => toast(`Environment “${input.name}” created`))
+            ws.createEnvironment(input).then((created) => {
+              toast(environmentCreatedMessage(created));
+              return created;
+            })
           }
-          onClose={() => setCreating(false)}
+          onClose={() => setCreating(null)}
         />
       )}
     </>

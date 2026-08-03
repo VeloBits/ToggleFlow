@@ -58,7 +58,11 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Project',
     items: [
-      { to: '/flags', label: 'Feature flags', icon: FlagIcon },
+      // "Flags", not "Feature flags": the product's primary noun covers feature
+      // flags, kill switches, tool flags and config entries alike (the `kind`
+      // field is what distinguishes them), so the narrower word described only
+      // one of the things this screen lists. The route stays /flags.
+      { to: '/flags', label: 'Flags', icon: FlagIcon },
       { to: '/segments', label: 'Segments', icon: FilterIcon },
       { to: '/environments', label: 'Environments', icon: LayersIcon },
       { to: '/keys', label: 'API keys', icon: KeyIcon },

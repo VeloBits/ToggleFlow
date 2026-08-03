@@ -15,6 +15,7 @@ import { Layout } from '../src/components/Layout';
 import { NAV_ITEMS } from '../src/components/nav/nav-items';
 import {
   DEV_ENV_ID,
+  ENV_ID,
   ORG_ID,
   PROJECT_ID,
   environments,
@@ -264,7 +265,9 @@ describe('project creation', () => {
     stub.set({ [`GET /v1/orgs/${ORG_ID}/projects`]: [project(), created] });
     fireEvent.click(submit);
 
-    await waitFor(() => expect(screen.getByText(/Project “Fresh” created/)).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getAllByText(/Project “Fresh” created/).length).toBeGreaterThan(0),
+    );
     // Trimmed before it reaches the API.
     expect(stub.calls.find((c) => c.key === `POST /v1/orgs/${ORG_ID}/projects`)?.body).toEqual({
       name: 'Fresh',
@@ -351,29 +354,127 @@ describe('organization creation', () => {
 });
 
 describe('environment creation', () => {
-  it('derives the key from the name and creates', async () => {
-    const created = { id: 'env-new', key: 'load-testing', name: 'Load Testing' };
+  const ENV_URL = `POST /v1/projects/${PROJECT_ID}/environments`;
+  const newEnv = { id: 'env-new', key: 'load-testing', name: 'Load Testing' };
+
+  /** The shape the API returns: the row, its source, and per-resource counts. */
+  const createdWith = (inheritedFrom: object | null, copied: object[] = []) => ({
+    ...newEnv,
+    inheritedFrom,
+    copied,
+  });
+
+  const openCreate = async () => {
+    const menu = await openPicker(/^Environment: Production$/);
+    fireEvent.click(within(menu).getByText('Create environment'));
+    return await screen.findByLabelText('Name');
+  };
+
+  const postBody = (stub: FetchStub) => stub.calls.find((c) => c.key === ENV_URL)?.body;
+
+  it('derives the key from the name and inherits the current environment by default', async () => {
     const { stub } = renderLayout({
       ...workspaceHandlers(),
-      [`POST /v1/projects/${PROJECT_ID}/environments`]: created,
+      [ENV_URL]: createdWith({ id: ENV_ID, key: 'prod', name: 'Production' }, [
+        { key: 'flagStates', label: 'flag states', count: 254 },
+        { key: 'toolConfigs', label: 'config values', count: 12 },
+      ]),
     });
     await ready();
 
-    const menu = await openPicker(/^Environment: Production$/);
-    fireEvent.click(within(menu).getByText('Create environment'));
-
-    fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'Load Testing' } });
+    const name = await openCreate();
+    fireEvent.change(name, { target: { value: 'Load Testing' } });
     expect(screen.getByLabelText('Key')).toHaveProperty('value', 'load-testing');
+    // Production is the selected environment, so it is the pre-selected source.
+    expect(screen.getByLabelText('Inherit from')).toHaveProperty('value', ENV_ID);
 
-    stub.set({
-      [`GET /v1/projects/${PROJECT_ID}/environments`]: [...environments(), created],
-    });
+    stub.set({ [`GET /v1/projects/${PROJECT_ID}/environments`]: [...environments(), newEnv] });
     fireEvent.click(screen.getByText('Create environment', { selector: 'button' }));
 
-    await waitFor(() => expect(screen.getByText(/Load Testing.*created/)).toBeTruthy());
+    // The confirmation is built from the API's own labels and counts.
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(
+          /Load Testing.*created with 254 flag states and 12 config values from Production/,
+        ).length,
+      ).toBeGreaterThan(0),
+    );
+    expect(postBody(stub)).toEqual({
+      key: 'load-testing',
+      name: 'Load Testing',
+      inheritFromEnvironmentId: ENV_ID,
+    });
+  });
+
+  it('offers every environment plus a blank option as the source', async () => {
+    renderLayout();
+    await ready();
+    await openCreate();
+
+    const options = [...screen.getByLabelText('Inherit from').querySelectorAll('option')].map(
+      (o) => o.textContent,
+    );
+    expect(options).toEqual([
+      'Production (prod)',
+      'Development (dev)',
+      'Blank environment — start with nothing',
+    ]);
+  });
+
+  it('sends no source when Blank is chosen, and says so', async () => {
+    const { stub } = renderLayout({
+      ...workspaceHandlers(),
+      [ENV_URL]: createdWith(null),
+    });
+    await ready();
+
+    const name = await openCreate();
+    fireEvent.change(name, { target: { value: 'Load Testing' } });
+    fireEvent.change(screen.getByLabelText('Inherit from'), { target: { value: 'blank' } });
+    expect(screen.getByText(/Every flag starts off with no config/)).toBeTruthy();
+
+    stub.set({ [`GET /v1/projects/${PROJECT_ID}/environments`]: [...environments(), newEnv] });
+    fireEvent.click(screen.getByText('Create environment', { selector: 'button' }));
+
+    await waitFor(() =>
+      expect(screen.getAllByText(/Environment “Load Testing” created$/).length).toBeGreaterThan(0),
+    );
+    expect(postBody(stub)).toMatchObject({ inheritFromEnvironmentId: null });
+  });
+
+  it('explains inheritance, naming the chosen source', async () => {
+    renderLayout();
+    await ready();
+    await openCreate();
+
+    expect(screen.getByText(/one-time snapshot/)).toBeTruthy();
+    expect(screen.getByText(/API keys are never copied/)).toBeTruthy();
+    // The helper text follows the selection.
+    fireEvent.change(screen.getByLabelText('Inherit from'), { target: { value: DEV_ENV_ID } });
     expect(
-      stub.calls.find((c) => c.key === `POST /v1/projects/${PROJECT_ID}/environments`)?.body,
-    ).toEqual({ key: 'load-testing', name: 'Load Testing' });
+      screen.getByText((_, node) => node?.textContent?.includes('from Development') === true, {
+        selector: '#env-inherit-hint',
+      }),
+    ).toBeTruthy();
+  });
+
+  it('reports an inherited source that had nothing to copy', async () => {
+    const { stub } = renderLayout({
+      ...workspaceHandlers(),
+      [ENV_URL]: createdWith({ id: ENV_ID, key: 'prod', name: 'Production' }, [
+        { key: 'flagStates', label: 'flag states', count: 0 },
+      ]),
+    });
+    await ready();
+
+    const name = await openCreate();
+    fireEvent.change(name, { target: { value: 'Load Testing' } });
+    stub.set({ [`GET /v1/projects/${PROJECT_ID}/environments`]: [...environments(), newEnv] });
+    fireEvent.click(screen.getByText('Create environment', { selector: 'button' }));
+
+    await waitFor(() =>
+      expect(screen.getAllByText(/Production had nothing to copy/).length).toBeGreaterThan(0),
+    );
   });
 
   it('refuses a key the API would reject', async () => {
