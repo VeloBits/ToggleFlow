@@ -197,6 +197,59 @@ describe('Dialog / Modal', () => {
     expect(screen.getByText('Register a tool')).toBeTruthy();
     expect(screen.getByText('fields')).toBeTruthy();
   });
+
+  /*
+   * Focus on open. Radix's focus scope grabs the first tabbable element, which
+   * is the header ✕ - so a field's own `autoFocus` loses and the first
+   * keystroke in a form dialog went nowhere (Enter closed it instead). These
+   * pin the redirect, because the failure is invisible until someone opens a
+   * dialog with the keyboard.
+   */
+  it('focuses the first form field rather than the close button', async () => {
+    render(
+      <Dialog title="New environment" onClose={vi.fn()}>
+        <input id="first" />
+        <input id="second" />
+      </Dialog>,
+    );
+    await waitFor(() => expect(document.activeElement?.id).toBe('first'));
+  });
+
+  it('skips a disabled field', async () => {
+    render(
+      <Dialog title="Partly locked" onClose={vi.fn()}>
+        <input id="locked" disabled />
+        <select id="pickable" />
+      </Dialog>,
+    );
+    await waitFor(() => expect(document.activeElement?.id).toBe('pickable'));
+  });
+
+  it('leaves Radix to it when there is no field', async () => {
+    render(
+      <Dialog title="Your new key" onClose={vi.fn()}>
+        <p>tf_srv_abc…</p>
+      </Dialog>,
+    );
+    await waitFor(() => expect(document.activeElement?.getAttribute('aria-label')).toBe('Close'));
+  });
+
+  it('lets a caller override the target', async () => {
+    render(
+      <Dialog
+        title="Switch organization"
+        onClose={vi.fn()}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          document.getElementById('second')?.focus();
+        }}
+      >
+        <input id="first" />
+        <input id="second" />
+      </Dialog>,
+    );
+    await waitFor(() => expect(document.activeElement?.id).toBe('second'));
+  });
 });
 
 describe('SegmentedControl', () => {

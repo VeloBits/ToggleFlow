@@ -91,7 +91,7 @@ describe('listing', () => {
     await waitFor(() => expect(visibleKeys()).toHaveLength(3));
     expect(visibleKeys()).not.toContain('tool.legacy');
     // The denominator is every row fetched, so the hidden archived one counts.
-    expect(screen.getByText('3 of 4 in Development')).toBeTruthy();
+    expect(screen.getByText('3 of 4 in Production')).toBeTruthy();
   });
 
   it('renders each status as its own chip', async () => {
@@ -193,7 +193,7 @@ describe('filters', () => {
     fireEvent.click(screen.getByRole('checkbox'));
     await waitFor(() => expect(visibleKeys()).toHaveLength(4));
     expect(screen.getByText('archived')).toBeTruthy();
-    expect(screen.getByText('4 of 4 in Development')).toBeTruthy();
+    expect(screen.getByText('4 of 4 in Production')).toBeTruthy();
   });
 
   it('combines filters', async () => {

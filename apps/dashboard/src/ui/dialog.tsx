@@ -1,7 +1,20 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 
 import { cn } from './cn';
+
+/**
+ * The first thing a keyboard user should land on in a form dialog.
+ *
+ * Radix's FocusScope focuses the first tabbable element on mount, which in this
+ * layout is the header's ✕ button - so `autoFocus` on a field never won, and
+ * opening "New environment" put the caret nowhere while Enter closed the
+ * dialog. Redirecting to the first enabled field fixes every form dialog in the
+ * app at once; dialogs with no field (the reveal-once key) keep Radix's
+ * default.
+ */
+const FIRST_FIELD =
+  'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])';
 
 /**
  * Modal dialog on Radix (focus trap, Esc, aria wiring, scroll lock) keeping
@@ -13,12 +26,20 @@ export function Dialog({
   onClose,
   children,
   className,
+  onOpenAutoFocus,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   className?: string;
+  /**
+   * Overrides the first-field focus described above - for a dialog whose field
+   * lives outside the content flow, or which wants focus somewhere else
+   * entirely (the scope switcher focuses its filter box).
+   */
+  onOpenAutoFocus?: (event: Event) => void;
 }) {
+  const contentRef = useRef<HTMLDivElement>(null);
   return (
     <DialogPrimitive.Root
       open
@@ -30,7 +51,18 @@ export function Dialog({
         {/* Legacy backdrop centered content; Radix overlay/content are siblings, so the content positions itself. */}
         <DialogPrimitive.Overlay className="modal-backdrop" />
         <DialogPrimitive.Content
+          ref={contentRef}
           aria-describedby={undefined}
+          onOpenAutoFocus={(event) => {
+            if (onOpenAutoFocus) {
+              onOpenAutoFocus(event);
+              return;
+            }
+            const field = contentRef.current?.querySelector<HTMLElement>(FIRST_FIELD);
+            if (!field) return;
+            event.preventDefault();
+            field.focus();
+          }}
           className={cn(
             'modal fixed top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2 outline-none',
             className,

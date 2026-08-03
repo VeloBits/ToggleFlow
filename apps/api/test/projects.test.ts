@@ -26,8 +26,8 @@ afterAll(async () => {
 });
 
 describe('projects', () => {
-  it('creates a project with the three default environments', async () => {
-    expect(ws.environments.map((e) => e.key).sort()).toEqual(['dev', 'prod', 'staging']);
+  it('creates a project with Production as its only environment', async () => {
+    expect(ws.environments.map((e) => e.key)).toEqual(['prod']);
   });
 
   it('lists and fetches projects for members', async () => {
@@ -45,7 +45,7 @@ describe('projects', () => {
       headers: h.authed(viewerToken),
     });
     expect(get.statusCode).toBe(200);
-    expect(get.json().environments).toHaveLength(3);
+    expect(get.json().environments).toHaveLength(1);
   });
 
   it('renames a project and writes an audit entry with before/after', async () => {

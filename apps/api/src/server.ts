@@ -20,6 +20,7 @@ import { registerConfigRoutes } from './routes/configs';
 import { registerFlagRoutes } from './routes/flags';
 import { registerMeRoutes } from './routes/me';
 import { registerMemberRoutes } from './routes/members';
+import { registerOrgRoutes } from './routes/orgs';
 import { registerProjectRoutes } from './routes/projects';
 import { registerPublishRoutes } from './routes/publish';
 import { registerSegmentRoutes } from './routes/segments';
@@ -135,6 +136,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   app.get('/health', async () => ({ status: 'ok' }));
 
   registerMeRoutes(app);
+  registerOrgRoutes(app);
   registerProjectRoutes(app);
   registerToolRoutes(app);
   registerFlagRoutes(app);

@@ -25,16 +25,31 @@ export function ConfirmButton({
   className,
   onConfirm,
   requireConfirm = true,
+  disabled = false,
 }: {
   label: string;
   confirmLabel: string;
   className?: string;
   onConfirm: () => void;
   requireConfirm?: boolean;
+  /**
+   * For guards rather than permissions - "you may not delete the environment
+   * you are standing in". The button stays on the page (its `title` carries
+   * the reason) instead of vanishing and leaving the absence to be decoded.
+   */
+  disabled?: boolean;
 }) {
   const [armed, setArmed] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  // Disarm if the button is disabled mid-countdown, so it cannot come back
+  // already armed and fire on the next single click.
+  useEffect(() => {
+    if (!disabled) return;
+    clearTimeout(timer.current);
+    setArmed(false);
+  }, [disabled]);
 
   const click = () => {
     if (!requireConfirm || armed) {
@@ -47,7 +62,12 @@ export function ConfirmButton({
     timer.current = setTimeout(() => setArmed(false), 4000);
   };
   return (
-    <button type="button" className={`${className ?? ''} ${armed ? 'armed' : ''}`} onClick={click}>
+    <button
+      type="button"
+      disabled={disabled}
+      className={`${className ?? ''} ${armed ? 'armed' : ''}`}
+      onClick={click}
+    >
       {armed ? confirmLabel : label}
     </button>
   );

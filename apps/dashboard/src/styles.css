@@ -109,62 +109,15 @@ textarea.code {
   width: 100%;
 }
 
-.app-shell {
-  display: grid;
-  grid-template-rows: 52px 1fr;
-  height: 100vh;
-}
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 16px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-}
-.topbar .brand {
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--accent);
-  margin-right: 8px;
-}
-.topbar .spacer {
-  flex: 1;
-}
-.topbar select {
-  max-width: 180px;
-}
-.topbar .who {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.body {
-  display: grid;
-  grid-template-columns: 190px 1fr;
-  overflow: hidden;
-}
-.sidenav {
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  padding: 12px 8px;
-}
-.sidenav a {
-  display: block;
-  padding: 8px 12px;
-  border-radius: 6px;
-  color: var(--text);
-  margin-bottom: 2px;
-}
-.sidenav a.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 600;
-}
-.content {
-  overflow: auto;
-  padding: 20px 24px;
-}
+/*
+ * The app shell (.app-shell / .topbar / .sidenav / .body / .content) used to
+ * live here. It is now Tailwind inside components/Layout.tsx and
+ * components/nav/*, because the shell grew states this file could not express
+ * - a responsive drawer, hover/active/focus rings on every row, and menus
+ * whose styling keys off Radix's data attributes. What remains below is the
+ * page-body CSS the older screens still use; those move with the dashboard v2
+ * content pass, not with the chrome.
+ */
 
 .page-head {
   display: flex;

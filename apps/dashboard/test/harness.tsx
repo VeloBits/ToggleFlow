@@ -144,7 +144,15 @@ export function stubAuth({ user = testUser }: { user?: User | null } = {}): Auth
 
 export const ORG_ID = '11111111-1111-4111-8111-111111111111';
 export const PROJECT_ID = '22222222-2222-4222-8222-222222222222';
+/**
+ * The environment the workspace selects by default, which page tests scope
+ * their handlers to. It is the *production* one: WorkspaceProvider prefers the
+ * `prod` environment over list order, so a fixture whose ENV_ID was `dev`
+ * would leave every page fetching an id its handlers do not answer for.
+ */
 export const ENV_ID = '33333333-3333-4333-8333-333333333333';
+/** The non-default environment, for switching and multi-env assertions. */
+export const DEV_ENV_ID = '44444444-4444-4444-8444-444444444444';
 
 export const me = (role: Me['orgs'][number]['role'] = 'admin'): Me => ({
   user: { id: 'u1', email: 'dev@velobits.test', displayName: 'Dev User' },
@@ -154,8 +162,8 @@ export const me = (role: Me['orgs'][number]['role'] = 'admin'): Me => ({
 export const project = (): Project => ({ id: PROJECT_ID, name: 'Control Plane' });
 
 export const environments = (): Environment[] => [
-  { id: ENV_ID, key: 'dev', name: 'Development' },
-  { id: '44444444-4444-4444-8444-444444444444', key: 'prod', name: 'Production' },
+  { id: ENV_ID, key: 'prod', name: 'Production' },
+  { id: DEV_ENV_ID, key: 'dev', name: 'Development' },
 ];
 
 /** The three requests WorkspaceProvider always makes, so page tests only declare their own. */

@@ -106,7 +106,11 @@ export interface Workspace {
   adminToken: string;
 }
 
-/** First-login as `admin-<suffix>` (bootstraps an org), then create a project with default envs. */
+/**
+ * First-login as `admin-<suffix>` (bootstraps an org), then create a project.
+ * `environments` therefore holds exactly one entry, `prod` - suites that need a
+ * second environment create it themselves.
+ */
 export async function createWorkspace(h: TestHarness, suffix = '1'): Promise<Workspace> {
   const adminToken = await h.signToken(`admin-${suffix}`);
   const me = await h.app.inject({ method: 'GET', url: '/v1/me', headers: h.authed(adminToken) });

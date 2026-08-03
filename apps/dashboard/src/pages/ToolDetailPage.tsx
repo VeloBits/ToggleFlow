@@ -345,7 +345,7 @@ export function ToolDetailPage() {
     <>
       <div className="page-head">
         <h2>
-          <Link to="/">Tools</Link> / <span className="mono">{tool.key}</span>
+          <Link to="/flags">Tools</Link> / <span className="mono">{tool.key}</span>
         </h2>
         {tool.archived && <span className="tag">archived</span>}
         {canEdit && (

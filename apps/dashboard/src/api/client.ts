@@ -48,15 +48,43 @@ export const api = {
 
 export type Role = 'admin' | 'developer' | 'viewer';
 
+export interface Org {
+  id: string;
+  name: string;
+  role: Role;
+}
+
 export interface Me {
   user: { id: string; email: string; displayName: string | null };
-  orgs: { id: string; name: string; role: Role }[];
+  orgs: Org[];
 }
 
 export interface Environment {
   id: string;
   key: string;
   name: string;
+}
+
+/** One resource class copied by environment inheritance, as reported by the API. */
+export interface CopiedResource {
+  key: string;
+  /** Server-supplied, plural and lowercase ("flag states") - rendered as-is, so
+   *  a resource added to the API's registry needs no dashboard change. */
+  label: string;
+  count: number;
+}
+
+/** POST /v1/projects/:id/environments - the environment plus what it inherited. */
+export interface CreatedEnvironment extends Environment {
+  inheritedFrom: Environment | null;
+  copied: CopiedResource[];
+}
+
+export interface CreateEnvironmentInput {
+  key: string;
+  name: string;
+  /** null = blank environment. */
+  inheritFromEnvironmentId: string | null;
 }
 
 export interface Project {

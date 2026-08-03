@@ -71,7 +71,7 @@ describe('access', () => {
   it('shows the environment scope to an admin', async () => {
     renderPage();
     await loaded();
-    expect(screen.getByText('scoped to Development')).toBeTruthy();
+    expect(screen.getByText('scoped to Production')).toBeTruthy();
   });
 });
 
