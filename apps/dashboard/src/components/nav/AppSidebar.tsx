@@ -15,7 +15,7 @@ import { NAV_SECTIONS } from './nav-items';
 const ROW = [
   'flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] no-underline',
   'transition-colors duration-100 motion-reduce:transition-none',
-  'focus-visible:ring-accent focus-visible:ring-2 focus-visible:outline-none',
+  'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none',
 ].join(' ');
 
 /**
@@ -24,7 +24,7 @@ const ROW = [
  * left bar is a third, redundant channel for anyone who cannot separate the
  * accent tint from the panel behind it.
  */
-const ROW_ACTIVE = 'bg-accent-soft text-accent font-semibold';
+const ROW_ACTIVE = 'bg-primary-soft text-primary font-semibold';
 const ROW_IDLE = 'text-text hover:bg-highlight';
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
@@ -40,7 +40,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <div key={section.label ?? 'primary'}>
             {index > 0 && <hr className="border-border/70 mx-1 my-2.5 border-0 border-t" />}
             {section.label && (
-              <p className="text-muted m-0 px-2.5 pt-1 pb-1.5 text-[11px] font-semibold tracking-[0.05em] uppercase">
+              <p className="text-muted-foreground m-0 px-2.5 pt-1 pb-1.5 text-[11px] font-semibold tracking-[0.05em] uppercase">
                 {section.label}
               </p>
             )}
@@ -59,16 +59,19 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
                     {isActive && (
                       <span
                         aria-hidden
-                        className="bg-accent absolute top-1/2 -left-2 h-4 w-[3px] -translate-y-1/2 rounded-r-full"
+                        className="bg-primary absolute top-1/2 -left-2 h-4 w-[3px] -translate-y-1/2 rounded-r-full"
                       />
                     )}
                     <item.icon
                       size={16}
-                      className={cn('shrink-0', isActive ? 'text-accent' : 'text-muted')}
+                      className={cn(
+                        'shrink-0',
+                        isActive ? 'text-primary' : 'text-muted-foreground',
+                      )}
                     />
                     <span className="truncate">{item.label}</span>
                     {item.soon && (
-                      <span className="bg-bg2 text-muted ml-auto shrink-0 rounded-sm px-1.5 py-px text-[10px] font-semibold tracking-wide uppercase">
+                      <span className="bg-bg2 text-muted-foreground ml-auto shrink-0 rounded-sm px-1.5 py-px text-[10px] font-semibold tracking-wide uppercase">
                         Soon
                       </span>
                     )}

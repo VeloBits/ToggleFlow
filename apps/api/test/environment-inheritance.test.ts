@@ -3,7 +3,8 @@
  *
  * The fixture builds a Production environment with a deliberately awkward mix -
  * one flag on with targeting, one mid-rollout, one off, one with config and one
- * without - so a copy that only handles the simple cases fails here.
+ * without, plus one typed flag serving a non-default value - so a copy that only
+ * handles the simple cases fails here.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -69,6 +70,21 @@ beforeAll(async () => {
     });
     toolIds.set(key, res.json().id as string);
   }
+  // A typed flag in the mix: its per-environment VALUE is copied by the same
+  // explicit column list, so a missing column shows up here rather than as
+  // Staging quietly serving something Production does not.
+  const typed = await h.app.inject({
+    method: 'POST',
+    url: `/v1/projects/${ws.projectId}/tools`,
+    headers: authed(),
+    payload: {
+      key: 'flag.valued',
+      name: 'flag.valued',
+      valueType: 'string',
+      defaultValue: 'default copy',
+    },
+  });
+  toolIds.set('flag.valued', typed.json().id as string);
 
   // Typed as an object, not `unknown`: inject() overloads on the payload and an
   // `unknown` argument picks the chainable form (see orgs.test.ts).
@@ -85,6 +101,7 @@ beforeAll(async () => {
   });
   await patch('flag.rollout', { enabled: true, rolloutPercent: 25 });
   await patch('flag.off', { enabled: false });
+  await patch('flag.valued', { enabled: true, value: 'production copy' });
 
   for (const key of ['flag.on', 'flag.rollout']) {
     await h.app.inject({
@@ -113,7 +130,7 @@ describe('inheriting an environment', () => {
 
     expect(res.json().inheritedFrom).toMatchObject({ id: prodEnvId, key: 'prod' });
     const copied = res.json().copied as { key: string; count: number }[];
-    expect(copied.find((c) => c.key === 'flagStates')?.count).toBe(4);
+    expect(copied.find((c) => c.key === 'flagStates')?.count).toBe(5);
     // Only two tools had config in Production.
     expect(copied.find((c) => c.key === 'toolConfigs')?.count).toBe(2);
   });
@@ -121,7 +138,7 @@ describe('inheriting an environment', () => {
   it('copies enabled, rollout percentage and targeting rules', async () => {
     const source = await flagsIn(prodEnvId);
     const target = await flagsIn(stagingId);
-    expect(target.size).toBe(4);
+    expect(target.size).toBe(5);
 
     for (const key of ['flag.on', 'flag.rollout', 'flag.off', 'flag.bare']) {
       expect(target.get(key)).toMatchObject({
@@ -136,6 +153,17 @@ describe('inheriting an environment', () => {
       { segments: ['beta'], conditions: [], enabled: true },
     ]);
     expect(target.get('flag.off')).toMatchObject({ enabled: false, rolloutPercent: null });
+  });
+
+  it('copies the value a typed flag serves, not just its on/off state', async () => {
+    // Production was moved off the definition default before the copy, so
+    // 'production copy' can only be here if `value` is in the copy's column list.
+    expect((await flagsIn(prodEnvId)).get('flag.valued')!.value).toBe('production copy');
+    expect((await flagsIn(stagingId)).get('flag.valued')).toMatchObject({
+      enabled: true,
+      value: 'production copy',
+      valueType: 'string',
+    });
   });
 
   it('copies config values, landing them at version 1 with matching history', async () => {
@@ -182,7 +210,7 @@ describe('inheriting an environment', () => {
       .filter((e) => e.action === 'environment.create')
       .find((e) => e.after.key === 'staging');
     expect(entry?.after.inheritedFrom).toMatchObject({ key: 'prod' });
-    expect(entry?.after.copied).toEqual({ flagStates: 4, toolConfigs: 2 });
+    expect(entry?.after.copied).toEqual({ flagStates: 5, toolConfigs: 2 });
   });
 
   it('does not copy API keys', async () => {
@@ -219,10 +247,13 @@ describe('blank environments', () => {
 
     // The (tool, env) invariant still holds - the rows exist, all defaulted off.
     const flags = await flagsIn(res.json().id);
-    expect(flags.size).toBe(4);
+    expect(flags.size).toBe(5);
     for (const row of flags.values()) {
       expect(row).toMatchObject({ enabled: false, rolloutPercent: null, targetingRules: [] });
     }
+    // A blank environment starts on the DEFINITION default, not on whatever
+    // Production happens to serve.
+    expect(flags.get('flag.valued')!.value).toBe('default copy');
   });
 });
 
@@ -237,7 +268,7 @@ describe('inheriting from an empty environment', () => {
     expect(child.statusCode).toBe(201);
 
     const copied = child.json().copied as { key: string; count: number }[];
-    expect(copied.find((c) => c.key === 'flagStates')?.count).toBe(4);
+    expect(copied.find((c) => c.key === 'flagStates')?.count).toBe(5);
     expect(copied.find((c) => c.key === 'toolConfigs')?.count).toBe(0);
 
     // The source's flags are all default-off, so the child's are too.

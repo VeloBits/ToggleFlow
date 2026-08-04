@@ -28,11 +28,17 @@ describe('rulesetSnapshotSchema', () => {
       ...minimalSnapshot,
       tools: { 'tool.sparse': { enabled: true } },
     });
+    // These defaults are load-bearing, not incidental: the snapshot builder
+    // omits valueType/value for boolean flags so an all-boolean environment
+    // hashes identically to one written before typed values existed. If this
+    // assertion ever needs relaxing, that guarantee has broken.
     expect(parsed.tools['tool.sparse']).toEqual({
       enabled: true,
       rolloutPercent: null,
       targetingRules: [],
       config: null,
+      valueType: 'boolean',
+      value: null,
     });
   });
 

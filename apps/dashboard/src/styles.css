@@ -17,6 +17,14 @@
   --off-soft: rgba(205, 49, 49, 0.1);
   --rollout: #b5920a;
   --rollout-soft: rgba(181, 146, 10, 0.14);
+  /* Text on a brand fill. Was a literal `white` in button.primary; named
+   * because shadcn's --color-primary-foreground bridges to it. */
+  --on-accent: #ffffff;
+  /* Dialog scrim and the reveal-once token box - the only three colour
+   * literals this file used to carry, hoisted so every colour lives here. */
+  --overlay: rgb(16 24 40 / 45%);
+  --token-bg: #101828;
+  --token-fg: #7df3b1;
   font-family: var(--font-display);
 }
 
@@ -39,6 +47,12 @@ body.dark {
   --off-soft: rgba(244, 71, 71, 0.14);
   --rollout: #dcdcaa;
   --rollout-soft: rgba(220, 220, 170, 0.14);
+  --on-accent: #ffffff;
+  /* Darker scrim on dark: the light-theme value reads as a grey haze over an
+   * already-dark page rather than as a dimmed background. */
+  --overlay: rgb(0 0 0 / 60%);
+  --token-bg: #101828;
+  --token-fg: #7df3b1;
 }
 
 * {
@@ -64,14 +78,14 @@ button {
   font: inherit;
   border: 1px solid var(--border);
   background: var(--panel);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 6px 12px;
   cursor: pointer;
 }
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--on-accent);
 }
 button.danger {
   color: var(--off);
@@ -81,7 +95,7 @@ button.danger.armed,
 button.armed {
   background: var(--off);
   border-color: var(--off);
-  color: white;
+  color: var(--on-accent);
 }
 button.ghost {
   border: none;
@@ -93,12 +107,27 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/*
+ * One focus ring for every native control on the pages that predate the
+ * primitives, matching the `ring-ring` the shadcn components use. Without it
+ * the legacy screens keep the browser default, which is the most visible way
+ * two design systems announce themselves.
+ */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 input,
 select,
 textarea {
   font: inherit;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 6px 10px;
   background: var(--panel);
 }
@@ -152,7 +181,7 @@ table.data {
   border-collapse: collapse;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 table.data th,
@@ -182,7 +211,7 @@ tr.clickable {
 .chip {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 600;
 }
@@ -205,7 +234,7 @@ tr.clickable {
 .tag {
   display: inline-block;
   background: var(--bg2);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 1px 6px;
   font-size: 12px;
   margin-right: 4px;
@@ -215,7 +244,7 @@ tr.clickable {
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -248,7 +277,7 @@ tr.clickable {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(16 24 40 / 45%);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -256,7 +285,7 @@ tr.clickable {
 }
 .modal {
   background: var(--panel);
-  border-radius: 10px;
+  border-radius: var(--radius-xl);
   padding: 20px;
   width: 480px;
   max-width: 92vw;
@@ -273,14 +302,14 @@ tr.clickable {
 .error-note {
   color: var(--off);
   background: var(--off-soft);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
 }
 .reveal-token {
-  background: #101828;
-  color: #7df3b1;
+  background: var(--token-bg);
+  color: var(--token-fg);
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   word-break: break-all;
 }
 
@@ -289,7 +318,7 @@ tr.clickable {
   font-size: 12px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 8px;
   max-height: 300px;
   overflow: auto;

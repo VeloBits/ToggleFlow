@@ -33,6 +33,21 @@ export type {
   UserContext,
 } from './schema';
 
+export {
+  FLAG_TYPES,
+  FLAG_VALUE_TYPES,
+  flagType,
+  flagValueTypeSchema,
+  isFlagValueType,
+  resolveValue,
+} from './flag-types';
+export type {
+  FlagConstraints,
+  FlagTypeDescriptor,
+  FlagValueType,
+  ResolveValueInput,
+} from './flag-types';
+
 export { evaluateAll, evaluateTool } from './evaluate';
 export type { EvaluationReason, ToolEvaluation } from './evaluate';
 

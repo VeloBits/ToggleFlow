@@ -9,24 +9,52 @@
     "publishedAt": "2026-07-27T12:00:00.000Z",
     "segments": {
       "beta-users": {
-        "conditions": [{ "attribute": "plan", "operator": "in", "values": ["pro", "team"] }]
+        "conditions": [
+          {
+            "attribute": "plan",
+            "operator": "in",
+            "values": ["pro", "team"]
+          }
+        ]
       },
-      "eu": { "conditions": [{ "attribute": "region", "operator": "eq", "value": "eu" }] }
+      "eu": {
+        "conditions": [
+          {
+            "attribute": "region",
+            "operator": "eq",
+            "value": "eu"
+          }
+        ]
+      }
     },
     "tools": {
       "tool.beta-only": {
         "enabled": true,
         "rolloutPercent": null,
         "targetingRules": [
-          { "segments": ["beta-users"], "conditions": [], "enabled": true },
-          { "segments": [], "conditions": [], "enabled": false }
+          {
+            "segments": ["beta-users"],
+            "conditions": [],
+            "enabled": true
+          },
+          {
+            "segments": [],
+            "conditions": [],
+            "enabled": false
+          }
         ],
         "config": null
       },
       "tool.eu-disabled": {
         "enabled": true,
         "rolloutPercent": null,
-        "targetingRules": [{ "segments": ["eu"], "conditions": [], "enabled": false }],
+        "targetingRules": [
+          {
+            "segments": ["eu"],
+            "conditions": [],
+            "enabled": false
+          }
+        ],
         "config": null
       },
       "tool.first-match-wins": {
@@ -35,10 +63,20 @@
         "targetingRules": [
           {
             "segments": [],
-            "conditions": [{ "attribute": "plan", "operator": "eq", "value": "pro" }],
+            "conditions": [
+              {
+                "attribute": "plan",
+                "operator": "eq",
+                "value": "pro"
+              }
+            ],
             "enabled": false
           },
-          { "segments": ["beta-users"], "conditions": [], "enabled": true }
+          {
+            "segments": ["beta-users"],
+            "conditions": [],
+            "enabled": true
+          }
         ],
         "config": null
       },
@@ -49,8 +87,16 @@
           {
             "segments": [],
             "conditions": [
-              { "attribute": "plan", "operator": "eq", "value": "pro" },
-              { "attribute": "region", "operator": "eq", "value": "us" }
+              {
+                "attribute": "plan",
+                "operator": "eq",
+                "value": "pro"
+              },
+              {
+                "attribute": "region",
+                "operator": "eq",
+                "value": "us"
+              }
             ],
             "enabled": true
           }
@@ -60,7 +106,13 @@
       "tool.unknown-segment": {
         "enabled": true,
         "rolloutPercent": 0,
-        "targetingRules": [{ "segments": ["ghost"], "conditions": [], "enabled": true }],
+        "targetingRules": [
+          {
+            "segments": ["ghost"],
+            "conditions": [],
+            "enabled": true
+          }
+        ],
         "config": null
       },
       "tool.missing-attr": {
@@ -69,7 +121,13 @@
         "targetingRules": [
           {
             "segments": [],
-            "conditions": [{ "attribute": "region", "operator": "neq", "value": "eu" }],
+            "conditions": [
+              {
+                "attribute": "region",
+                "operator": "neq",
+                "value": "eu"
+              }
+            ],
             "enabled": false
           }
         ],
@@ -81,7 +139,13 @@
         "targetingRules": [
           {
             "segments": [],
-            "conditions": [{ "attribute": "seats", "operator": "gte", "value": 10 }],
+            "conditions": [
+              {
+                "attribute": "seats",
+                "operator": "gte",
+                "value": 10
+              }
+            ],
             "enabled": true
           }
         ],
@@ -93,11 +157,18 @@
     {
       "name": "user in the beta-users segment gets the tool",
       "toolKey": "tool.beta-only",
-      "context": { "key": "alice", "attributes": { "plan": "pro" } },
+      "context": {
+        "key": "alice",
+        "attributes": {
+          "plan": "pro"
+        }
+      },
       "expected": {
         "key": "tool.beta-only",
         "enabled": true,
         "reason": "targeting",
+        "value": true,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -105,11 +176,18 @@
     {
       "name": "user outside the segment hits the catch-all off rule",
       "toolKey": "tool.beta-only",
-      "context": { "key": "bob", "attributes": { "plan": "free" } },
+      "context": {
+        "key": "bob",
+        "attributes": {
+          "plan": "free"
+        }
+      },
       "expected": {
         "key": "tool.beta-only",
         "enabled": false,
         "reason": "targeting",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -117,11 +195,18 @@
     {
       "name": "segment rule disables the tool for eu users",
       "toolKey": "tool.eu-disabled",
-      "context": { "key": "carol", "attributes": { "region": "eu" } },
+      "context": {
+        "key": "carol",
+        "attributes": {
+          "region": "eu"
+        }
+      },
       "expected": {
         "key": "tool.eu-disabled",
         "enabled": false,
         "reason": "targeting",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -129,11 +214,18 @@
     {
       "name": "non-eu users fall through to the default (on)",
       "toolKey": "tool.eu-disabled",
-      "context": { "key": "dave", "attributes": { "region": "us" } },
+      "context": {
+        "key": "dave",
+        "attributes": {
+          "region": "us"
+        }
+      },
       "expected": {
         "key": "tool.eu-disabled",
         "enabled": true,
         "reason": "default",
+        "value": true,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -141,23 +233,38 @@
     {
       "name": "first matching rule wins even when a later rule would enable",
       "toolKey": "tool.first-match-wins",
-      "context": { "key": "alice", "attributes": { "plan": "pro" } },
+      "context": {
+        "key": "alice",
+        "attributes": {
+          "plan": "pro"
+        }
+      },
       "expected": {
         "key": "tool.first-match-wins",
         "enabled": false,
         "reason": "targeting",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
     },
     {
-      "name": "all inline conditions must match (AND) — full match enables",
+      "name": "all inline conditions must match (AND) \u2014 full match enables",
       "toolKey": "tool.and-conditions",
-      "context": { "key": "erin", "attributes": { "plan": "pro", "region": "us" } },
+      "context": {
+        "key": "erin",
+        "attributes": {
+          "plan": "pro",
+          "region": "us"
+        }
+      },
       "expected": {
         "key": "tool.and-conditions",
         "enabled": true,
         "reason": "targeting",
+        "value": true,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -165,11 +272,19 @@
     {
       "name": "partial condition match falls through to the 0% rollout (off)",
       "toolKey": "tool.and-conditions",
-      "context": { "key": "erin", "attributes": { "plan": "pro", "region": "eu" } },
+      "context": {
+        "key": "erin",
+        "attributes": {
+          "plan": "pro",
+          "region": "eu"
+        }
+      },
       "expected": {
         "key": "tool.and-conditions",
         "enabled": false,
         "reason": "rollout",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -177,11 +292,18 @@
     {
       "name": "rule referencing an unknown segment never matches",
       "toolKey": "tool.unknown-segment",
-      "context": { "key": "alice", "attributes": { "plan": "pro" } },
+      "context": {
+        "key": "alice",
+        "attributes": {
+          "plan": "pro"
+        }
+      },
       "expected": {
         "key": "tool.unknown-segment",
         "enabled": false,
         "reason": "rollout",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -189,11 +311,16 @@
     {
       "name": "missing attribute matches no operator, not even neq",
       "toolKey": "tool.missing-attr",
-      "context": { "key": "frank", "attributes": {} },
+      "context": {
+        "key": "frank",
+        "attributes": {}
+      },
       "expected": {
         "key": "tool.missing-attr",
         "enabled": true,
         "reason": "default",
+        "value": true,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -201,11 +328,18 @@
     {
       "name": "present attribute satisfying neq triggers the rule",
       "toolKey": "tool.missing-attr",
-      "context": { "key": "frank", "attributes": { "region": "us" } },
+      "context": {
+        "key": "frank",
+        "attributes": {
+          "region": "us"
+        }
+      },
       "expected": {
         "key": "tool.missing-attr",
         "enabled": false,
         "reason": "targeting",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -213,23 +347,37 @@
     {
       "name": "numeric gte matches numbers",
       "toolKey": "tool.numeric",
-      "context": { "key": "grace", "attributes": { "seats": 12 } },
+      "context": {
+        "key": "grace",
+        "attributes": {
+          "seats": 12
+        }
+      },
       "expected": {
         "key": "tool.numeric",
         "enabled": true,
         "reason": "targeting",
+        "value": true,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
     },
     {
-      "name": "numeric operators are type-strict — a numeric string does not match",
+      "name": "numeric operators are type-strict \u2014 a numeric string does not match",
       "toolKey": "tool.numeric",
-      "context": { "key": "grace", "attributes": { "seats": "12" } },
+      "context": {
+        "key": "grace",
+        "attributes": {
+          "seats": "12"
+        }
+      },
       "expected": {
         "key": "tool.numeric",
         "enabled": false,
         "reason": "rollout",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }

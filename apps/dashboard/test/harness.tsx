@@ -17,8 +17,9 @@ import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { expect, vi, type MockInstance } from 'vitest';
 
-import type { Environment, Me, Project } from '../src/api/client';
+import type { Environment, Flag, FlagDefinition, Me, Project } from '../src/api/client';
 import { userManager } from '../src/auth/oidc';
+import { TooltipProvider } from '../src/components/ui/tooltip';
 import { WorkspaceProvider } from '../src/state/WorkspaceContext';
 import { ToastProvider } from '../src/ui/toast';
 
@@ -78,7 +79,18 @@ export function stubFetch(handlers: Handlers): FetchStub {
         );
       }
 
-      const resolved = typeof handler === 'function' ? handler({ body, url: path }) : handler;
+      /*
+       * `await` so a handler may return a promise. That is what makes an
+       * optimistic mutation testable: with an instantly-resolving stub the
+       * window between the optimistic write and the server's answer is a single
+       * microtask, which `waitFor` polls straight past - so a test could not
+       * tell a real optimistic update from no update at all. A handler that
+       * returns a deferred promise holds the request open for as long as the
+       * assertion needs.
+       */
+      const resolved = await (typeof handler === 'function'
+        ? handler({ body, url: path })
+        : handler);
       if (isStatusShape(resolved)) {
         return new Response(resolved.body === undefined ? '' : JSON.stringify(resolved.body), {
           status: resolved.status,
@@ -166,6 +178,57 @@ export const environments = (): Environment[] => [
   { id: DEV_ENV_ID, key: 'dev', name: 'Development' },
 ];
 
+/**
+ * A flag row as `GET /v1/environments/:id/flags` sends it - server field names
+ * and all.
+ *
+ * Overrides are written in the dashboard's vocabulary (`id`, `key`, `name`) and
+ * translated into the server's here, for two reasons: no test has to know that
+ * the API says `toolKey`, and api/client.ts's `toFlag` is exercised by every
+ * page suite rather than bypassed. The return type is deliberately not `Flag` -
+ * it is an HTTP body, and the point of this fixture is that the two differ.
+ */
+export const flagRow = ({
+  id = 't1',
+  key = 'tool.summarize',
+  name = 'Summarize',
+  ...over
+}: Partial<Flag> = {}) => ({
+  toolId: id,
+  toolKey: key,
+  toolName: name,
+  archived: false,
+  enabled: true,
+  rolloutPercent: null,
+  targetingRules: [],
+  valueType: 'boolean',
+  enumOptions: [],
+  value: null,
+  defaultValue: null,
+  updatedAt: '2026-07-20T10:00:00.000Z',
+  ...over,
+});
+
+/**
+ * A flag definition as `GET /v1/projects/:id/tools` sends it. No translation
+ * needed: that endpoint already answers with `id` / `key` / `name`, which is why
+ * only the list above has a wire shape of its own.
+ */
+export const flagDefinition = (over: Partial<FlagDefinition> = {}): FlagDefinition => ({
+  id: 't1',
+  key: 'tool.summarize',
+  name: 'Summarize',
+  description: null,
+  tags: ['text'],
+  metadata: {},
+  archived: false,
+  valueType: 'boolean',
+  enumOptions: [],
+  defaultValue: null,
+  updatedAt: '2026-07-20T10:00:00.000Z',
+  ...over,
+});
+
 /** The three requests WorkspaceProvider always makes, so page tests only declare their own. */
 export const workspaceHandlers = (role: Me['orgs'][number]['role'] = 'admin'): Handlers => ({
   'GET /v1/me': me(role),
@@ -186,10 +249,19 @@ export function renderWithProviders(
 
   const inner = withWorkspace ? <WorkspaceProvider>{ui}</WorkspaceProvider> : ui;
 
+  /*
+   * The provider stack mirrors src/main.tsx, TooltipProvider included: shadcn's
+   * `Tooltip` is a bare Radix Root and throws "must be used within
+   * TooltipProvider" at render time. Leaving it out here would mean any
+   * component that grows a tooltip breaks its suite for a reason that has
+   * nothing to do with the test.
+   */
   return render(
     <MemoryRouter initialEntries={[route]}>
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>{inner}</ToastProvider>
+        <TooltipProvider>
+          <ToastProvider>{inner}</ToastProvider>
+        </TooltipProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );

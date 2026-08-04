@@ -1,0 +1,234 @@
+{
+  "description": "Typed flag values (string and string_enum), added additively to schemaVersion 1. Covers: a string flag serving its value; the same flag off serving config.fallback rather than its value; a string_enum flag; a targeting rule serving a DIFFERENT member than the flag's own value; a rule that matches with enabled:false serving the fallback; a rule that deliberately serves null beating the flag's value; a percentage rollout of a value (bucketed-in gets the value, bucketed-out gets the fallback); and a v1-shaped sparse entry with no valueType at all, which must default to boolean and behave exactly as it did before typed values existed.",
+  "snapshot": {
+    "schemaVersion": 1,
+    "projectId": "proj-demo",
+    "environmentId": "env-prod",
+    "environmentKey": "prod",
+    "version": 7,
+    "publishedAt": "2026-08-03T12:00:00.000Z",
+    "segments": {
+      "beta-users": { "conditions": [{ "attribute": "beta", "operator": "eq", "value": true }] }
+    },
+    "tools": {
+      "flag.banner-copy": {
+        "enabled": true,
+        "valueType": "string",
+        "value": "Deploys are faster now.",
+        "config": { "fallback": "" }
+      },
+      "flag.banner-copy-off": {
+        "enabled": false,
+        "valueType": "string",
+        "value": "Never seen while off.",
+        "config": { "fallback": "Scheduled maintenance tonight." }
+      },
+      "flag.banner-copy-no-fallback": {
+        "enabled": false,
+        "valueType": "string",
+        "value": "Also never seen."
+      },
+      "flag.summarize-model": {
+        "enabled": true,
+        "valueType": "string_enum",
+        "value": "balanced"
+      },
+      "flag.summarize-model-targeted": {
+        "enabled": true,
+        "valueType": "string_enum",
+        "value": "balanced",
+        "targetingRules": [
+          {
+            "description": "Beta users get the expensive model",
+            "segments": ["beta-users"],
+            "enabled": true,
+            "value": "quality"
+          },
+          {
+            "description": "Free plan is cut off entirely",
+            "conditions": [{ "attribute": "plan", "operator": "eq", "value": "free" }],
+            "enabled": false
+          }
+        ],
+        "config": { "fallback": "fast" }
+      },
+      "flag.rule-serves-null": {
+        "enabled": true,
+        "valueType": "string",
+        "value": "the flag value",
+        "targetingRules": [
+          {
+            "description": "An explicit null must beat the flag's value, not fall through to it",
+            "conditions": [{ "attribute": "plan", "operator": "eq", "value": "none" }],
+            "enabled": true,
+            "value": null
+          }
+        ]
+      },
+      "flag.staged-copy": {
+        "enabled": true,
+        "valueType": "string",
+        "value": "the new wording",
+        "rolloutPercent": 50,
+        "config": { "fallback": "the old wording" }
+      },
+      "flag.v1-shaped": { "enabled": true }
+    }
+  },
+  "cases": [
+    {
+      "name": "string flag on serves its value",
+      "toolKey": "flag.banner-copy",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "flag.banner-copy",
+        "enabled": true,
+        "reason": "default",
+        "value": "Deploys are faster now.",
+        "valueType": "string",
+        "config": { "fallback": "" },
+        "fallback": ""
+      }
+    },
+    {
+      "name": "string flag off serves config.fallback, never its own value",
+      "toolKey": "flag.banner-copy-off",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "flag.banner-copy-off",
+        "enabled": false,
+        "reason": "kill_switch",
+        "value": "Scheduled maintenance tonight.",
+        "valueType": "string",
+        "config": { "fallback": "Scheduled maintenance tonight." },
+        "fallback": "Scheduled maintenance tonight."
+      }
+    },
+    {
+      "name": "string flag off with no config resolves value to null",
+      "toolKey": "flag.banner-copy-no-fallback",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "flag.banner-copy-no-fallback",
+        "enabled": false,
+        "reason": "kill_switch",
+        "value": null,
+        "valueType": "string",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "string_enum flag on serves the selected member",
+      "toolKey": "flag.summarize-model",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "flag.summarize-model",
+        "enabled": true,
+        "reason": "default",
+        "value": "balanced",
+        "valueType": "string_enum",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "a matching rule serves its own value, overriding the flag's",
+      "toolKey": "flag.summarize-model-targeted",
+      "context": { "key": "user-1", "attributes": { "beta": true } },
+      "expected": {
+        "key": "flag.summarize-model-targeted",
+        "enabled": true,
+        "reason": "targeting",
+        "value": "quality",
+        "valueType": "string_enum",
+        "config": { "fallback": "fast" },
+        "fallback": "fast"
+      }
+    },
+    {
+      "name": "a matching rule with enabled:false serves the fallback, like the kill switch",
+      "toolKey": "flag.summarize-model-targeted",
+      "context": { "key": "user-1", "attributes": { "plan": "free" } },
+      "expected": {
+        "key": "flag.summarize-model-targeted",
+        "enabled": false,
+        "reason": "targeting",
+        "value": "fast",
+        "valueType": "string_enum",
+        "config": { "fallback": "fast" },
+        "fallback": "fast"
+      }
+    },
+    {
+      "name": "no rule matches, so the flag's own value is served",
+      "toolKey": "flag.summarize-model-targeted",
+      "context": { "key": "user-1", "attributes": { "plan": "pro" } },
+      "expected": {
+        "key": "flag.summarize-model-targeted",
+        "enabled": true,
+        "reason": "default",
+        "value": "balanced",
+        "valueType": "string_enum",
+        "config": { "fallback": "fast" },
+        "fallback": "fast"
+      }
+    },
+    {
+      "name": "a rule serving an explicit null beats the flag value rather than falling through",
+      "toolKey": "flag.rule-serves-null",
+      "context": { "key": "user-1", "attributes": { "plan": "none" } },
+      "expected": {
+        "key": "flag.rule-serves-null",
+        "enabled": true,
+        "reason": "targeting",
+        "value": null,
+        "valueType": "string",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "rollout: a bucketed-in user gets the value (user-2 buckets to 10.89, under 50)",
+      "toolKey": "flag.staged-copy",
+      "context": { "key": "user-2", "attributes": {} },
+      "expected": {
+        "key": "flag.staged-copy",
+        "enabled": true,
+        "reason": "rollout",
+        "value": "the new wording",
+        "valueType": "string",
+        "config": { "fallback": "the old wording" },
+        "fallback": "the old wording"
+      }
+    },
+    {
+      "name": "rollout: a bucketed-out user gets the fallback (user-1 buckets to 82.32, over 50)",
+      "toolKey": "flag.staged-copy",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "flag.staged-copy",
+        "enabled": false,
+        "reason": "rollout",
+        "value": "the old wording",
+        "valueType": "string",
+        "config": { "fallback": "the old wording" },
+        "fallback": "the old wording"
+      }
+    },
+    {
+      "name": "a v1-shaped entry with no valueType defaults to boolean and serves enabled",
+      "toolKey": "flag.v1-shaped",
+      "context": { "key": "user-1", "attributes": {} },
+      "expected": {
+        "key": "flag.v1-shaped",
+        "enabled": true,
+        "reason": "default",
+        "value": true,
+        "valueType": "boolean",
+        "config": null,
+        "fallback": null
+      }
+    }
+  ]
+}

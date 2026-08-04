@@ -3,41 +3,19 @@
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { FlagRow, Segment, Tool } from '../src/api/client';
+import type { Segment } from '../src/api/client';
 import { SearchPage } from '../src/pages/SearchPage';
 import {
   ENV_ID,
   PROJECT_ID,
+  flagDefinition,
+  flagRow,
   renderWithProviders,
   stubAuth,
   stubFetch,
   workspaceHandlers,
   type Handlers,
 } from './harness';
-
-const flagRow = (over: Partial<FlagRow> = {}): FlagRow => ({
-  toolId: 't1',
-  toolKey: 'tool.summarize',
-  toolName: 'Summarize',
-  archived: false,
-  enabled: true,
-  rolloutPercent: null,
-  targetingRules: [],
-  updatedAt: '2026-07-20T10:00:00.000Z',
-  ...over,
-});
-
-const tool = (over: Partial<Tool> = {}): Tool => ({
-  id: 't1',
-  key: 'tool.summarize',
-  name: 'Summarize',
-  description: null,
-  tags: ['ai'],
-  metadata: {},
-  archived: false,
-  updatedAt: '2026-07-20T10:00:00.000Z',
-  ...over,
-});
 
 const segment = (over: Partial<Segment> = {}): Segment => ({
   id: 's1',
@@ -52,9 +30,9 @@ const pageHandlers = (over: Handlers = {}): Handlers => ({
   ...workspaceHandlers(),
   [`GET /v1/environments/${ENV_ID}/flags`]: [
     flagRow(),
-    flagRow({ toolId: 't2', toolKey: 'checkout.v2', toolName: 'Checkout' }),
+    flagRow({ id: 't2', key: 'checkout.v2', name: 'Checkout' }),
   ],
-  [`GET /v1/projects/${PROJECT_ID}/tools?includeArchived=true`]: [tool()],
+  [`GET /v1/projects/${PROJECT_ID}/tools?includeArchived=true`]: [flagDefinition({ tags: ['ai'] })],
   [`GET /v1/projects/${PROJECT_ID}/segments`]: [segment()],
   ...over,
 });

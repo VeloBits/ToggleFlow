@@ -141,9 +141,9 @@ jobs:
           set -euo pipefail
           # Dashboard: nginx serves the built SPA at the webroot.
           curl -sf http://localhost:3200/ | grep -q '<div id="root"'
-          # SPA history fallback - react-router-dom owns /tools client-side, so a
+          # SPA history fallback - react-router-dom owns /flags client-side, so a
           # deep link must return the app shell rather than a 404.
-          curl -sf -o /dev/null http://localhost:3200/tools
+          curl -sf -o /dev/null http://localhost:3200/flags
           # Control plane, through the /api prefix strip.
           curl -sf http://localhost:3200/api/health | grep -q '"status":"ok"'
           # Migrations actually ran (api-prod gates on service_completed_successfully).

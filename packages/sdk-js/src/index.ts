@@ -42,8 +42,13 @@ export {
 
 export type { Unsubscribe } from './transport';
 
-// The wire/evaluation types customers see in results.
+// The wire/evaluation types customers see in results. `FlagValueType` and the
+// runtime `FLAG_VALUE_TYPES` come along because `EvaluatedFlag.valueType` and
+// `ToolEvaluation.valueType` are typed by them - a customer narrowing on a
+// flag's type should not have to depend on @toggleflow/engine directly.
+export { FLAG_VALUE_TYPES } from '@toggleflow/engine';
 export type {
+  FlagValueType,
   JsonObject,
   JsonValue,
   RulesetSnapshot,

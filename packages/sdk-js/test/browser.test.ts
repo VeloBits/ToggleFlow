@@ -7,19 +7,46 @@ import {
 } from '../src/browser';
 import { createFakeFetch, hangForever, jsonResponse } from './fake-fetch';
 
+/**
+ * Shaped exactly like the edge's `/v1/flags` body (apps/edge-worker/API.md):
+ * `value` mirrors `enabled` for boolean flags, and a typed flag carries the
+ * string the edge resolved for this user.
+ */
 const payloadV1: FlagsSnapshot = {
   environmentId: 'env-1',
   environmentKey: 'prod',
   version: 1,
   flags: {
-    'tool.a': { enabled: false, config: { limit: 5 }, fallback: { mode: 'hide' } },
-    'tool.b': { enabled: true, config: null, fallback: null },
+    'tool.a': {
+      enabled: false,
+      value: false,
+      valueType: 'boolean',
+      config: { limit: 5 },
+      fallback: { mode: 'hide' },
+    },
+    'tool.b': { enabled: true, value: true, valueType: 'boolean', config: null, fallback: null },
+    'tool.copy': {
+      enabled: true,
+      value: 'the new wording',
+      valueType: 'string',
+      config: { fallback: 'the old wording' },
+      fallback: 'the old wording',
+    },
   },
 };
 const payloadV2: FlagsSnapshot = {
   ...payloadV1,
   version: 2,
-  flags: { ...payloadV1.flags, 'tool.a': { enabled: true, config: { limit: 9 }, fallback: null } },
+  flags: {
+    ...payloadV1.flags,
+    'tool.a': {
+      enabled: true,
+      value: true,
+      valueType: 'boolean',
+      config: { limit: 9 },
+      fallback: null,
+    },
+  },
 };
 
 const openClients: ToggleFlowBrowserClient[] = [];
@@ -61,7 +88,43 @@ describe('browser client', () => {
     expect(client.getConfig('tool.a')).toEqual({ limit: 5 });
     expect(client.getFallback('tool.a')).toEqual({ mode: 'hide' });
     expect(client.isEnabled('tool.unknown')).toBe(false);
-    expect(Object.keys(client.allFlags())).toHaveLength(2);
+    expect(Object.keys(client.allFlags())).toHaveLength(3);
+  });
+
+  it('reads typed values, deferring to the caller default when it has no string to give', async () => {
+    const fake = createFakeFetch(() => jsonResponse(payloadV1));
+    const client = create(fake.fetch);
+    await client.waitForReady();
+
+    expect(client.getValue('tool.copy')).toBe('the new wording');
+    expect(client.getStringValue('tool.copy', 'caller default')).toBe('the new wording');
+    // Boolean flags: value mirrors enabled, both directions.
+    expect(client.getValue('tool.a')).toBe(false);
+    expect(client.getBooleanValue('tool.a', true)).toBe(false);
+    expect(client.getBooleanValue('tool.b', false)).toBe(true);
+    // Unknown key and wrong runtime type both defer to the caller.
+    expect(client.getValue('tool.unknown')).toBeNull();
+    expect(client.getStringValue('tool.unknown', 'caller default')).toBe('caller default');
+    expect(client.getStringValue('tool.b', 'caller default')).toBe('caller default');
+    expect(client.getBooleanValue('tool.copy', true)).toBe(true);
+  });
+
+  it('tolerates a payload from an edge worker predating typed values', async () => {
+    // The response is cast, not parsed, so absent fields are reachable however
+    // FlagsSnapshot is typed - during a staged edge rollout, a new page can be
+    // talking to an old worker. `undefined` must never reach the caller.
+    const legacy = {
+      ...payloadV1,
+      flags: { 'tool.a': { enabled: true, config: null, fallback: null } },
+    } as unknown as FlagsSnapshot;
+    const fake = createFakeFetch(() => jsonResponse(legacy));
+    const client = create(fake.fetch);
+    await client.waitForReady();
+
+    expect(client.isEnabled('tool.a')).toBe(true);
+    expect(client.getValue('tool.a')).toBeNull();
+    expect(client.getStringValue('tool.a', 'caller default')).toBe('caller default');
+    expect(client.getBooleanValue('tool.a', true)).toBe(true);
   });
 
   it('notifies subscribers only when the evaluated set changes', async () => {

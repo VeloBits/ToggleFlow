@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { rulesetVersions } from '../src/db/schema';
 import { apiKeysKvKey, rulesetKvKey, type MemoryKvClient } from '../src/lib/kv';
 import { createMemoryKvClient } from '../src/lib/kv';
+import { buildSnapshotContent, stableStringify } from '../src/lib/snapshot';
 import { createWorkspace, setupTestApp, type TestHarness, type Workspace } from './helpers';
 
 let h: TestHarness;
@@ -199,6 +200,91 @@ describe('publish pipeline', () => {
     expect(audit.json().entries.map((e: { action: string }) => e.action)).toContain(
       'ruleset.republish',
     );
+  });
+
+  /**
+   * The silent-strip trap. The publisher used to validate the snapshot and then
+   * persist the UNVALIDATED object, so any field the frozen schema does not
+   * declare reached KV and was dropped by the edge worker's safeParse at read
+   * time - a failure that shows up as a missing value in production rather than
+   * as a failed publish.
+   */
+  it('publishes typed flag values that survive a re-parse unchanged', async () => {
+    const enumTool = await h.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ws.projectId}/tools`,
+      headers: h.authed(ws.adminToken),
+      payload: {
+        key: 'tool.model',
+        name: 'Model',
+        valueType: 'string_enum',
+        enumOptions: ['fast', 'balanced', 'quality'],
+        defaultValue: 'balanced',
+      },
+    });
+    expect(enumTool.statusCode).toBe(201);
+    const patched = await h.app.inject({
+      method: 'PATCH',
+      url: `/v1/environments/${envId}/tools/${enumTool.json().id}/flag`,
+      headers: h.authed(ws.adminToken),
+      payload: {
+        enabled: true,
+        value: 'quality',
+        targetingRules: [{ segments: [], conditions: [], enabled: true, value: 'fast' }],
+      },
+    });
+    expect(patched.statusCode).toBe(200);
+    await h.app.publisher.flushAll();
+
+    const raw = JSON.parse((await kv.getWithMetadata(rulesetKvKey(envId))).value!);
+    // Nothing added, nothing removed: what is in KV is exactly what the frozen
+    // schema accepts, so the worker cannot quietly drop a field on read.
+    expect(parseRulesetSnapshot(raw)).toEqual(raw);
+    expect(raw.tools['tool.model']).toMatchObject({
+      valueType: 'string_enum',
+      value: 'quality',
+      targetingRules: [{ enabled: true, value: 'fast' }],
+    });
+  });
+
+  /**
+   * The omit-when-default rule (lib/snapshot.ts). Without it, adding typed flags
+   * would have changed every content hash in the fleet, republishing every
+   * environment on its next mutation for no change in meaning.
+   */
+  it('does not churn the content hash of an all-boolean environment', async () => {
+    const plain = await createWorkspace(h, 'publish-boolean');
+    const plainEnvId = plain.environments[0]!.id;
+    await h.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${plain.projectId}/tools`,
+      headers: h.authed(plain.adminToken),
+      payload: { key: 'tool.plain', name: 'Plain' },
+    });
+    await h.app.publisher.flushAll();
+
+    const versionsBefore = await h.db
+      .select()
+      .from(rulesetVersions)
+      .where(eq(rulesetVersions.environmentId, plainEnvId));
+
+    // Unforced, exactly as the debounced path calls it.
+    const first = await h.app.publisher.publishRuleset(plainEnvId);
+    const second = await h.app.publisher.publishRuleset(plainEnvId);
+    expect(first.skipped).toBe(true);
+    expect(second).toMatchObject({ skipped: true, version: first.version });
+    expect(
+      await h.db
+        .select()
+        .from(rulesetVersions)
+        .where(eq(rulesetVersions.environmentId, plainEnvId)),
+    ).toHaveLength(versionsBefore.length);
+
+    // And the reason it cannot churn: the hashed object carries no typed-flag
+    // fields at all for a boolean flag, so it serialises as it always did.
+    const content = await buildSnapshotContent(h.db, plainEnvId);
+    expect(content!.tools['tool.plain']).toMatchObject({ valueType: undefined, value: undefined });
+    expect(stableStringify(content)).not.toContain('valueType');
   });
 
   it('deleting an environment removes its KV entries', async () => {

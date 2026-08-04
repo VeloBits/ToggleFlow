@@ -42,7 +42,7 @@ export function SegmentedControl({
           key={option.value}
           value={option.value}
           className={cn(
-            'text-muted rounded-sm px-2.5 py-1 text-[12.5px] font-medium',
+            'text-muted-foreground rounded-sm px-2.5 py-1 text-[12.5px] font-medium',
             'data-[state=on]:bg-panel data-[state=on]:shadow-sm',
             option.tone === 'danger' ? 'data-[state=on]:text-off' : 'data-[state=on]:text-text',
           )}

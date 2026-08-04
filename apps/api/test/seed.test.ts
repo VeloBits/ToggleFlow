@@ -92,13 +92,52 @@ describe('dev seed', () => {
     const toolRows = await db.select().from(tools);
     expect(toolRows).toHaveLength(5);
     expect(toolRows.map((t) => t.key).sort()).toEqual([
-      'tool.grammar-check',
+      'tool.banner-message',
       'tool.summarize',
-      'tool.title-case',
+      'tool.summarize-model',
       'tool.tone-rewrite',
       'tool.translate',
     ]);
     expect(toolRows.find((t) => t.key === 'tool.tone-rewrite')!.tags).toContain('experimental');
+  });
+
+  it('seeds a mixed set of flag types so the dashboard has value controls to render', async () => {
+    await runSeed();
+
+    const toolRows = await db.select().from(tools);
+    const byKey = (key: string) => toolRows.find((t) => t.key === key)!;
+    expect(toolRows.filter((t) => t.valueType === 'boolean')).toHaveLength(3);
+
+    expect(byKey('tool.banner-message')).toMatchObject({
+      valueType: 'string',
+      enumOptions: [],
+      defaultValue: 'Welcome to the demo.',
+    });
+    expect(byKey('tool.summarize-model')).toMatchObject({
+      valueType: 'string_enum',
+      enumOptions: ['fast', 'balanced', 'quality'],
+      defaultValue: 'balanced',
+    });
+  });
+
+  it('gives the typed flags a different value in prod than in dev/staging', async () => {
+    await runSeed();
+
+    const envRows = await db.select().from(environments);
+    const prodId = envRows.find((e) => e.key === 'prod')!.id;
+    const toolRows = await db.select().from(tools);
+    const states = await db.select().from(flagStates);
+    const valueIn = (key: string, environmentId: string) => {
+      const tool = toolRows.find((t) => t.key === key)!;
+      return states.find((s) => s.toolId === tool.id && s.environmentId === environmentId)!.value;
+    };
+    const devId = envRows.find((e) => e.key === 'dev')!.id;
+
+    expect(valueIn('tool.summarize-model', prodId)).toBe('quality');
+    expect(valueIn('tool.summarize-model', devId)).toBe('fast');
+    expect(valueIn('tool.banner-message', prodId)).toMatch(/maintenance/);
+    // Boolean flags store no value at all - theirs is `enabled`.
+    expect(valueIn('tool.summarize', prodId)).toBeNull();
   });
 
   it('leaves dev and staging fully on', async () => {

@@ -13,7 +13,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { ComponentType } from 'react';
 import { Link } from 'react-router-dom';
 
-import { api, type AuditEntry, type FlagRow, type Member } from '../api/client';
+import { api, type AuditEntry, type Member } from '../api/client';
+import { flagsQueryOptions } from '../api/flags';
 import { environmentTone } from '../components/nav/environment-tone';
 import { EmptyState, PageHeader, Panel } from '../components/page';
 import { ErrorNote } from '../components/ui';
@@ -27,32 +28,7 @@ import {
   FolderIcon,
   type IconProps,
 } from '../ui/icons';
-
-/**
- * "3 minutes ago", via Intl rather than a date library for one call site.
- * Each step divides into the next, so the loop lands on the largest unit the
- * gap fills - beyond a year it stops being "ago" to anybody and prints a date.
- */
-const DIVISIONS: [limit: number, unit: Intl.RelativeTimeFormatUnit][] = [
-  [60, 'second'],
-  [60, 'minute'],
-  [24, 'hour'],
-  [7, 'day'],
-  [4.34524, 'week'],
-  [12, 'month'],
-];
-
-function relativeTime(iso: string): string {
-  const date = new Date(iso);
-  // Negative: these are always timestamps in the past.
-  let value = (date.getTime() - Date.now()) / 1000;
-  const format = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
-  for (const [limit, unit] of DIVISIONS) {
-    if (Math.abs(value) < limit) return format.format(Math.round(value), unit);
-    value /= limit;
-  }
-  return date.toLocaleDateString();
-}
+import { relativeTime } from '../ui/relative-time';
 
 function Stat({
   icon: Icon,
@@ -67,10 +43,10 @@ function Stat({
 }) {
   return (
     <div className="border-border bg-panel flex items-center gap-3 rounded-lg border px-4 py-3">
-      <Icon size={18} className={cn('shrink-0', className ?? 'text-muted')} />
+      <Icon size={18} className={cn('shrink-0', className ?? 'text-muted-foreground')} />
       <div className="min-w-0">
         <p className="text-text m-0 text-[18px] leading-none font-bold">{value}</p>
-        <p className="text-muted m-0 mt-1 text-[12px]">{label}</p>
+        <p className="text-muted-foreground m-0 mt-1 text-[12px]">{label}</p>
       </div>
     </div>
   );
@@ -79,11 +55,7 @@ function Stat({
 export function HomePage() {
   const ws = useWorkspace();
 
-  const flagsQuery = useQuery({
-    queryKey: ['flags', ws.environmentId],
-    queryFn: () => api.get<FlagRow[]>(`/v1/environments/${ws.environmentId}/flags`),
-    enabled: ws.environmentId !== null,
-  });
+  const flagsQuery = useQuery(flagsQueryOptions(ws.environmentId));
   const auditQuery = useQuery({
     queryKey: ['audit', ws.orgId, 'home'],
     queryFn: () =>
@@ -104,10 +76,10 @@ export function HomePage() {
     return member?.displayName ?? member?.email ?? actorId.slice(0, 8);
   };
 
-  const live = (flagsQuery.data ?? []).filter((row) => !row.archived);
-  const rollingOut = live.filter((row) => row.enabled && row.rolloutPercent !== null);
-  const on = live.filter((row) => row.enabled && row.rolloutPercent === null);
-  const off = live.filter((row) => !row.enabled);
+  const live = (flagsQuery.data ?? []).filter((flag) => !flag.archived);
+  const rollingOut = live.filter((flag) => flag.enabled && flag.rolloutPercent !== null);
+  const on = live.filter((flag) => flag.enabled && flag.rolloutPercent === null);
+  const off = live.filter((flag) => !flag.enabled);
   const tone = ws.environment ? environmentTone(ws.environment.key) : null;
 
   if (ws.ready && ws.projects.length === 0) {
@@ -176,15 +148,15 @@ export function HomePage() {
             />
           ) : (
             <ul className="m-0 list-none p-0">
-              {rollingOut.slice(0, 6).map((row) => (
+              {rollingOut.slice(0, 6).map((flag) => (
                 <li
-                  key={row.toolId}
+                  key={flag.id}
                   className="border-border flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0"
                 >
-                  <Link to={`/tools/${row.toolId}`} className="mono min-w-0 flex-1 truncate">
-                    {row.toolKey}
+                  <Link to={`/flags/${flag.id}`} className="mono min-w-0 flex-1 truncate">
+                    {flag.key}
                   </Link>
-                  <span className="chip chip-rollout shrink-0">{row.rolloutPercent}%</span>
+                  <span className="chip chip-rollout shrink-0">{flag.rolloutPercent}%</span>
                 </li>
               ))}
             </ul>
@@ -212,7 +184,7 @@ export function HomePage() {
                   className="border-border flex items-baseline gap-3 border-b px-4 py-2.5 last:border-b-0"
                 >
                   <span className="mono min-w-0 flex-1 truncate text-[12.5px]">{entry.action}</span>
-                  <span className="text-muted shrink-0 text-[12px]">
+                  <span className="text-muted-foreground shrink-0 text-[12px]">
                     {actorName(entry.actorId)} · {relativeTime(entry.createdAt)}
                   </span>
                 </li>

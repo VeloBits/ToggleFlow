@@ -1,9 +1,21 @@
+import { fileURLToPath } from 'node:url';
+
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  /*
+   * The `@/` alias shadcn's generated primitives import through. Declared here
+   * rather than in a vitest.config.ts because there isn't one - Vitest reads
+   * this file, so one entry covers `vite dev`, `vite build`, `vitest run` and
+   * the root merged coverage run (which loads each package's own config).
+   * Mirrored by tsconfig.json's compilerOptions.paths for type-checking.
+   */
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
   server: {
     port: 5173,
     // Bind all interfaces so a container's published port resolves. No-op on bare

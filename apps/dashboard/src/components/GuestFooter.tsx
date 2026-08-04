@@ -109,18 +109,18 @@ const SOCIAL_LINKS: { label: string; href: string; icon: ReactNode }[] = [
 ];
 
 /** Same ring as GuestNav, so focus looks identical top and bottom of the page. */
-const FOCUS = 'focus-visible:ring-accent focus-visible:ring-2 focus-visible:outline-none';
+const FOCUS = 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none';
 
 /**
- * Group link. `text-muted` is explicit because styles.css sets `a { color:
+ * Group link. `text-muted-foreground` is explicit because styles.css sets `a { color:
  * var(--accent) }` - utilities win (styles.css is imported into the components
  * layer) but only where one is actually written. `py-1.5` is for the thumb, not
  * the look: it lifts each row to ~30px so stacked links are tappable at 320px.
  */
-const LINK = `text-muted hover:text-text rounded-sm py-1.5 text-[13px] leading-snug transition-colors duration-150 motion-reduce:transition-none ${FOCUS}`;
+const LINK = `text-muted-foreground hover:text-text rounded-sm py-1.5 text-[13px] leading-snug transition-colors duration-150 motion-reduce:transition-none ${FOCUS}`;
 
 /** Bottom-bar link - smaller, same treatment. */
-const META_LINK = `text-muted hover:text-text rounded-sm text-[12.5px] transition-colors duration-150 motion-reduce:transition-none ${FOCUS}`;
+const META_LINK = `text-muted-foreground hover:text-text rounded-sm text-[12.5px] transition-colors duration-150 motion-reduce:transition-none ${FOCUS}`;
 
 /**
  * The one accent action in the footer. `rounded-md` (6px) rather than the nav's
@@ -130,7 +130,7 @@ const META_LINK = `text-muted hover:text-text rounded-sm text-[12.5px] transitio
  * against the accent fill.
  */
 const CTA = cn(
-  'border-accent bg-accent hover:border-accent-hover hover:bg-accent-hover inline-flex items-center',
+  'border-primary bg-primary hover:border-primary-hover hover:bg-primary-hover inline-flex items-center',
   'rounded-md border px-4 py-2 text-[13px] font-semibold whitespace-nowrap text-white',
   'focus-visible:ring-offset-bg transition-colors duration-150 focus-visible:ring-offset-2',
   'motion-reduce:transition-none',
@@ -139,7 +139,7 @@ const CTA = cn(
 
 /** Icon-only social chip. An `<a>`, so only the `a { color }` rule needs undoing. */
 const SOCIAL = cn(
-  'border-border bg-panel text-muted hover:border-border-strong hover:text-text',
+  'border-border bg-panel text-muted-foreground hover:border-border-strong hover:text-text',
   'inline-flex h-9 w-9 items-center justify-center rounded-lg border',
   'transition-colors duration-150 motion-reduce:transition-none',
   FOCUS,
@@ -168,11 +168,11 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
             {/* Not a link, for the same reason the nav's brand isn't: this is home.
                 Same mark and size as the nav's, so the page opens and closes on it. */}
             <span className="flex items-center gap-2">
-              <ToggleMarkIcon size={20} className="text-accent" />
+              <ToggleMarkIcon size={20} className="text-primary" />
               <span className="font-bold">ToggleFlow</span>
             </span>
             {/* Restates the hero's positioning in one line - keep the two in step. */}
-            <p className="text-muted mt-3 max-w-[34ch] text-[13px] leading-relaxed">
+            <p className="text-muted-foreground mt-3 max-w-[34ch] text-[13px] leading-relaxed">
               Feature flags and remote configuration for modern apps. Kill switches, progressive
               rollouts, targeting, and versioned config - without a redeploy.
             </p>
@@ -244,7 +244,7 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
         <div className="border-border/60 mt-12 border-t pt-6">
           <div
             className={cn(
-              'text-muted flex flex-col gap-3 text-[12.5px]',
+              'text-muted-foreground flex flex-col gap-3 text-[12.5px]',
               'sm:flex-row sm:items-center sm:justify-between',
             )}
           >

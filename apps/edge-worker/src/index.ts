@@ -7,7 +7,12 @@
  * the origin server or the database; even API-key auth runs off hashes the
  * control plane published to KV.
  */
-import { evaluateAll, rulesetSnapshotSchema, userContextSchema } from '@toggleflow/engine';
+import {
+  evaluateAll,
+  rulesetSnapshotSchema,
+  userContextSchema,
+  type FlagValueType,
+} from '@toggleflow/engine';
 
 import { authorize } from './auth';
 import { CORS_HEADERS, errorResponse, etagMatches } from './http';
@@ -120,10 +125,33 @@ async function handleFlags(request: Request, env: Env, url: URL): Promise<Respon
   }
 
   const evaluations = evaluateAll(snapshot.data, context.data);
-  const flags: Record<string, { enabled: boolean; config: unknown; fallback: unknown }> = {};
+  /**
+   * Projected field by field rather than spread from the evaluation, so this
+   * literal IS the wire contract: `reason` stays server-side (it names the rule
+   * that fired, which is exactly what the browser must not learn), and a future
+   * engine field cannot leak into a browser payload by accident.
+   *
+   * `value`/`valueType` are ADDITIVE (API.md "Stability promise"): `enabled`
+   * keeps its meaning and its position, so an existing client that only reads
+   * `enabled`/`config`/`fallback` is unaffected. `valueType` is typed as the
+   * engine's union rather than `string` so adding a flag type widens this
+   * endpoint's documented shape automatically.
+   */
+  const flags: Record<
+    string,
+    {
+      enabled: boolean;
+      value: unknown;
+      valueType: FlagValueType;
+      config: unknown;
+      fallback: unknown;
+    }
+  > = {};
   for (const [key, evaluation] of Object.entries(evaluations)) {
     flags[key] = {
       enabled: evaluation.enabled,
+      value: evaluation.value,
+      valueType: evaluation.valueType,
       config: evaluation.config,
       fallback: evaluation.fallback,
     };

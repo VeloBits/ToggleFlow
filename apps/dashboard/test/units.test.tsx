@@ -12,12 +12,20 @@ vi.mock('../src/auth/AuthContext', () => ({
   useAuth: () => ({ user: null, loading: false, logout: vi.fn(), ...auth }),
 }));
 
-import type { FlagRow } from '../src/api/client';
+import type { Flag } from '../src/api/client';
+import { flagKeys } from '../src/api/flags';
 import { returnToFromState, safeReturnTo } from '../src/auth/return-to';
 import { diffLines } from '../src/components/diff';
 import { ConfirmButton, StatusChip } from '../src/components/ui';
+import { EMPTY_FILTER, filterFlags } from '../src/features/flags/flags-filter';
 import { GuestHomePage } from '../src/pages/GuestHomePage';
-import { EMPTY_FILTER, filterRows } from '../src/pages/tools-filter';
+import { relativeTime } from '../src/ui/relative-time';
+import {
+  ENVIRONMENT_KEY_PATTERN,
+  FLAG_KEY_PATTERN,
+  slugifyEnvironmentKey,
+  slugifyFlagKey,
+} from '../src/ui/slug';
 
 describe('diffLines', () => {
   it('marks added, removed, and unchanged lines', () => {
@@ -35,42 +43,156 @@ describe('diffLines', () => {
   });
 });
 
-describe('filterRows', () => {
-  const row = (over: Partial<FlagRow & { tags: string[] }>): FlagRow & { tags: string[] } => ({
-    toolId: 't',
-    toolKey: 'tool.x',
-    toolName: 'X',
+describe('filterFlags', () => {
+  type Row = Flag & { tags: string[]; description: string | null };
+  const row = (over: Partial<Row>): Row => ({
+    id: 't',
+    key: 'tool.x',
+    name: 'X',
     archived: false,
     enabled: true,
     rolloutPercent: null,
     targetingRules: [],
+    valueType: 'boolean',
+    enumOptions: [],
+    value: null,
+    defaultValue: null,
     updatedAt: '2026-01-01T00:00:00Z',
     tags: [],
+    description: null,
     ...over,
   });
   const rows = [
-    row({ toolId: '1', toolKey: 'tool.summarize', toolName: 'Summarize', tags: ['ai'] }),
-    row({ toolId: '2', toolKey: 'tool.translate', toolName: 'Translate', enabled: false }),
-    row({ toolId: '3', toolKey: 'tool.rollout', toolName: 'Rollout', rolloutPercent: 25 }),
-    row({ toolId: '4', toolKey: 'tool.old', toolName: 'Old', archived: true }),
+    row({
+      id: '1',
+      key: 'tool.summarize',
+      name: 'Summarize',
+      tags: ['ai'],
+      description: 'Shortens long text',
+    }),
+    row({ id: '2', key: 'tool.translate', name: 'Translate', enabled: false, valueType: 'string' }),
+    row({
+      id: '3',
+      key: 'tool.rollout',
+      name: 'Rollout',
+      rolloutPercent: 25,
+      valueType: 'string_enum',
+      enumOptions: ['fast', 'slow'],
+    }),
+    row({ id: '4', key: 'tool.old', name: 'Old', archived: true }),
   ];
+  const ids = (filter: Parameters<typeof filterFlags>[1]) =>
+    filterFlags(rows, filter).map((r) => r.id);
 
   it('hides archived by default and finds by key or name', () => {
-    expect(filterRows(rows, EMPTY_FILTER)).toHaveLength(3);
-    expect(filterRows(rows, { ...EMPTY_FILTER, includeArchived: true })).toHaveLength(4);
-    expect(filterRows(rows, { ...EMPTY_FILTER, search: 'SUMM' })).toHaveLength(1);
-    expect(filterRows(rows, { ...EMPTY_FILTER, search: 'translate' })[0]!.toolId).toBe('2');
+    expect(filterFlags(rows, EMPTY_FILTER)).toHaveLength(3);
+    expect(filterFlags(rows, { ...EMPTY_FILTER, includeArchived: true })).toHaveLength(4);
+    expect(filterFlags(rows, { ...EMPTY_FILTER, search: 'SUMM' })).toHaveLength(1);
+    expect(ids({ ...EMPTY_FILTER, search: 'translate' })).toEqual(['2']);
+  });
+
+  it('searches the description too, where a row carries one', () => {
+    expect(ids({ ...EMPTY_FILTER, search: 'shortens' })).toEqual(['1']);
   });
 
   it('filters by status and tag', () => {
-    expect(filterRows(rows, { ...EMPTY_FILTER, status: 'on' }).map((r) => r.toolId)).toEqual(['1']);
-    expect(filterRows(rows, { ...EMPTY_FILTER, status: 'off' }).map((r) => r.toolId)).toEqual([
-      '2',
-    ]);
-    expect(filterRows(rows, { ...EMPTY_FILTER, status: 'rollout' }).map((r) => r.toolId)).toEqual([
-      '3',
-    ]);
-    expect(filterRows(rows, { ...EMPTY_FILTER, tag: 'ai' }).map((r) => r.toolId)).toEqual(['1']);
+    expect(ids({ ...EMPTY_FILTER, status: 'on' })).toEqual(['1']);
+    expect(ids({ ...EMPTY_FILTER, status: 'off' })).toEqual(['2']);
+    expect(ids({ ...EMPTY_FILTER, status: 'rollout' })).toEqual(['3']);
+    expect(ids({ ...EMPTY_FILTER, tag: 'ai' })).toEqual(['1']);
+  });
+
+  it('treats a row with no join as having no tags and no description', () => {
+    /*
+     * `tags` and `description` come from the definitions query, which resolves
+     * separately from the flag list. So for one render the rows legitimately
+     * have neither, and the filter has to answer "no match" rather than throw -
+     * the alternative is a page that crashes for the moment between two
+     * responses.
+     */
+    const unjoined = [{ ...rows[0]!, tags: undefined, description: undefined }];
+    expect(filterFlags(unjoined, { ...EMPTY_FILTER, tag: 'ai' })).toEqual([]);
+    expect(filterFlags(unjoined, { ...EMPTY_FILTER, search: 'shortens' })).toEqual([]);
+    expect(filterFlags(unjoined, EMPTY_FILTER)).toHaveLength(1);
+  });
+
+  it('filters by value type', () => {
+    expect(ids({ ...EMPTY_FILTER, valueType: 'boolean' })).toEqual(['1']);
+    expect(ids({ ...EMPTY_FILTER, valueType: 'string' })).toEqual(['2']);
+    expect(ids({ ...EMPTY_FILTER, valueType: 'string_enum' })).toEqual(['3']);
+    // The axis is independent of the others: a string flag that is off stays a
+    // match for `off`, and stops being one for `on`.
+    expect(ids({ ...EMPTY_FILTER, valueType: 'string', status: 'off' })).toEqual(['2']);
+    expect(ids({ ...EMPTY_FILTER, valueType: 'string', status: 'on' })).toEqual([]);
+  });
+});
+
+/*
+ * The cache keys are asserted literally rather than through the factories,
+ * because their whole job is to be stable: WorkspaceContext invalidates the
+ * `['flags']` prefix after creating an inherited environment, and four screens
+ * share the per-environment entry. A key that changed shape would leave every
+ * one of them rendering pre-mutation data - with no error to notice.
+ */
+describe('flagKeys', () => {
+  it('keeps the list key under the prefix the workspace invalidates', () => {
+    expect(flagKeys.listPrefix).toEqual(['flags']);
+    expect(flagKeys.list('env-1')).toEqual(['flags', 'env-1']);
+    expect(flagKeys.list(null)).toEqual(['flags', null]);
+  });
+
+  it('namespaces the definition, detail and config entries', () => {
+    expect(flagKeys.definitionsPrefix).toEqual(['flag-definitions']);
+    expect(flagKeys.definitions('p1')).toEqual(['flag-definitions', 'p1']);
+    expect(flagKeys.detail('f1')).toEqual(['flag', 'f1']);
+    expect(flagKeys.config('env-1', 'f1')).toEqual(['config', 'env-1', 'f1']);
+    expect(flagKeys.configVersions('env-1', 'f1')).toEqual(['config-versions', 'env-1', 'f1']);
+  });
+});
+
+describe('relativeTime', () => {
+  const ago = (ms: number) => relativeTime(new Date(Date.now() - ms).toISOString());
+  const MINUTE = 60_000;
+  const DAY = 24 * 60 * MINUTE;
+
+  it('lands on the largest unit the gap fills', () => {
+    expect(ago(30_000)).toBe('30 seconds ago');
+    expect(ago(2 * MINUTE)).toBe('2 minutes ago');
+    expect(ago(3 * 60 * MINUTE)).toBe('3 hours ago');
+    expect(ago(2 * DAY)).toBe('2 days ago');
+    expect(ago(21 * DAY)).toBe('3 weeks ago');
+    expect(ago(152 * DAY)).toBe('5 months ago');
+  });
+
+  it('prints a date once "ago" stops meaning anything', () => {
+    const iso = new Date(Date.now() - 1095 * DAY).toISOString();
+    expect(relativeTime(iso)).toBe(new Date(iso).toLocaleDateString());
+  });
+});
+
+describe('slugify', () => {
+  it('derives an environment key that its own pattern accepts', () => {
+    expect(slugifyEnvironmentKey('Load Testing')).toBe('load-testing');
+    expect(slugifyEnvironmentKey('  EU / West  ')).toBe('eu-west');
+    expect(slugifyEnvironmentKey('checkout.v2')).toBe('checkout-v2');
+    for (const name of ['Load Testing', 'EU / West', 'checkout.v2']) {
+      expect(ENVIRONMENT_KEY_PATTERN.test(slugifyEnvironmentKey(name))).toBe(true);
+    }
+  });
+
+  it('keeps the dots and underscores a flag key is allowed to namespace with', () => {
+    expect(slugifyFlagKey('checkout.v2')).toBe('checkout.v2');
+    expect(slugifyFlagKey('AI model_name')).toBe('ai-model_name');
+    expect(slugifyFlagKey('Checkout v2!')).toBe('checkout-v2');
+    // A leading separator is trimmed, because neither pattern allows one.
+    expect(slugifyFlagKey('.hidden')).toBe('hidden');
+    for (const name of ['checkout.v2', 'AI model_name', 'Checkout v2!', '.hidden']) {
+      expect(FLAG_KEY_PATTERN.test(slugifyFlagKey(name))).toBe(true);
+    }
+  });
+
+  it('truncates at 50 characters', () => {
+    expect(slugifyEnvironmentKey('a'.repeat(80))).toHaveLength(50);
   });
 });
 
@@ -114,7 +236,7 @@ describe('ConfirmButton', () => {
 
 describe('safeReturnTo', () => {
   it('keeps in-app paths', () => {
-    expect(safeReturnTo('/tools/abc')).toBe('/tools/abc');
+    expect(safeReturnTo('/flags/abc')).toBe('/flags/abc');
     expect(safeReturnTo('/audit?actor=ns')).toBe('/audit?actor=ns');
   });
 
@@ -122,7 +244,7 @@ describe('safeReturnTo', () => {
     expect(safeReturnTo('//evil.example.com')).toBe('/');
     expect(safeReturnTo('/\\evil.example.com')).toBe('/');
     expect(safeReturnTo('https://evil.example.com')).toBe('/');
-    expect(safeReturnTo('tools/abc')).toBe('/');
+    expect(safeReturnTo('flags/abc')).toBe('/');
     expect(safeReturnTo(undefined)).toBe('/');
     expect(safeReturnTo('/auth/callback')).toBe('/');
   });
@@ -171,9 +293,9 @@ describe('GuestHomePage', () => {
   });
 
   it('carries the requested path into sign-up so deep links survive', () => {
-    renderAt('/tools/abc?env=prod');
+    renderAt('/flags/abc?env=prod');
     fireEvent.click(screen.getAllByText('Get started free')[0]!);
-    expect(auth.signup).toHaveBeenCalledWith('/tools/abc?env=prod');
+    expect(auth.signup).toHaveBeenCalledWith('/flags/abc?env=prod');
   });
 
   it('weights the nav island past 40px of scroll', () => {
@@ -221,14 +343,14 @@ describe('GuestHomePage', () => {
   });
 
   it('carries the requested path from inside the mobile menu', () => {
-    renderAt('/tools/abc?env=prod');
+    renderAt('/flags/abc?env=prod');
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
     const menu = document.getElementById('mobile-menu')!;
     const getStarted = [...menu.querySelectorAll('button')].find(
       (button) => button.textContent === 'Get started free',
     )!;
     fireEvent.click(getStarted);
-    expect(auth.signup).toHaveBeenCalledWith('/tools/abc?env=prod');
+    expect(auth.signup).toHaveBeenCalledWith('/flags/abc?env=prod');
     expect(document.getElementById('mobile-menu')).toBeNull();
   });
 
@@ -260,7 +382,7 @@ describe('GuestHomePage', () => {
   });
 
   it('renders the footer link groups and carries the path into its CTA', () => {
-    renderAt('/tools/abc?env=prod');
+    renderAt('/flags/abc?env=prod');
     const footer = document.querySelector('footer')!;
     expect([...footer.querySelectorAll('h2')].map((heading) => heading.textContent)).toEqual([
       'Product',
@@ -272,7 +394,7 @@ describe('GuestHomePage', () => {
       (button) => button.textContent === 'Get started free',
     )!;
     fireEvent.click(cta);
-    expect(auth.signup).toHaveBeenCalledWith('/tools/abc?env=prod');
+    expect(auth.signup).toHaveBeenCalledWith('/flags/abc?env=prod');
   });
 
   // The accordion's own behaviour is covered in test/accordion.test.tsx; this is

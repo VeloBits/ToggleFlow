@@ -5,6 +5,7 @@
  * flag state, config, ruleset snapshots, and API keys are per-environment.
  * `npm run db:generate` emits SQL migrations into ./drizzle (committed).
  */
+import { FLAG_VALUE_TYPES, type JsonValue } from '@toggleflow/engine';
 import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
@@ -31,6 +32,12 @@ const updatedAt = () =>
 
 export const membershipRole = pgEnum('membership_role', ['admin', 'developer', 'viewer']);
 export const apiKeyKind = pgEnum('api_key_kind', ['server', 'client']);
+/**
+ * Generated from the engine's `FLAG_VALUE_TYPES`, so the DB enum, the wire enum
+ * and the TS union can never drift: adding a type is one append there, and
+ * drizzle-kit emits the `ALTER TYPE … ADD VALUE` from this declaration.
+ */
+export const flagValueType = pgEnum('flag_value_type', FLAG_VALUE_TYPES);
 
 // ── Tenancy ───────────────────────────────────────────────────────────────────
 
@@ -107,6 +114,21 @@ export const environments = pgTable(
 
 // ── Registry ──────────────────────────────────────────────────────────────────
 
+/**
+ * The flag DEFINITION. `value_type`, `enum_options` and `default_value` live
+ * here - project-scoped - rather than on the per-environment `flag_states`,
+ * because the type is part of the flag's identity, not part of its state.
+ *
+ * A per-environment type would mean `flags.getString('tool.banner')` could be a
+ * string in Staging and a boolean in Production: an SDK's typed accessor would
+ * change its return type depending on which environment it happened to be
+ * pointed at, which is not a thing a compiler can help anyone with. Same
+ * argument for `enum_options` (the set of legal members is the flag's contract
+ * with its call sites) and for `default_value` (the value a brand-new
+ * environment starts from, so it has to predate any environment).
+ *
+ * What IS per-environment is the value actually served - `flag_states.value`.
+ */
 export const tools = pgTable(
   'tools',
   {
@@ -117,6 +139,15 @@ export const tools = pgTable(
     key: text('key').notNull(),
     name: text('name').notNull(),
     description: text('description'),
+    /** IMMUTABLE after creation - see the PATCH guard in routes/tools.ts. */
+    valueType: flagValueType('value_type').notNull().default('boolean'),
+    /** The legal members for `string_enum`; empty (and unused) for other types. */
+    enumOptions: text('enum_options')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    /** What an environment serves when its own `flag_states.value` is NULL. */
+    defaultValue: jsonb('default_value').$type<JsonValue>(),
     metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
     tags: text('tags')
       .array()
@@ -126,7 +157,20 @@ export const tools = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex('tools_project_id_key_unique').on(t.projectId, t.key)],
+  (t) => [
+    uniqueIndex('tools_project_id_key_unique').on(t.projectId, t.key),
+    /*
+     * `cardinality()`, NOT `array_length(x, 1)`: array_length returns NULL for
+     * an empty array, and a CHECK whose expression evaluates to NULL PASSES.
+     * So `array_length(enum_options, 1) > 0` would be NULL > 0 => NULL => row
+     * accepted - the exact state this constraint exists to forbid, waved
+     * through silently. cardinality() returns 0 for an empty array.
+     */
+    check(
+      'tools_enum_options_required',
+      sql`${t.valueType} <> 'string_enum' OR cardinality(${t.enumOptions}) > 0`,
+    ),
+  ],
 );
 
 /** Per-environment flag state for a tool. `rollout_percent` null = no % rollout. */
@@ -141,6 +185,16 @@ export const flagStates = pgTable(
       .notNull()
       .references(() => environments.id, { onDelete: 'cascade' }),
     enabled: boolean('enabled').notNull().default(false),
+    /**
+     * The value this environment serves while the flag is on. NULL = inherit
+     * `tools.default_value`, which is also the correct state for a `boolean`
+     * flag: its value IS `enabled`, so there is nothing to store here.
+     *
+     * Nullable rather than notNull-with-default because null is itself a legal
+     * JSON value for a configured flag - "not set, inherit the definition" has
+     * to stay distinguishable from "deliberately set to null".
+     */
+    value: jsonb('value').$type<JsonValue>(),
     rolloutPercent: integer('rollout_percent'),
     targetingRules: jsonb('targeting_rules').$type<unknown[]>().notNull().default([]),
     updatedAt: updatedAt(),

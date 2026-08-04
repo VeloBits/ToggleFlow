@@ -38,7 +38,7 @@ const INLINE_LIMIT = 8;
 
 const TRIGGER = [
   'group flex max-w-[15rem] items-center gap-1.5 rounded-md border-0 bg-transparent px-2 py-1 text-[13px]',
-  'hover:bg-highlight focus-visible:ring-accent transition-colors duration-100 focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none',
+  'hover:bg-highlight focus-visible:ring-ring transition-colors duration-100 focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none',
   'disabled:pointer-events-none disabled:opacity-60',
 ].join(' ');
 
@@ -107,14 +107,16 @@ export function ScopePicker({
               className={cn('size-2 shrink-0 rounded-full', selected.dotClassName)}
             />
           ) : (
-            Icon && <Icon size={15} className="text-muted shrink-0" />
+            Icon && <Icon size={15} className="text-muted-foreground shrink-0" />
           )}
-          <span className={cn('truncate', selected ? 'text-text font-medium' : 'text-muted')}>
+          <span
+            className={cn('truncate', selected ? 'text-text font-medium' : 'text-muted-foreground')}
+          >
             {selected?.label ?? emptyLabel}
           </span>
           <ChevronsUpDownIcon
             size={13}
-            className="text-muted group-hover:text-text ml-0.5 shrink-0"
+            className="text-muted-foreground group-hover:text-text ml-0.5 shrink-0"
           />
         </MenuTrigger>
 
@@ -134,21 +136,23 @@ export function ScopePicker({
                   className={cn('size-2 shrink-0 rounded-full', option.dotClassName)}
                 />
               ) : (
-                Icon && <Icon size={15} className="text-muted shrink-0" />
+                Icon && <Icon size={15} className="text-muted-foreground shrink-0" />
               )}
               <span className="truncate">{option.label}</span>
               {option.meta && (
-                <span className="text-muted ml-auto shrink-0 pl-2 text-[11.5px]">
+                <span className="text-muted-foreground ml-auto shrink-0 pl-2 text-[11.5px]">
                   {option.meta}
                 </span>
               )}
             </MenuRadioItem>
           ))}
           {options.length === 0 && (
-            <p className="text-muted px-2 py-2 text-[13px]">No {kind.toLowerCase()}s yet.</p>
+            <p className="text-muted-foreground px-2 py-2 text-[13px]">
+              No {kind.toLowerCase()}s yet.
+            </p>
           )}
           {overflowing && (
-            <MenuItem className="text-muted" onSelect={() => setSwitcherOpen(true)}>
+            <MenuItem className="text-muted-foreground" onSelect={() => setSwitcherOpen(true)}>
               <span className="pl-[calc(15px+0.625rem)]">Browse all {options.length}…</span>
             </MenuItem>
           )}

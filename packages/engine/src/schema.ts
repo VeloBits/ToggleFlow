@@ -6,8 +6,28 @@
  * requires a schemaVersion bump and a new schema alongside this one.
  * Unknown object keys are stripped (zod default), so additive fields in
  * newer producers don't break older evaluators.
+ *
+ * ## Precedent: typed flag values were added WITHOUT a version bump (2026-08-03)
+ *
+ * `snapshotToolSchema.valueType`/`.value` and `targetingRuleSchema.value` are
+ * additive and defaulted, so a snapshot written before they existed parses
+ * unchanged - the second half of the paragraph above is the licence.
+ *
+ * Bumping instead would have been the destructive option, not the careful one:
+ * `schemaVersion: z.literal(SCHEMA_VERSION)` means every snapshot already
+ * sitting in KV would start failing `safeParse` in the edge worker, so
+ * `/v1/flags` would 500 for every environment until each one republished -
+ * while `/v1/ruleset` kept serving raw text, leaving server SDKs healthy and
+ * every browser broken. A bump is for a change that alters the MEANING of an
+ * existing field; adding a field that older readers can ignore is not that.
+ *
+ * The rule this sets for the next change: additive + defaulted + old readers
+ * still correct => no bump. Anything that changes how an existing field is
+ * interpreted => new schemaVersion and a new schema file beside this one.
  */
 import { z } from 'zod';
+
+import { flagValueTypeSchema } from './flag-types';
 
 export const SCHEMA_VERSION = 1;
 
@@ -76,6 +96,15 @@ export const targetingRuleSchema = z.object({
   segments: z.array(z.string()).default([]),
   conditions: z.array(conditionSchema).default([]),
   enabled: z.boolean(),
+  /**
+   * ADDITIVE (schemaVersion 1). The value this rule serves when it matches and
+   * `enabled` is true; ignored for `boolean` flags, whose value is `enabled`.
+   *
+   * `.optional()` rather than `.nullable().default(null)` on purpose: null is
+   * itself a legal JSON value, so "absent" has to be distinguishable from
+   * "explicitly null" to mean "serve the flag's own value".
+   */
+  value: jsonValueSchema.optional(),
 });
 export type TargetingRule = z.infer<typeof targetingRuleSchema>;
 
@@ -91,6 +120,19 @@ export const snapshotToolSchema = z.object({
   rolloutPercent: z.number().int().min(0).max(100).nullable().default(null),
   targetingRules: z.array(targetingRuleSchema).default([]),
   config: jsonObjectSchema.nullable().default(null),
+  /**
+   * ADDITIVE (schemaVersion 1). Absent means `boolean`, which is what every
+   * snapshot written before typed flags existed meant.
+   *
+   * The snapshot builder OMITS this (and `value`) for boolean flags rather than
+   * writing the default explicitly, so an all-boolean environment serialises
+   * byte-identically to before and its content hash - and therefore its
+   * ruleset version - does not churn. That makes these defaults load-bearing,
+   * which the `tool.sparse` case in schema.test.ts guards.
+   */
+  valueType: flagValueTypeSchema.default('boolean'),
+  /** ADDITIVE. The value served while on; ignored for `boolean` (see evaluate.ts). */
+  value: jsonValueSchema.default(null),
 });
 export type SnapshotTool = z.infer<typeof snapshotToolSchema>;
 

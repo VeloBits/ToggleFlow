@@ -97,16 +97,83 @@ export class ToggleFlowServerClient {
     return this.snapshot !== null;
   }
 
-  /** Full evaluation (enabled, reason, config, fallback). Safe before ready: disabled/not_found. */
+  /**
+   * Full evaluation (enabled, value, valueType, reason, config, fallback).
+   * Safe before ready: disabled/not_found.
+   */
   evaluate(toolKey: string, user: UserContextInput = ANONYMOUS): ToolEvaluation {
     if (!this.snapshot) {
-      return { key: toolKey, enabled: false, reason: 'not_found', config: null, fallback: null };
+      return {
+        key: toolKey,
+        enabled: false,
+        reason: 'not_found',
+        /*
+         * Deliberately identical to what the engine returns for an unknown key
+         * (evaluate.ts `evaluateTool`): a pre-ready check and a missing flag are
+         * the same situation from the caller's side - we have no opinion - so
+         * they must not report different values. `valueType: 'boolean'` is the
+         * safest claim to make about a flag we know nothing about, and pairs
+         * with `value: null` so a caller asking for a string falls through to
+         * its own default instead of being handed `false`.
+         */
+        value: null,
+        valueType: 'boolean',
+        config: null,
+        fallback: null,
+      };
     }
     return evaluateTool(this.snapshot, toolKey, normalize(user));
   }
 
   isEnabled(toolKey: string, user: UserContextInput = ANONYMOUS): boolean {
     return this.evaluate(toolKey, user).enabled;
+  }
+
+  /**
+   * The raw value this flag serves this user: `enabled` for boolean flags, the
+   * resolved string (or `config.fallback` when off) for the typed ones, `null`
+   * before ready and for unknown keys.
+   *
+   * Raw because it is the one accessor that can hand back a value of a type this
+   * SDK build has never heard of. In application code reach for the typed
+   * accessors below instead - they carry the caller's default through every case
+   * this one reports as `null`.
+   */
+  getValue(toolKey: string, user: UserContextInput = ANONYMOUS): JsonValue | null {
+    return this.evaluate(toolKey, user).value;
+  }
+
+  /**
+   * The served value when it really is a string at runtime, else `defaultValue`.
+   *
+   * `defaultValue` is required, not optional-defaulting-to-`''`, because every
+   * way this can fail to produce a string is a case where the caller knows a
+   * better answer than the SDK does: the ruleset has not loaded yet, the key is
+   * unknown or misspelt, the flag is off with no `config.fallback`, or someone
+   * retyped the flag in the dashboard. `''` would be a silent wrong answer for
+   * a model name or a URL.
+   *
+   * Wrong-type values fall back rather than throw for the same reason the
+   * engine's `flagType()` degrades unknown types instead of throwing: a flag
+   * platform must never be the thing that takes the app down, and a dashboard
+   * edit is not a deploy - it can happen while this process is serving traffic.
+   */
+  getStringValue(toolKey: string, user: UserContextInput, defaultValue: string): string {
+    const value = this.getValue(toolKey, user);
+    return typeof value === 'string' ? value : defaultValue;
+  }
+
+  /**
+   * The served value when it really is a boolean, else `defaultValue`.
+   *
+   * Distinct from `isEnabled`, which is fail-closed by design: an unknown key or
+   * a not-yet-loaded ruleset is `false` there, and `defaultValue` here. Use
+   * `isEnabled` to gate a feature; use this when your safe default is `true`
+   * (a check you want ON unless a flag says otherwise).
+   */
+  getBooleanValue(toolKey: string, user: UserContextInput, defaultValue: boolean): boolean {
+    const value = this.getValue(toolKey, user);
+    return typeof value === 'boolean' ? value : defaultValue;
   }
 
   evaluateAll(user: UserContextInput = ANONYMOUS): Record<string, ToolEvaluation> {

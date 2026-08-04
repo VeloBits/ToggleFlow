@@ -46,6 +46,20 @@ export default defineConfig({
         // tests still run and still gate CI; only the denominator changes.
         // Measuring it for real means porting to @cloudflare/vitest-pool-workers.
         'apps/edge-worker/src/**',
+        // Vendored shadcn primitives (`npx shadcn add`, style new-york): cva
+        // variant maps, forwardRef pass-throughs and className merges whose
+        // behaviour belongs to Radix and is tested upstream. Same category as
+        // the edge-worker entry above - not the thing under test.
+        //
+        // They ARE rendered: every Flags suite drives the app through them.
+        // What leaves the denominator is ~35 variant arms whose only possible
+        // assertion is "did Tailwind emit this class string".
+        //
+        // This is safe because eslint.config.js forbids importing src/api/*,
+        // @tanstack/react-query and react-router-dom inside the directory, so
+        // nothing with a branch worth testing can live there. Widen the
+        // exclusion only if that rule widens with it.
+        'apps/dashboard/src/components/ui/**',
         // Type-only and non-executable.
         '**/*.d.ts',
         '**/*.css',
@@ -67,14 +81,24 @@ export default defineConfig({
         functions: 70,
         lines: 70,
 
-        // measured 89.2 / 75.6 / 88.5 / 93.0
-        'apps/api/src/**': { statements: 85, branches: 72, functions: 85, lines: 88 },
-        // measured 96.4 / 95.3 / 95.3 / 97.5
+        // measured 89.9 / 77.5 / 90.0 / 93.7 (2026-08-03, typed flag values)
+        'apps/api/src/**': { statements: 87, branches: 74, functions: 87, lines: 91 },
+        /*
+         * measured 94.5 / 91.1 / 92.1 / 95.5 (2026-08-03, Flags surface rebuild)
+         *
+         * Lower than the 96.4 / 95.3 / 95.3 / 97.5 recorded when these floors
+         * landed, and deliberately NOT lowered to match: the drop is the cost of
+         * roughly tripling this package's surface (the flags feature, the form,
+         * the detail tabs), and every number still clears its floor. Functions
+         * sits ~0.1pt above the line, so the floors stay where they are rather
+         * than being raised - there is no headroom to spend.
+         */
         'apps/dashboard/src/**': { statements: 92, branches: 90, functions: 92, lines: 94 },
-        // measured 95.5 / 74.3 / 100 / 94.9
-        'packages/engine/src/**': { statements: 92, branches: 72, functions: 95, lines: 92 },
-        // measured 90.2 / 85.2 / 84.1 / 91.2
-        'packages/sdk-js/src/**': { statements: 87, branches: 82, functions: 80, lines: 88 },
+        // measured 96.9 / 85.7 / 100 / 96.4 (2026-08-03; branches 74.3 -> 85.7
+        // when the typed-value fixtures landed, so the branch floor moves up)
+        'packages/engine/src/**': { statements: 94, branches: 80, functions: 95, lines: 94 },
+        // measured 90.9 / 87.0 / 85.9 / 91.9 (2026-08-03, typed value accessors)
+        'packages/sdk-js/src/**': { statements: 88, branches: 84, functions: 83, lines: 89 },
       },
     },
   },

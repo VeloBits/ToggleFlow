@@ -50,7 +50,7 @@ const SURFACE_TOP =
 const SURFACE_SCROLLED =
   'border-border bg-panel/95 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_10px_30px_rgba(0,0,0,0.10)] dark:border-border-strong dark:bg-panel/85 dark:shadow-[0_1px_2px_rgba(0,0,0,0.40),0_12px_34px_rgba(0,0,0,0.45)]';
 
-const FOCUS = 'focus-visible:ring-accent focus-visible:ring-2 focus-visible:outline-none';
+const FOCUS = 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none';
 
 /**
  * Section anchor as a pill hover-chip. Muted, so the accent stays with the CTA.
@@ -58,10 +58,10 @@ const FOCUS = 'focus-visible:ring-accent focus-visible:ring-2 focus-visible:outl
  * action cluster leave under 100px of slack on a 768px island - and relaxes at
  * `lg`, where the original 0.85rem rhythm from velobits-website fits again.
  */
-const LINK = `text-muted hover:bg-highlight hover:text-text rounded-pill px-2.5 py-[0.42rem] text-[13px] font-medium whitespace-nowrap transition-colors duration-150 motion-reduce:transition-none lg:px-[0.85rem] ${FOCUS}`;
+const LINK = `text-muted-foreground hover:bg-highlight hover:text-text rounded-pill px-2.5 py-[0.42rem] text-[13px] font-medium whitespace-nowrap transition-colors duration-150 motion-reduce:transition-none lg:px-[0.85rem] ${FOCUS}`;
 
 /** The one accent action. Ring offset keeps the focus ring visible on accent fill. */
-const CTA = `border-accent bg-accent hover:border-accent-hover hover:bg-accent-hover focus-visible:ring-offset-panel shrink-0 rounded-pill border px-4 py-1.5 text-[13px] font-semibold whitespace-nowrap text-white transition-colors duration-150 focus-visible:ring-offset-2 motion-reduce:transition-none ${FOCUS}`;
+const CTA = `border-primary bg-primary hover:border-primary-hover hover:bg-primary-hover focus-visible:ring-offset-panel shrink-0 rounded-pill border px-4 py-1.5 text-[13px] font-semibold whitespace-nowrap text-white transition-colors duration-150 focus-visible:ring-offset-2 motion-reduce:transition-none ${FOCUS}`;
 
 export function GuestNav({ returnTo }: { returnTo: string }) {
   const { signup } = useAuth();
@@ -138,7 +138,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
               switch in the on position: the product's own metaphor, and it holds
               its shape at 20px where the old ◆ glyph depended on the font. */}
           <span className="flex shrink-0 items-center gap-2">
-            <ToggleMarkIcon size={20} className="text-accent" />
+            <ToggleMarkIcon size={20} className="text-primary" />
             <span className="font-bold">ToggleFlow</span>
           </span>
 
@@ -155,7 +155,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
                 className={cn(
                   LINK,
                   'inline-flex items-center',
-                  activeHash === link.href && 'bg-accent-soft text-text',
+                  activeHash === link.href && 'bg-primary-soft text-text',
                 )}
               >
                 {link.label}
@@ -175,7 +175,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
                 // appears, because 32px lands within a pixel of that button's
                 // computed height - a 44px hover circle beside a 31px pill reads
                 // as two unrelated controls. Vertical centring is the flex row's.
-                'text-muted hover:bg-highlight hover:text-text rounded-pill h-11 w-11 p-0 transition-colors duration-150 motion-reduce:transition-none sm:h-8 sm:w-8',
+                'text-muted-foreground hover:bg-highlight hover:text-text rounded-pill h-11 w-11 p-0 transition-colors duration-150 motion-reduce:transition-none sm:h-8 sm:w-8',
                 FOCUS,
               )}
             />
@@ -232,7 +232,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
                   className={cn(
                     LINK,
                     'flex items-center rounded-lg px-3 py-3 text-[14px]',
-                    activeHash === link.href && 'bg-accent-soft text-text',
+                    activeHash === link.href && 'bg-primary-soft text-text',
                   )}
                 >
                   {link.label}

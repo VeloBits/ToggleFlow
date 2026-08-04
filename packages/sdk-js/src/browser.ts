@@ -5,13 +5,21 @@
  * rules never reach the browser. Same subscribe abstraction as the server
  * client, so SSE can replace polling without breaking changes.
  */
-import type { JsonObject, JsonValue } from '@toggleflow/engine';
+import type { FlagValueType, JsonObject, JsonValue } from '@toggleflow/engine';
 
 import type { UserContextInput } from './server';
 import { createPollingTransport, type Unsubscribe, type UpdateTransport } from './transport';
 
+/** One entry of the edge's `/v1/flags` payload - already evaluated for this user. */
 export interface EvaluatedFlag {
   enabled: boolean;
+  /**
+   * What the flag serves this user: `enabled` for boolean flags, the resolved
+   * string (or `config.fallback` when off) for typed ones. Computed at the edge
+   * by the same engine the server SDK runs, so both halves of an app agree.
+   */
+  value: JsonValue | null;
+  valueType: FlagValueType;
   config: JsonObject | null;
   fallback: JsonValue | null;
 }
@@ -100,6 +108,38 @@ export class ToggleFlowBrowserClient {
 
   getFallback(toolKey: string): JsonValue | null {
     return this.getFlag(toolKey)?.fallback ?? null;
+  }
+
+  /**
+   * The value the edge evaluated for this user; `null` before the first payload
+   * arrives and for unknown keys.
+   *
+   * `?? null` also covers a payload from an edge worker deployed before typed
+   * values shipped, where the field is simply absent: the response is cast, not
+   * parsed (see `refresh`), so `undefined` is reachable at runtime however this
+   * interface is typed - and `undefined` leaking into a caller's `typeof` check
+   * would be a worse failure than a missing value.
+   */
+  getValue(toolKey: string): JsonValue | null {
+    return this.getFlag(toolKey)?.value ?? null;
+  }
+
+  /**
+   * The served value when it really is a string, else `defaultValue`. Same
+   * contract (and the same required-default rationale) as the server client's
+   * `getStringValue`, minus the user argument: the browser client evaluates
+   * nothing locally, it caches the flags the edge already evaluated for the user
+   * passed to `identify()`.
+   */
+  getStringValue(toolKey: string, defaultValue: string): string {
+    const value = this.getValue(toolKey);
+    return typeof value === 'string' ? value : defaultValue;
+  }
+
+  /** The served value when it really is a boolean, else `defaultValue`. */
+  getBooleanValue(toolKey: string, defaultValue: boolean): boolean {
+    const value = this.getValue(toolKey);
+    return typeof value === 'boolean' ? value : defaultValue;
   }
 
   allFlags(): Record<string, EvaluatedFlag> {

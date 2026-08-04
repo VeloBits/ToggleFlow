@@ -11,6 +11,7 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 
 import killSwitchFixture from '@toggleflow/engine/fixtures/kill-switch.json';
+import stringValueFixture from '@toggleflow/engine/fixtures/string-value.json';
 import targetingFixture from '@toggleflow/engine/fixtures/targeting.json';
 import { Miniflare } from 'miniflare';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -19,6 +20,7 @@ const SERVER_KEY = 'tf_srv_test-server-key';
 const CLIENT_KEY = 'tf_cli_test-client-key';
 const TARGETING_ENV = 'env-prod';
 const KILL_ENV = 'env-kill';
+const STRING_ENV = 'env-typed';
 
 const sha256 = (input: string) => createHash('sha256').update(input).digest('hex');
 
@@ -51,7 +53,13 @@ beforeAll(async () => {
   await kv.put(`ruleset:${KILL_ENV}`, JSON.stringify(killSwitchFixture.snapshot), {
     metadata: { contentHash: 'kill-hash-1', version: 7 },
   });
-  for (const envId of [TARGETING_ENV, KILL_ENV]) {
+  // Typed (string / string_enum) flags, including one v1-shaped entry with no
+  // valueType at all - the case that proves the schema defaults survive the
+  // worker's read-time safeParse rather than being stripped.
+  await kv.put(`ruleset:${STRING_ENV}`, JSON.stringify(stringValueFixture.snapshot), {
+    metadata: { contentHash: 'string-hash-1', version: 7 },
+  });
+  for (const envId of [TARGETING_ENV, KILL_ENV, STRING_ENV]) {
     await kv.put(
       `keys:${envId}`,
       JSON.stringify({ server: [sha256(SERVER_KEY)], client: [sha256(CLIENT_KEY)] }),
@@ -143,7 +151,13 @@ describe('GET /v1/flags (edge evaluation)', () => {
     name: string;
     toolKey: string;
     context: { key: string; attributes?: object };
-    expected: { enabled: boolean; config: unknown; fallback: unknown };
+    expected: {
+      enabled: boolean;
+      value: unknown;
+      valueType: string;
+      config: unknown;
+      fallback: unknown;
+    };
   }
 
   const runCases = (cases: FixtureCase[], envId: string) => {
@@ -156,8 +170,16 @@ describe('GET /v1/flags (edge evaluation)', () => {
         const res = await call(`/v1/flags?${params}`, authed(CLIENT_KEY));
         expect(res.status).toBe(200);
         const body = (await res.json()) as { flags: Record<string, unknown> };
+        /*
+         * A whole-object equality, not a subset match: the fixture's `expected`
+         * also carries `key` and `reason`, so this asserts the payload contains
+         * the five public fields and NOTHING else - `reason` names the rule that
+         * fired and must not reach the browser.
+         */
         expect(body.flags[testCase.toolKey]).toEqual({
           enabled: testCase.expected.enabled,
+          value: testCase.expected.value,
+          valueType: testCase.expected.valueType,
           config: testCase.expected.config,
           fallback: testCase.expected.fallback,
         });
@@ -167,6 +189,58 @@ describe('GET /v1/flags (edge evaluation)', () => {
 
   describe('targeting fixture', () => runCases(targetingFixture.cases, TARGETING_ENV));
   describe('kill-switch fixture', () => runCases(killSwitchFixture.cases, KILL_ENV));
+  describe('string-value fixture', () => runCases(stringValueFixture.cases, STRING_ENV));
+
+  it('serves a typed string flag end to end, and never leaks the value it withheld', async () => {
+    interface TypedFlag {
+      enabled: boolean;
+      value: unknown;
+      valueType: string;
+    }
+    const flagsFor = async (attributes: object) => {
+      const res = await call(
+        `/v1/flags?environment=${STRING_ENV}&user=user-1&attributes=${encodeURIComponent(JSON.stringify(attributes))}`,
+        authed(CLIENT_KEY),
+      );
+      expect(res.status).toBe(200);
+      const text = await res.text();
+      return { text, flags: (JSON.parse(text) as { flags: Record<string, TypedFlag> }).flags };
+    };
+
+    const beta = await flagsFor({ beta: true });
+    expect(beta.flags['flag.summarize-model-targeted']).toMatchObject({
+      enabled: true,
+      value: 'quality',
+      valueType: 'string_enum',
+    });
+
+    // Same flag, same environment, same user key - only the attributes differ.
+    // The browser receives the string the edge chose for THIS user and no way to
+    // discover the other one.
+    const free = await flagsFor({ plan: 'free' });
+    expect(free.flags['flag.summarize-model-targeted']).toMatchObject({
+      enabled: false,
+      // config.fallback, not the flag's own 'balanced': off is a real kill for
+      // typed flags too.
+      value: 'fast',
+      valueType: 'string_enum',
+    });
+    // A boolean flag in the same payload still reports value === enabled.
+    expect(free.flags['flag.v1-shaped']).toMatchObject({
+      enabled: true,
+      value: true,
+      valueType: 'boolean',
+    });
+
+    // The leak a typed flag can have that a boolean flag cannot: the string an
+    // off flag would have served must not appear anywhere in the body - not as
+    // `value`, not riding along in some other field.
+    expect(free.text).not.toContain('Never seen while off.');
+    expect(free.flags['flag.banner-copy-off']).toMatchObject({
+      enabled: false,
+      value: 'Scheduled maintenance tonight.',
+    });
+  });
 
   it('never ships targeting rules or segments to the browser', async () => {
     const res = await call(

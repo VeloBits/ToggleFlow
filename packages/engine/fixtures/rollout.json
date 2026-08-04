@@ -15,19 +15,34 @@
         "targetingRules": [],
         "config": null
       },
-      "tool.zero": { "enabled": true, "rolloutPercent": 0, "targetingRules": [], "config": null },
-      "tool.full": { "enabled": true, "rolloutPercent": 100, "targetingRules": [], "config": null }
+      "tool.zero": {
+        "enabled": true,
+        "rolloutPercent": 0,
+        "targetingRules": [],
+        "config": null
+      },
+      "tool.full": {
+        "enabled": true,
+        "rolloutPercent": 100,
+        "targetingRules": [],
+        "config": null
+      }
     }
   },
   "cases": [
     {
       "name": "user-2 (bucket 18.60) is inside the 25% rollout",
       "toolKey": "tool.tone-rewrite",
-      "context": { "key": "user-2", "attributes": {} },
+      "context": {
+        "key": "user-2",
+        "attributes": {}
+      },
       "expected": {
         "key": "tool.tone-rewrite",
         "enabled": true,
         "reason": "rollout",
+        "value": true,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -35,11 +50,16 @@
     {
       "name": "alice (bucket 12.04) is inside the 25% rollout",
       "toolKey": "tool.tone-rewrite",
-      "context": { "key": "alice", "attributes": {} },
+      "context": {
+        "key": "alice",
+        "attributes": {}
+      },
       "expected": {
         "key": "tool.tone-rewrite",
         "enabled": true,
         "reason": "rollout",
+        "value": true,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -47,11 +67,16 @@
     {
       "name": "user-1 (bucket 47.17) is outside the 25% rollout",
       "toolKey": "tool.tone-rewrite",
-      "context": { "key": "user-1", "attributes": {} },
+      "context": {
+        "key": "user-1",
+        "attributes": {}
+      },
       "expected": {
         "key": "tool.tone-rewrite",
         "enabled": false,
         "reason": "rollout",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -59,11 +84,16 @@
     {
       "name": "bob (bucket 36.47) is outside the 25% rollout",
       "toolKey": "tool.tone-rewrite",
-      "context": { "key": "bob", "attributes": {} },
+      "context": {
+        "key": "bob",
+        "attributes": {}
+      },
       "expected": {
         "key": "tool.tone-rewrite",
         "enabled": false,
         "reason": "rollout",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -71,11 +101,16 @@
     {
       "name": "0% rollout includes nobody",
       "toolKey": "tool.zero",
-      "context": { "key": "user-2", "attributes": {} },
+      "context": {
+        "key": "user-2",
+        "attributes": {}
+      },
       "expected": {
         "key": "tool.zero",
         "enabled": false,
         "reason": "rollout",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }
@@ -83,11 +118,16 @@
     {
       "name": "100% rollout includes everyone",
       "toolKey": "tool.full",
-      "context": { "key": "user-3", "attributes": {} },
+      "context": {
+        "key": "user-3",
+        "attributes": {}
+      },
       "expected": {
         "key": "tool.full",
         "enabled": true,
         "reason": "rollout",
+        "value": true,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }

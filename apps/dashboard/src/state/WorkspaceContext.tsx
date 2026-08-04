@@ -15,6 +15,7 @@ import {
   type Project,
   type Role,
 } from '../api/client';
+import { flagKeys } from '../api/flags';
 
 interface WorkspaceState {
   me: Me | null;
@@ -148,8 +149,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       );
       await queryClient.invalidateQueries({ queryKey: ['environments', projectId] });
       // An inherited environment arrives with flag state and config already in
-      // it, so the per-environment queries for the project are stale too.
-      await queryClient.invalidateQueries({ queryKey: ['flags'] });
+      // it, so the per-environment queries for the project are stale too. The
+      // prefix - not one environment's key - because the copy is a new
+      // environment nothing has fetched yet, and the list the user is looking at
+      // is the one that has to notice.
+      await queryClient.invalidateQueries({ queryKey: flagKeys.listPrefix });
       selectEnvironment(created.id);
       return created;
     },

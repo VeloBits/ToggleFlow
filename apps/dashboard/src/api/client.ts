@@ -1,4 +1,30 @@
-/** Thin typed fetch wrapper over the control-plane API (proxied at /api in dev). */
+/**
+ * Thin typed fetch wrapper over the control-plane API (proxied at /api in dev),
+ * and the one place where the server's vocabulary is translated into the
+ * dashboard's.
+ *
+ * ## The boundary rule
+ *
+ * The control plane still calls a flag definition a "tool": the routes are
+ * `/v1/projects/:id/tools`, `/v1/tools/:id` and
+ * `PATCH /v1/environments/:eid/tools/:tid/flag`, and the flag list answers with
+ * `toolId` / `toolKey` / `toolName`. Renaming that is a database migration and a
+ * breaking API change; renaming it in the UI is a find-and-replace. So the two
+ * names are allowed to disagree, and this directory is where they are
+ * reconciled.
+ *
+ * **No server field name may appear above `src/api/`.** Nothing outside this
+ * directory may mention `toolId`, `toolKey`, `toolName` or the `Tool` type -
+ * pages see `Flag`, `FlagDefinition`, `FlagConfig` and their `id` / `key` /
+ * `name` fields. When the API is eventually renamed, `toFlag` below becomes the
+ * identity function and not one page changes.
+ *
+ * URL paths are the exception, and only because moving every mutation into this
+ * layer is a bigger change than this one: the query layer (api/flags.ts) owns
+ * the GET paths, while the pages still build their own PATCH/PUT paths.
+ */
+import type { FlagValueType, JsonValue } from '@toggleflow/engine';
+
 import { getAccessToken } from '../auth/AuthContext';
 
 export class ApiError extends Error {
@@ -93,7 +119,13 @@ export interface Project {
   environments?: Environment[];
 }
 
-export interface Tool {
+/**
+ * A flag as defined once per project: its key, its type, and the constraints
+ * that type carries. `GET /v1/projects/:projectId/tools` answers with a list of
+ * these - and answers with `id` / `key` / `name` already, so no mapping is
+ * needed here, only the type's name.
+ */
+export interface FlagDefinition {
   id: string;
   key: string;
   name: string;
@@ -101,10 +133,40 @@ export interface Tool {
   tags: string[];
   metadata: Record<string, unknown>;
   archived: boolean;
+  /** Which of `FLAG_VALUE_TYPES` this flag serves. */
+  valueType: FlagValueType;
+  /** Allowed members for `string_enum`; empty for every other type. */
+  enumOptions: string[];
+  /** Served when an environment has no value of its own. */
+  defaultValue: JsonValue | null;
   updatedAt: string;
 }
 
-export interface FlagRow {
+/** One environment's state for a flag, as `GET /v1/tools/:flagId` reports it. */
+export interface FlagState {
+  environmentId: string;
+  environmentKey: string;
+  enabled: boolean;
+  /** The environment's own value; null = inherit `defaultValue`. */
+  value: JsonValue | null;
+  rolloutPercent: number | null;
+  targetingRules: unknown[];
+  updatedAt: string;
+}
+
+/**
+ * `GET /v1/tools/:flagId` - the definition plus every environment's state, which
+ * is what the detail page needs to show one flag across the whole project.
+ */
+export interface FlagDefinitionDetail extends FlagDefinition {
+  flagStates: FlagState[];
+}
+
+/**
+ * Wire shape of `GET /v1/environments/:environmentId/flags` — server names,
+ * private to this file. `toFlag` is the only thing that reads it.
+ */
+interface FlagRowWire {
   toolId: string;
   toolKey: string;
   toolName: string;
@@ -112,8 +174,53 @@ export interface FlagRow {
   enabled: boolean;
   rolloutPercent: number | null;
   targetingRules: unknown[];
+  valueType: FlagValueType;
+  enumOptions: string[];
+  value: JsonValue | null;
+  defaultValue: JsonValue | null;
   updatedAt: string;
 }
+
+/**
+ * The dashboard's flag row: one flag as it stands in one environment.
+ *
+ * `id` is the tool id the API addresses - the same id that goes into
+ * `/v1/tools/:id` and `/v1/environments/:eid/tools/:id/flag`, so a page never
+ * needs to know that the server spells it `toolId`.
+ */
+export interface Flag {
+  id: string;
+  key: string;
+  name: string;
+  archived: boolean;
+  enabled: boolean;
+  rolloutPercent: number | null;
+  targetingRules: unknown[];
+  valueType: FlagValueType;
+  enumOptions: string[];
+  /** This environment's value; null = inherit `defaultValue`. */
+  value: JsonValue | null;
+  defaultValue: JsonValue | null;
+  updatedAt: string;
+}
+
+const toFlag = ({ toolId, toolKey, toolName, ...rest }: FlagRowWire): Flag => ({
+  id: toolId,
+  key: toolKey,
+  name: toolName,
+  ...rest,
+});
+
+/**
+ * The flag list for one environment, in the dashboard's vocabulary.
+ *
+ * Lives here rather than in api/flags.ts because `FlagRowWire` does: a fetch
+ * typed against the wire shape is the last place the server's names are legal.
+ */
+export const fetchFlags = (environmentId: string): Promise<Flag[]> =>
+  api
+    .get<FlagRowWire[]>(`/v1/environments/${environmentId}/flags`)
+    .then((rows) => rows.map(toFlag));
 
 export interface Segment {
   id: string;
@@ -123,7 +230,8 @@ export interface Segment {
   rules: unknown[];
 }
 
-export interface ToolConfig {
+/** The JSON blob a flag carries per environment, versioned server-side. */
+export interface FlagConfig {
   value: Record<string, unknown> | null;
   version: number;
   updatedAt?: string;
