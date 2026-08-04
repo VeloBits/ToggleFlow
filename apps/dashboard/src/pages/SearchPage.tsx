@@ -15,7 +15,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { api, type FlagRow, type Segment, type Tool } from '../api/client';
+import { api, type Segment } from '../api/client';
+import { flagDefinitionsQueryOptions, flagsQueryOptions } from '../api/flags';
 import { EmptyState, PageHeader, Panel } from '../components/page';
 import { ErrorNote, StatusChip } from '../components/ui';
 import { useWorkspace } from '../state/WorkspaceContext';
@@ -25,16 +26,8 @@ export function SearchPage() {
   const ws = useWorkspace();
   const [query, setQuery] = useState('');
 
-  const flagsQuery = useQuery({
-    queryKey: ['flags', ws.environmentId],
-    queryFn: () => api.get<FlagRow[]>(`/v1/environments/${ws.environmentId}/flags`),
-    enabled: ws.environmentId !== null,
-  });
-  const toolsQuery = useQuery({
-    queryKey: ['tools', ws.projectId],
-    queryFn: () => api.get<Tool[]>(`/v1/projects/${ws.projectId}/tools?includeArchived=true`),
-    enabled: ws.projectId !== null,
-  });
+  const flagsQuery = useQuery(flagsQueryOptions(ws.environmentId));
+  const definitionsQuery = useQuery(flagDefinitionsQueryOptions(ws.projectId));
   const segmentsQuery = useQuery({
     queryKey: ['segments', ws.projectId],
     queryFn: () => api.get<Segment[]>(`/v1/projects/${ws.projectId}/segments`),
@@ -45,16 +38,16 @@ export function SearchPage() {
 
   const flagMatches = useMemo(() => {
     if (!needle) return [];
-    const tagsByTool = new Map((toolsQuery.data ?? []).map((t) => [t.id, t.tags]));
+    const tagsByFlag = new Map((definitionsQuery.data ?? []).map((d) => [d.id, d.tags]));
     return (flagsQuery.data ?? [])
-      .map((row) => ({ ...row, tags: tagsByTool.get(row.toolId) ?? [] }))
+      .map((flag) => ({ ...flag, tags: tagsByFlag.get(flag.id) ?? [] }))
       .filter(
-        (row) =>
-          row.toolKey.toLowerCase().includes(needle) ||
-          row.toolName.toLowerCase().includes(needle) ||
-          row.tags.some((tag) => tag.toLowerCase().includes(needle)),
+        (flag) =>
+          flag.key.toLowerCase().includes(needle) ||
+          flag.name.toLowerCase().includes(needle) ||
+          flag.tags.some((tag) => tag.toLowerCase().includes(needle)),
       );
-  }, [needle, flagsQuery.data, toolsQuery.data]);
+  }, [needle, flagsQuery.data, definitionsQuery.data]);
 
   const segmentMatches = useMemo(() => {
     if (!needle) return [];
@@ -82,7 +75,7 @@ export function SearchPage() {
       <div className="relative mb-4 max-w-xl">
         <SearchIcon
           size={16}
-          className="text-muted pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
+          className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
         />
         <input
           type="search"
@@ -118,19 +111,19 @@ export function SearchPage() {
           {flagMatches.length > 0 && (
             <Panel title={`Flags · ${flagMatches.length}`}>
               <ul className="m-0 list-none p-0">
-                {flagMatches.map((row) => (
+                {flagMatches.map((flag) => (
                   <li
-                    key={row.toolId}
+                    key={flag.id}
                     className="border-border flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0"
                   >
-                    <StatusChip enabled={row.enabled} rolloutPercent={row.rolloutPercent} />
-                    <Link to={`/tools/${row.toolId}`} className="mono min-w-0 truncate">
-                      {row.toolKey}
+                    <StatusChip enabled={flag.enabled} rolloutPercent={flag.rolloutPercent} />
+                    <Link to={`/flags/${flag.id}`} className="mono min-w-0 truncate">
+                      {flag.key}
                     </Link>
-                    <span className="text-muted min-w-0 flex-1 truncate text-[13px]">
-                      {row.toolName}
+                    <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px]">
+                      {flag.name}
                     </span>
-                    {row.archived && <span className="tag shrink-0">archived</span>}
+                    {flag.archived && <span className="tag shrink-0">archived</span>}
                   </li>
                 ))}
               </ul>
@@ -148,7 +141,7 @@ export function SearchPage() {
                     <Link to="/segments" className="mono min-w-0 truncate">
                       {segment.key}
                     </Link>
-                    <span className="text-muted min-w-0 flex-1 truncate text-[13px]">
+                    <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px]">
                       {segment.name}
                     </span>
                   </li>

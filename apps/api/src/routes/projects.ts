@@ -181,15 +181,29 @@ export function registerProjectRoutes(app: FastifyInstance): void {
         .values({ projectId, key: body.key, name: body.name })
         .returning();
       if (!row) throw new Error('environment insert failed');
-      // Keep the invariant: a flag-state row exists for every (tool, env) pair.
+      /*
+       * Keep the invariant: a flag-state row exists for every (tool, env) pair.
+       *
+       * `defaultValue` is selected alongside the id and seeded into `value`, so
+       * a typed flag starts the new environment on its definition's default. Miss
+       * it and every new environment silently serves empty strings for every
+       * non-boolean flag - and nothing complains, because a NULL `value` is
+       * perfectly valid for the boolean flags every existing test uses.
+       */
       const toolRows = await tx
-        .select({ id: tools.id })
+        .select({ id: tools.id, defaultValue: tools.defaultValue })
         .from(tools)
         .where(eq(tools.projectId, projectId));
       if (toolRows.length > 0) {
         await tx
           .insert(flagStates)
-          .values(toolRows.map((t) => ({ toolId: t.id, environmentId: row.id })))
+          .values(
+            toolRows.map((t) => ({
+              toolId: t.id,
+              environmentId: row.id,
+              value: t.defaultValue,
+            })),
+          )
           .onConflictDoNothing();
       }
 

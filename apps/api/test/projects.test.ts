@@ -159,6 +159,44 @@ describe('environments', () => {
     expect(res.json().error).toBe('validation_error');
   });
 
+  /**
+   * The flag exists BEFORE the environment does, which is the ordering that
+   * makes environment-create - not tool-create - responsible for seeding
+   * `flag_states.value`. Getting this wrong is invisible: every boolean flag is
+   * still correct with a NULL value, so a suite without a typed flag passes
+   * while every new environment serves empty strings.
+   */
+  it('seeds flag_states.value from the definition default for flags created earlier', async () => {
+    const tool = await h.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ws.projectId}/tools`,
+      headers: h.authed(developerToken),
+      payload: {
+        key: 'tool.env-seed',
+        name: 'Env Seed',
+        valueType: 'string',
+        defaultValue: 'seeded default',
+      },
+    });
+    expect(tool.statusCode).toBe(201);
+
+    const created = await h.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ws.projectId}/environments`,
+      headers: h.authed(ws.adminToken),
+      payload: { key: 'seeded', name: 'Seeded' },
+    });
+    expect(created.statusCode).toBe(201);
+
+    const flags = await h.app.inject({
+      method: 'GET',
+      url: `/v1/environments/${created.json().id}/flags`,
+      headers: h.authed(viewerToken),
+    });
+    const row = flags.json().find((f: { toolKey: string }) => f.toolKey === 'tool.env-seed');
+    expect(row).toMatchObject({ value: 'seeded default', defaultValue: 'seeded default' });
+  });
+
   it('renames and deletes an environment with audit entries', async () => {
     const created = await h.app.inject({
       method: 'POST',

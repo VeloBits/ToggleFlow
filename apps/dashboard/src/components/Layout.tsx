@@ -61,7 +61,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   autoFocus
                   onClick={() => setDrawerOpen(false)}
                   aria-label="Close navigation menu"
-                  className="text-muted hover:bg-highlight hover:text-text focus-visible:ring-accent inline-flex size-8 items-center justify-center rounded-md border-0 bg-transparent p-0 focus-visible:ring-2 focus-visible:outline-none"
+                  className="text-muted-foreground hover:bg-highlight hover:text-text focus-visible:ring-ring inline-flex size-8 items-center justify-center rounded-md border-0 bg-transparent p-0 focus-visible:ring-2 focus-visible:outline-none"
                 >
                   <XIcon size={18} />
                 </button>

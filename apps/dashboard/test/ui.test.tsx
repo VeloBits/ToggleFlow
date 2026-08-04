@@ -190,11 +190,11 @@ describe('Dialog / Modal', () => {
 
   it('Modal delegates to Dialog with the page-facing props', () => {
     render(
-      <Modal title="Register a tool" onClose={vi.fn()}>
+      <Modal title="Example dialog" onClose={vi.fn()}>
         <p>fields</p>
       </Modal>,
     );
-    expect(screen.getByText('Register a tool')).toBeTruthy();
+    expect(screen.getByText('Example dialog')).toBeTruthy();
     expect(screen.getByText('fields')).toBeTruthy();
   });
 

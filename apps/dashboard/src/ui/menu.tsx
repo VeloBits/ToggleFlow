@@ -90,7 +90,7 @@ export function MenuRadioItem({
 }: ComponentPropsWithoutRef<typeof DropdownMenu.Item> & { selected: boolean }) {
   return (
     <DropdownMenu.Item
-      className={cn(ITEM, selected ? 'text-text font-medium' : 'text-muted', className)}
+      className={cn(ITEM, selected ? 'text-text font-medium' : 'text-muted-foreground', className)}
       // Radix only sets aria-checked on its own RadioItem; these are plain
       // items (they navigate as well as select), so the state is stated here.
       role="menuitemradio"
@@ -100,7 +100,7 @@ export function MenuRadioItem({
       {children}
       <CheckIcon
         size={14}
-        className={cn('text-accent ml-auto shrink-0', !selected && 'invisible')}
+        className={cn('text-primary ml-auto shrink-0', !selected && 'invisible')}
       />
     </DropdownMenu.Item>
   );
@@ -115,7 +115,7 @@ export function MenuLabel({ children, className }: { children: ReactNode; classN
   return (
     <DropdownMenu.Label
       className={cn(
-        'text-muted px-2 pt-1.5 pb-1 text-[11px] font-semibold tracking-[0.04em] uppercase',
+        'text-muted-foreground px-2 pt-1.5 pb-1 text-[11px] font-semibold tracking-[0.04em] uppercase',
         className,
       )}
     >

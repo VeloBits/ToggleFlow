@@ -24,7 +24,7 @@ export function PageHeader({
     <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
         <h1 className="text-text m-0 text-[20px] leading-tight font-bold">{title}</h1>
-        {description && <p className="text-muted m-0 mt-1 text-[13px]">{description}</p>}
+        {description && <p className="text-muted-foreground m-0 mt-1 text-[13px]">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </div>
@@ -68,9 +68,11 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-      {Icon && <Icon size={22} className="text-muted mb-1" />}
+      {Icon && <Icon size={22} className="text-muted-foreground mb-1" />}
       <p className="text-text m-0 text-[14px] font-semibold">{title}</p>
-      {description && <p className="text-muted m-0 max-w-md text-[13px]">{description}</p>}
+      {description && (
+        <p className="text-muted-foreground m-0 max-w-md text-[13px]">{description}</p>
+      )}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );
@@ -103,7 +105,7 @@ export function ComingSoon({
         title={title}
         description={description}
         actions={
-          <span className="bg-bg2 text-muted rounded-sm px-2 py-1 text-[11px] font-semibold tracking-wide uppercase">
+          <span className="bg-bg2 text-muted-foreground rounded-sm px-2 py-1 text-[11px] font-semibold tracking-wide uppercase">
             Not yet available
           </span>
         }
@@ -111,14 +113,14 @@ export function ComingSoon({
       <Panel
         title={
           <span className="flex items-center gap-2">
-            <Icon size={15} className="text-muted" />
+            <Icon size={15} className="text-muted-foreground" />
             Planned
           </span>
         }
       >
         <ul className="m-0 list-none p-4 text-[13px]">
           {planned.map((item) => (
-            <li key={item} className="text-muted flex gap-2.5 py-1">
+            <li key={item} className="text-muted-foreground flex gap-2.5 py-1">
               <span aria-hidden className="text-border select-none">
                 —
               </span>

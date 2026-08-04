@@ -73,7 +73,7 @@ function ProjectSettings() {
               onChange={(e) => setName(e.target.value)}
             />
             {!isAdmin && (
-              <p className="text-muted m-0 text-[12px]">
+              <p className="text-muted-foreground m-0 text-[12px]">
                 Only organization admins can rename a project.
               </p>
             )}
@@ -92,7 +92,7 @@ function ProjectSettings() {
           <div className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div className="min-w-0">
               <p className="text-text m-0 text-[13px] font-medium">Delete this project</p>
-              <p className="text-muted m-0 mt-0.5 text-[12.5px]">
+              <p className="text-muted-foreground m-0 mt-0.5 text-[12.5px]">
                 Removes {ws.project?.name} with all of its flags, environments, API keys and config
                 history. This cannot be undone.
               </p>
@@ -118,18 +118,18 @@ function OrganizationSettings() {
   return (
     <Panel title="Organization">
       <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 p-4 text-[13px]">
-        <dt className="text-muted">Name</dt>
+        <dt className="text-muted-foreground">Name</dt>
         <dd className="text-text m-0">{ws.org.name}</dd>
-        <dt className="text-muted">Your role</dt>
+        <dt className="text-muted-foreground">Your role</dt>
         <dd className="m-0">
           <span className="chip chip-role">{ws.role}</span>
         </dd>
-        <dt className="text-muted">Projects</dt>
+        <dt className="text-muted-foreground">Projects</dt>
         <dd className="text-text m-0">{ws.projects.length}</dd>
-        <dt className="text-muted">Organization ID</dt>
+        <dt className="text-muted-foreground">Organization ID</dt>
         <dd className="mono m-0">{ws.org.id}</dd>
       </dl>
-      <p className="text-muted border-border m-0 border-t px-4 py-2.5 text-[12.5px]">
+      <p className="text-muted-foreground border-border m-0 border-t px-4 py-2.5 text-[12.5px]">
         Renaming and deleting an organization are not available yet. Members and roles are managed
         on the Team page.
       </p>

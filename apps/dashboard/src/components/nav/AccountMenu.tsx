@@ -50,11 +50,11 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
     <Menu>
       <MenuTrigger
         aria-label="Account menu"
-        className="hover:bg-highlight focus-visible:ring-accent group flex w-full items-center gap-2.5 rounded-md border-0 bg-transparent p-2 text-left transition-colors duration-100 focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none"
+        className="hover:bg-highlight focus-visible:ring-ring group flex w-full items-center gap-2.5 rounded-md border-0 bg-transparent p-2 text-left transition-colors duration-100 focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none"
       >
         <span
           aria-hidden
-          className="bg-accent-soft text-accent flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+          className="bg-primary-soft text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
         >
           {initials(displayName || '?')}
         </span>
@@ -64,18 +64,21 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
           </span>
           {/* Organization and role: the context every action on the page runs
               under, so it is stated permanently rather than only inside the menu. */}
-          <span className="text-muted block truncate text-[11.5px]">
+          <span className="text-muted-foreground block truncate text-[11.5px]">
             {ws.org ? `${ws.org.name} · ${ws.role}` : '…'}
           </span>
         </span>
-        <ChevronsUpDownIcon size={13} className="text-muted group-hover:text-text shrink-0" />
+        <ChevronsUpDownIcon
+          size={13}
+          className="text-muted-foreground group-hover:text-text shrink-0"
+        />
       </MenuTrigger>
 
       <MenuContent side="top" align="start" className="min-w-[15rem]">
         <div className="px-2 py-1.5">
           <p className="text-text m-0 truncate text-[13px] font-medium">{displayName}</p>
           {email && email !== displayName && (
-            <p className="text-muted m-0 truncate text-[12px]">{email}</p>
+            <p className="text-muted-foreground m-0 truncate text-[12px]">{email}</p>
           )}
         </div>
         <MenuSeparator />

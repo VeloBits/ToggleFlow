@@ -514,7 +514,10 @@ describe('environment colour', () => {
     const prod = within(menu).getByRole('menuitemradio', { name: /Production/ });
     const dev = within(menu).getByRole('menuitemradio', { name: /Development/ });
     expect(prod.querySelector('.bg-off')).toBeTruthy();
-    expect(dev.querySelector('.bg-accent')).toBeTruthy();
+    // `bg-primary`, not `bg-accent`: shadcn owns the word `accent` for its hover
+    // surface, so the brand colour moved to `primary` when the design system
+    // landed. `bg-off` is product-specific and kept its name.
+    expect(dev.querySelector('.bg-primary')).toBeTruthy();
     // Colour is never the only signal - both rows also carry their key.
     expect(within(menu).getByText('prod')).toBeTruthy();
     expect(within(menu).getByText('dev')).toBeTruthy();

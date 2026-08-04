@@ -3,7 +3,12 @@
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    // `@/` is what shadcn's generated components import through, and what
+    // components.json points at. Must be mirrored by vite.config.ts's
+    // resolve.alias - tsc only type-checks the path, the bundler resolves it.
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
   },
   "include": ["src", "test", "vite.config.ts"]
 }

@@ -1,8 +1,9 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { useAuth } from './auth/AuthContext';
 import { CallbackPage } from './auth/CallbackPage';
 import { Layout } from './components/Layout';
+import { FlagDetailPage, FlagsPage } from './features/flags';
 import { ApiKeysPage } from './pages/ApiKeysPage';
 import { AuditPage } from './pages/AuditPage';
 import { EnvironmentsPage } from './pages/EnvironmentsPage';
@@ -13,9 +14,13 @@ import { BillingPage, IntegrationsPage, WebhooksPage } from './pages/PlannedPage
 import { SearchPage } from './pages/SearchPage';
 import { SegmentsPage } from './pages/SegmentsPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { ToolDetailPage } from './pages/ToolDetailPage';
-import { ToolsPage } from './pages/ToolsPage';
 import { WorkspaceProvider } from './state/WorkspaceContext';
+
+/** `/tools/:toolId` was the detail route before flags got their own name. */
+function LegacyFlagRedirect() {
+  const { toolId } = useParams<{ toolId: string }>();
+  return <Navigate to={`/flags/${toolId}`} replace />;
+}
 
 export function App() {
   const { user, loading } = useAuth();
@@ -43,8 +48,8 @@ export function App() {
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/search" element={<SearchPage />} />
-                  <Route path="/flags" element={<ToolsPage />} />
-                  <Route path="/tools/:toolId" element={<ToolDetailPage />} />
+                  <Route path="/flags" element={<FlagsPage />} />
+                  <Route path="/flags/:flagId" element={<FlagDetailPage />} />
                   <Route path="/segments" element={<SegmentsPage />} />
                   <Route path="/environments" element={<EnvironmentsPage />} />
                   <Route path="/keys" element={<ApiKeysPage />} />
@@ -56,6 +61,7 @@ export function App() {
                   <Route path="/settings" element={<SettingsPage />} />
                   {/* Pre-refactor paths, kept so existing bookmarks survive. */}
                   <Route path="/members" element={<Navigate to="/team" replace />} />
+                  <Route path="/tools/:toolId" element={<LegacyFlagRedirect />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>

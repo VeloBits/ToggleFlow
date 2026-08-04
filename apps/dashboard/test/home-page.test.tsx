@@ -6,29 +6,18 @@
 import { cleanup, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AuditEntry, FlagRow } from '../src/api/client';
+import type { AuditEntry } from '../src/api/client';
 import { HomePage } from '../src/pages/HomePage';
 import {
   ENV_ID,
   ORG_ID,
+  flagRow,
   renderWithProviders,
   stubAuth,
   stubFetch,
   workspaceHandlers,
   type Handlers,
 } from './harness';
-
-const flagRow = (over: Partial<FlagRow> = {}): FlagRow => ({
-  toolId: 't1',
-  toolKey: 'tool.summarize',
-  toolName: 'Summarize',
-  archived: false,
-  enabled: true,
-  rolloutPercent: null,
-  targetingRules: [],
-  updatedAt: '2026-07-20T10:00:00.000Z',
-  ...over,
-});
 
 const entry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
   id: 'a1',
@@ -87,10 +76,10 @@ describe('overview', () => {
     renderPage(
       pageHandlers({
         [`GET /v1/environments/${ENV_ID}/flags`]: [
-          flagRow({ toolId: 'a' }),
-          flagRow({ toolId: 'b', enabled: false }),
-          flagRow({ toolId: 'c', rolloutPercent: 25 }),
-          flagRow({ toolId: 'd', archived: true }),
+          flagRow({ id: 'a' }),
+          flagRow({ id: 'b', enabled: false }),
+          flagRow({ id: 'c', rolloutPercent: 25 }),
+          flagRow({ id: 'd', archived: true }),
         ],
       }),
     );

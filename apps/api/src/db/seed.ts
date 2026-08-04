@@ -2,9 +2,15 @@
  * Dev seed: demo org → project → dev/staging/prod → a handful of tools with
  * flag state, a segment, and versioned config on two tools.
  *
+ * The tool set is deliberately MIXED - three booleans, one `string`, one
+ * `string_enum` - because a dashboard opened on an all-boolean seed shows none
+ * of the value controls, and "it renders" is not the same claim as "it renders
+ * the interesting cases".
+ *
  * Run with `npm run db:seed` (after `npm run db:migrate`). Safe to re-run: exits
  * early if the demo org already exists.
  */
+import type { JsonValue } from '@toggleflow/engine';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -84,10 +90,23 @@ async function seed() {
           },
           {
             projectId: project.id,
-            key: 'tool.grammar-check',
-            name: 'Grammar Check',
-            description: 'Fix grammar and spelling in the input text.',
-            tags: ['ai', 'text'],
+            key: 'tool.banner-message',
+            name: 'Banner Message',
+            description: 'Copy shown in the app-wide banner while the flag is on.',
+            valueType: 'string',
+            defaultValue: 'Welcome to the demo.',
+            tags: ['content'],
+            metadata: { category: 'content' },
+          },
+          {
+            projectId: project.id,
+            key: 'tool.summarize-model',
+            name: 'Summarize Model',
+            description: 'Which model tier the summarize tool calls.',
+            valueType: 'string_enum',
+            enumOptions: ['fast', 'balanced', 'quality'],
+            defaultValue: 'balanced',
+            tags: ['ai', 'config'],
             metadata: { category: 'ai' },
           },
           {
@@ -98,17 +117,26 @@ async function seed() {
             tags: ['ai', 'text', 'experimental'],
             metadata: { category: 'ai' },
           },
-          {
-            projectId: project.id,
-            key: 'tool.title-case',
-            name: 'Title Case',
-            description: 'Convert text to title case.',
-            tags: ['text', 'formatting'],
-            metadata: { category: 'formatting' },
-          },
         ])
         .returning();
       if (toolRows.length !== 5) throw new Error('failed to insert tools');
+
+      /*
+       * The value each environment serves for the typed flags. Deliberately
+       * different in Production: a typed flag whose value is identical
+       * everywhere demonstrates nothing, and "which environment am I editing?"
+       * is the question the dashboard has to answer at a glance.
+       *
+       * null for the boolean flags - their value IS `enabled`, so storing one
+       * would be a second source of truth for the same thing.
+       */
+      const seededValue = (toolKey: string, isProd: boolean): JsonValue | null => {
+        if (toolKey === 'tool.banner-message') {
+          return isProd ? 'Scheduled maintenance Sunday 02:00 UTC.' : 'Dev banner - not real copy.';
+        }
+        if (toolKey === 'tool.summarize-model') return isProd ? 'quality' : 'fast';
+        return null;
+      };
 
       // Flag state per tool per environment: everything on in dev/staging;
       // prod shows the interesting cases (a kill-switched tool, a % rollout).
@@ -120,6 +148,7 @@ async function seed() {
               toolId: tool.id,
               environmentId: environment.id,
               enabled: isProd && tool.key === 'tool.translate' ? false : true,
+              value: seededValue(tool.key, isProd),
               rolloutPercent: isProd && tool.key === 'tool.tone-rewrite' ? 25 : null,
               targetingRules: [],
             };
@@ -163,8 +192,8 @@ async function seed() {
     });
 
     console.log(
-      `Seeded: "${DEMO_ORG_NAME}" → Demo Project → dev/staging/prod, 5 tools, ` +
-        '1 segment, versioned config on 2 tools.',
+      `Seeded: "${DEMO_ORG_NAME}" → Demo Project → dev/staging/prod, 5 tools ` +
+        '(3 boolean, 1 string, 1 string_enum), 1 segment, versioned config on 2 tools.',
     );
   } finally {
     await client.end();

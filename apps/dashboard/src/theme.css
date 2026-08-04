@@ -9,35 +9,75 @@
  */
 @import './styles.css' layer(components);
 
+/* Tailwind v4's replacement for tailwindcss-animate; the enter/exit keyframes
+ * shadcn's Radix-backed primitives animate their portals with. */
+@import 'tw-animate-css';
+
 /*
  * VeloBits theme bridge - VSCode Dark+/Light inspired, same palette as
  * fixmytext's design system (frontend/packages/design-system/theme.css +
  * shell tokens.css). Values live as runtime CSS variables in styles.css
  * (:root = light, body.dark = dark); the inline tokens below expose them
- * as Tailwind utilities (bg-panel, text-muted, border-border, ...) that
- * follow the active theme automatically.
+ * as Tailwind utilities (bg-panel, text-muted-foreground, border-border, ...)
+ * that follow the active theme automatically.
+ *
+ * THIS BLOCK IS THE ONLY BRIDGE. shadcn's semantic names are added here as
+ * additional spellings of the SAME runtime variables, never as a second
+ * palette - which is why light and dark both work for free and why there is
+ * no `.dark` token block to keep in sync. If `npx shadcn add` ever appends its
+ * own :root/.dark oklch blocks below, delete them.
+ *
+ * Two names collided with shadcn's vocabulary and shadcn won them, because its
+ * generated components hardcode the utility strings:
+ *   - `muted`  was our foreground grey  -> now `muted-foreground`
+ *                                         (`muted` is a background surface)
+ *   - `accent` was the brand blue       -> now `primary`
+ *                                         (`accent` is the hover surface)
  */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
+  /* ── ToggleFlow surfaces (names unchanged) ──────────────────────────────── */
   --color-bg: var(--bg);
   --color-bg2: var(--bg2);
   --color-panel: var(--panel);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-text: var(--text);
-  --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-soft: var(--accent-soft);
   --color-highlight: var(--highlight);
+
+  /* ── Flag state colours - product semantics, no shadcn equivalent ───────── */
   --color-on: var(--on);
   --color-on-soft: var(--on-soft);
   --color-off: var(--off);
   --color-off-soft: var(--off-soft);
   --color-rollout: var(--rollout);
   --color-rollout-soft: var(--rollout-soft);
+
+  /* ── The brand, renamed off `accent` so shadcn can own that word ────────── */
+  --color-primary: var(--accent);
+  --color-primary-hover: var(--accent-hover);
+  --color-primary-soft: var(--accent-soft);
+  --color-primary-foreground: var(--on-accent);
+
+  /* ── shadcn's semantic names, same runtime vars ─────────────────────────── */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--panel);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--panel);
+  --color-popover-foreground: var(--text);
+  --color-secondary: var(--bg2);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--bg2);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--highlight);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--off);
+  --color-destructive-foreground: var(--on-accent);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
 }
 
 @theme {

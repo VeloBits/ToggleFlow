@@ -165,12 +165,12 @@ export function EnvironmentsPage() {
                         <p className="text-text m-0 truncate text-[13.5px] font-medium">
                           {environment.name}
                           {isCurrent && (
-                            <span className="text-muted ml-2 text-[11.5px] font-normal">
+                            <span className="text-muted-foreground ml-2 text-[11.5px] font-normal">
                               current
                             </span>
                           )}
                         </p>
-                        <p className="mono text-muted m-0">{environment.key}</p>
+                        <p className="mono text-muted-foreground m-0">{environment.key}</p>
                       </div>
 
                       {!isCurrent && (

@@ -35,6 +35,29 @@ describe('db schema', () => {
     expect(schema.apiKeyKind.enumValues).toEqual(['server', 'client']);
   });
 
+  it('mirrors the engine flag-type registry in the flag_value_type enum', () => {
+    // Order matters: it is the DB enum's declaration order and the dashboard's
+    // type-picker order, both generated from FLAG_VALUE_TYPES.
+    expect(schema.flagValueType.enumValues).toEqual(['boolean', 'string', 'string_enum']);
+  });
+
+  it('keeps a typed flag definition project-scoped and its served value per-environment', () => {
+    const toolCols = getTableColumns(schema.tools);
+    expect(toolCols.valueType.name).toBe('value_type');
+    expect(toolCols.valueType.notNull).toBe(true);
+    expect(toolCols.enumOptions.name).toBe('enum_options');
+    expect(toolCols.enumOptions.notNull).toBe(true);
+    expect(toolCols.defaultValue.name).toBe('default_value');
+
+    const stateCols = getTableColumns(schema.flagStates);
+    // Nullable by design: NULL = inherit tools.default_value, and it is the
+    // correct resting state for a boolean flag.
+    expect(stateCols.value.notNull).toBe(false);
+    // The type lives on the definition alone - a per-environment type would let
+    // one flag be a string in Staging and a boolean in Production.
+    expect(Object.keys(stateCols)).not.toContain('valueType');
+  });
+
   it('links users to Keycloak via a required keycloak_sub', () => {
     const cols = getTableColumns(schema.users);
     expect(cols.keycloakSub.name).toBe('keycloak_sub');

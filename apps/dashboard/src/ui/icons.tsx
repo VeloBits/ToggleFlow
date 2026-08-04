@@ -446,3 +446,119 @@ export const ToggleMarkIcon = createIcon(
     <circle cx="15" cy="12" r="3.5" fill="currentColor" stroke="none" />
   </>,
 );
+
+/* ── Flags surface ──────────────────────────────────────────────────────────
+ * Row actions, sort affordances and the per-type glyphs. All at the 13-16px
+ * the Flags table renders at, which is why the dots below are filled discs and
+ * the arrows are single strokes: at that size a stroked 1.5px circle reads as
+ * a smudge and a double-headed arrow fuses at the shaft.
+ */
+
+/** Row-actions trigger. Discs, not rings - a 2px ring is a smudge at 14px. */
+export const MoreHorizontalIcon = createIcon(
+  'MoreHorizontalIcon',
+  <>
+    <circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+    <circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none" />
+  </>,
+);
+
+/**
+ * "This column is sortable, currently unsorted." Two opposed arrows on separate
+ * tracks rather than Lucide's shared shaft, which at 14px reads as one arrow
+ * with a bar through it.
+ */
+export const ArrowUpDownIcon = createIcon(
+  'ArrowUpDownIcon',
+  <>
+    <path d="M7 20V7m0 0L4 10m3-3 3 3" />
+    <path d="M17 4v13m0 0 3-3m-3 3-3-3" />
+  </>,
+);
+
+/** The active sort direction; rotated 180° by the caller for ascending. */
+export const ArrowDownIcon = createIcon(
+  'ArrowDownIcon',
+  <>
+    <path d="M12 4v16" />
+    <path d="m6 14 6 6 6-6" />
+  </>,
+);
+
+/**
+ * Copy the flag key. The offset-rectangles glyph, with the back sheet drawn as
+ * an L rather than a full rect so the two outlines never sit 1px apart.
+ */
+export const CopyIcon = createIcon(
+  'CopyIcon',
+  <>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M15 5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2" />
+  </>,
+);
+
+export const PencilIcon = createIcon(
+  'PencilIcon',
+  <>
+    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    <path d="m15 5 4 4" />
+  </>,
+);
+
+/** Archive, not delete - a lid over a body, which is the reversible metaphor. */
+export const ArchiveIcon = createIcon(
+  'ArchiveIcon',
+  <>
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+    <path d="M10 12h4" />
+  </>,
+);
+
+export const TrashIcon = createIcon(
+  'TrashIcon',
+  <>
+    <path d="M4 7h16" />
+    <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    <path d="M6 7v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7" />
+  </>,
+);
+
+/**
+ * Per-type glyphs for `FlagTypeBadge`. Chosen so the three read apart at 13px
+ * by silhouette alone, not by detail: a switch is horizontal, a `T` is
+ * vertical, a list is stacked.
+ */
+
+/** valueType `boolean` - a switch. Lighter than ToggleMarkIcon, which is the brand. */
+export const ToggleIcon = createIcon(
+  'ToggleIcon',
+  <>
+    <rect x="2" y="7" width="20" height="10" rx="5" />
+    <circle cx="16" cy="12" r="2.5" fill="currentColor" stroke="none" />
+  </>,
+);
+
+/** valueType `string` - a serif `T`, the conventional "text value" mark. */
+export const TypeIcon = createIcon(
+  'TypeIcon',
+  <>
+    <path d="M5 6h14" />
+    <path d="M12 6v13" />
+    <path d="M9 19h6" />
+  </>,
+);
+
+/** valueType `string_enum` - a bulleted list: a value chosen from a fixed set. */
+export const ListIcon = createIcon(
+  'ListIcon',
+  <>
+    <circle cx="5" cy="7" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="5" cy="17" r="1.4" fill="currentColor" stroke="none" />
+    <path d="M10 7h10" />
+    <path d="M10 12h10" />
+    <path d="M10 17h10" />
+  </>,
+);

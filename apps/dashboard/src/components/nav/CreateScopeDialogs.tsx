@@ -12,76 +12,13 @@
  * warning about permanence) to earn its own component rather than a third
  * configuration of the first.
  */
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 
 import type { CreateEnvironmentInput, CreatedEnvironment, Environment } from '../../api/client';
-import { ErrorNote } from '../ui';
 import { Dialog } from '../../ui/dialog';
-
-function useSubmit(onSubmit: () => Promise<void>, onClose: () => void) {
-  const [error, setError] = useState<unknown>(null);
-  const [pending, setPending] = useState(false);
-
-  const submit = () => {
-    setPending(true);
-    setError(null);
-    onSubmit()
-      .then(onClose)
-      // The dialog stays open on failure so the message has somewhere to go,
-      // which means the button has to become live again. On success this runs
-      // against an unmounting component and is a no-op.
-      .catch(setError)
-      .finally(() => setPending(false));
-  };
-  return { error, pending, submit };
-}
-
-/**
- * The submit button carries no onClick: it is `type="submit"`, so the enclosing
- * <Form>'s onSubmit is the single path for both Enter and a click. Handling
- * both would fire the mutation twice per click.
- */
-function DialogActions({
-  submitLabel,
-  disabled,
-  pending,
-  onClose,
-}: {
-  submitLabel: string;
-  disabled: boolean;
-  pending: boolean;
-  onClose: () => void;
-}) {
-  return (
-    <div className="row">
-      <button type="submit" className="primary" disabled={disabled || pending}>
-        {pending ? 'Creating…' : submitLabel}
-      </button>
-      <button type="button" onClick={onClose} disabled={pending}>
-        Cancel
-      </button>
-    </div>
-  );
-}
-
-/**
- * Wrapping the fields in a <form> is what makes Enter submit; without it the
- * only way to create is to reach for the mouse. `noValidate` because the
- * disabled state below is the validation.
- */
-function Form({ onSubmit, children }: { onSubmit: () => void; children: ReactNode }) {
-  return (
-    <form
-      noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-    >
-      {children}
-    </form>
-  );
-}
+import { ENVIRONMENT_KEY_PATTERN, slugifyEnvironmentKey } from '../../ui/slug';
+import { DialogActions, Form, useSubmit } from '../form';
+import { ErrorNote } from '../ui';
 
 export function NameDialog({
   title,
@@ -116,7 +53,7 @@ export function NameDialog({
             maxLength={200}
             onChange={(e) => setName(e.target.value)}
           />
-          {hint && <p className="text-muted m-0 text-[12px]">{hint}</p>}
+          {hint && <p className="text-muted-foreground m-0 text-[12px]">{hint}</p>}
         </div>
         <ErrorNote error={error} />
         <DialogActions
@@ -129,17 +66,6 @@ export function NameDialog({
     </Dialog>
   );
 }
-
-/** Mirrors the API's environment key rule (routes/projects.ts). */
-const KEY_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
-
-/** "Load Testing" -> "load-testing". Only used until the user edits the key themselves. */
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 50);
 
 /** The "start from nothing" option. Not a uuid, so it cannot collide with an id. */
 const BLANK = 'blank';
@@ -186,8 +112,8 @@ export function CreateEnvironmentDialog({
   const [key, setKey] = useState('');
   const [source, setSource] = useState(() => defaultInheritFromId ?? environments[0]?.id ?? BLANK);
 
-  const effectiveKey = keyEdited ? key : slugify(name);
-  const keyValid = KEY_PATTERN.test(effectiveKey);
+  const effectiveKey = keyEdited ? key : slugifyEnvironmentKey(name);
+  const keyValid = ENVIRONMENT_KEY_PATTERN.test(effectiveKey);
   const inheritFrom = environments.find((e) => e.id === source) ?? null;
   const { error, pending, submit } = useSubmit(
     () =>
@@ -228,7 +154,7 @@ export function CreateEnvironmentDialog({
               setKey(e.target.value);
             }}
           />
-          <p id="env-key-hint" className="text-muted m-0 text-[12px]">
+          <p id="env-key-hint" className="text-muted-foreground m-0 text-[12px]">
             {effectiveKey.length > 0 && !keyValid
               ? 'Lowercase letters, digits and dashes only, starting with a letter or digit.'
               : 'How SDKs address this environment. It cannot be changed later.'}
@@ -255,7 +181,7 @@ export function CreateEnvironmentDialog({
             ))}
             <option value={BLANK}>Blank environment — start with nothing</option>
           </select>
-          <p id="env-inherit-hint" className="text-muted m-0 text-[12px]">
+          <p id="env-inherit-hint" className="text-muted-foreground m-0 text-[12px]">
             {inheritFrom ? (
               <>
                 Copies every flag&apos;s state, rollout, targeting rules and config values from{' '}

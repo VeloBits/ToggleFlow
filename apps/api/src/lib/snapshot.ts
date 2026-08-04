@@ -8,7 +8,7 @@
  */
 import { createHash } from 'node:crypto';
 
-import { SCHEMA_VERSION } from '@toggleflow/engine';
+import { SCHEMA_VERSION, type FlagValueType, type JsonValue } from '@toggleflow/engine';
 import { eq, and } from 'drizzle-orm';
 
 import type { Db } from '../db';
@@ -27,6 +27,10 @@ export interface SnapshotContent {
       rolloutPercent: number | null;
       targetingRules: unknown[];
       config: Record<string, unknown> | null;
+      /** Omitted for `boolean` - see the omit-when-default rule in the builder. */
+      valueType?: FlagValueType;
+      /** Omitted for `boolean`, whose served value IS `enabled`. */
+      value?: JsonValue;
     }
   >;
 }
@@ -87,6 +91,26 @@ export async function buildSnapshotContent(
       rolloutPercent: state?.rolloutPercent ?? null,
       targetingRules: state?.targetingRules ?? [],
       config: configByTool.get(tool.id)?.value ?? null,
+      /*
+       * OMIT-WHEN-DEFAULT, and this is load-bearing rather than tidiness.
+       *
+       * `snapshotToolSchema` defaults `valueType` to 'boolean' and `value` to
+       * null, so leaving them out means exactly what writing them would - and
+       * `stableStringify` drops undefined (see above). The consequence: for an
+       * all-boolean environment the HASH INPUT serialises BYTE-IDENTICALLY to
+       * what it did before typed flags existed, so its content hash is unchanged
+       * and no new `ruleset_versions` row appears. (The published payload does
+       * materialise the defaults, because publish.ts persists the parsed
+       * snapshot - but the hash is taken from this object, before that.)
+       *
+       * Write them explicitly instead and every hash in the fleet changes, so
+       * the first mutation in each environment - or the first republish -
+       * publishes a new version of a ruleset whose meaning did not change,
+       * invalidating every edge cache at once. `publish.test.ts` pins this with
+       * a double-publish of an all-boolean environment expecting skipped: true.
+       */
+      valueType: tool.valueType === 'boolean' ? undefined : tool.valueType,
+      value: tool.valueType === 'boolean' ? undefined : (state?.value ?? tool.defaultValue ?? null),
     };
   }
 

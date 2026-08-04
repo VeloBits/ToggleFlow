@@ -131,6 +131,10 @@ describe('resolveDisabledResponse', () => {
       key: 'tool.x',
       enabled: false,
       reason: 'kill_switch',
+      // A route guard is a boolean concern: the middleware reads `fallback`, and
+      // a boolean flag's `value` is its `enabled`.
+      value: false,
+      valueType: 'boolean',
       config: null,
       fallback: { status: 451, message: 'gone for legal reasons' },
     });
@@ -143,6 +147,8 @@ describe('resolveDisabledResponse', () => {
       key: 'tool.x',
       enabled: false,
       reason: 'kill_switch',
+      value: false,
+      valueType: 'boolean',
       config: null,
       fallback: null,
     });

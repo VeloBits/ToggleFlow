@@ -1,4 +1,26 @@
-/** Small shared UI atoms - functional and clean over pretty (MVP admin surface). */
+/**
+ * Small shared UI atoms, predating the design system.
+ *
+ * ## Two places called "ui" - which one you want
+ *
+ * This file (`components/ui.tsx`) holds app-specific atoms that know product
+ * concepts: a flag's ON/OFF/% chip, a two-step confirm, an error note.
+ * `components/ui/` (the directory) holds the vendored shadcn primitives -
+ * Button, Input, Table, Switch and friends, which know nothing about flags.
+ *
+ * The bare specifier `components/ui` resolves HERE, because extension
+ * resolution beats directory resolution. Import a primitive by its own file:
+ *
+ *     import { Button } from '@/components/ui/button';   // primitive
+ *     import { ErrorNote } from '@/components/ui';       // this file
+ *
+ * That is also the shadcn convention, so a future `npx shadcn add` needs no
+ * fixing up afterwards.
+ *
+ * `StatusChip` below is superseded on the Flags surfaces by
+ * `features/flags/FlagStatusBadge`, which also knows about archived flags and
+ * pairs colour with an icon. It stays because Segments and Search still use it.
+ */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { Dialog } from '../ui/dialog';

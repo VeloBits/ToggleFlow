@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { evaluateTool } from '../src/evaluate';
+import { flagValueTypeSchema } from '../src/flag-types';
 import {
   jsonObjectSchema,
   jsonValueSchema,
@@ -18,6 +19,7 @@ import {
 import configFallback from '../fixtures/config-fallback.json';
 import killSwitch from '../fixtures/kill-switch.json';
 import rollout from '../fixtures/rollout.json';
+import stringValue from '../fixtures/string-value.json';
 import targeting from '../fixtures/targeting.json';
 
 const fixtureSchema = z.object({
@@ -32,6 +34,12 @@ const fixtureSchema = z.object({
         key: z.string(),
         enabled: z.boolean(),
         reason: z.enum(['kill_switch', 'targeting', 'rollout', 'default', 'not_found']),
+        // Required, not optional: every case must state the value it expects,
+        // so a fixture cannot quietly stop asserting the thing this feature
+        // added. The boolean fixtures state `value` equal to `enabled`, which
+        // is the invariant that keeps boolean flags behaving as before.
+        value: jsonValueSchema.nullable(),
+        valueType: flagValueTypeSchema,
         config: jsonObjectSchema.nullable(),
         fallback: jsonValueSchema.nullable(),
       }),
@@ -44,6 +52,7 @@ const fixtures = {
   targeting,
   rollout,
   'config-fallback': configFallback,
+  'string-value': stringValue,
 };
 
 for (const [name, raw] of Object.entries(fixtures)) {

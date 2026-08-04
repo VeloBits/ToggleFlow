@@ -41,7 +41,7 @@ function triggerRadius(isFirst: boolean, isLast: boolean, open: boolean) {
 }
 
 /** Same focus treatment as GuestNav/GuestFooter, so the landing page has one focus language. */
-const FOCUS = 'focus-visible:ring-accent focus-visible:ring-2 focus-visible:outline-none';
+const FOCUS = 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none';
 
 /**
  * `styles.css` lands in Tailwind's `components` layer and styles bare `button`
@@ -70,7 +70,7 @@ const PANEL =
  * Left padding matches the trigger's so title and answer share a left edge.
  */
 const PANEL_CONTENT =
-  'max-w-[70ch] px-5 pb-4 text-[13.5px] leading-relaxed text-muted transition duration-200 ease-out motion-reduce:transition-none sm:px-6 sm:pb-[1.15rem]';
+  'max-w-[70ch] px-5 pb-4 text-[13.5px] leading-relaxed text-muted-foreground transition duration-200 ease-out motion-reduce:transition-none sm:px-6 sm:pb-[1.15rem]';
 
 /**
  * Single-expand accordion (WAI-ARIA accordion pattern), uncontrolled.
@@ -160,7 +160,7 @@ export function Accordion({ items, defaultOpenId, headingLevel = 3, className }:
                   aria-hidden
                   className={cn(
                     'shrink-0 transition-[transform,color] duration-200 ease-out motion-reduce:transition-none',
-                    open ? 'text-accent rotate-180' : 'text-muted',
+                    open ? 'text-primary rotate-180' : 'text-muted-foreground',
                   )}
                 />
               </button>

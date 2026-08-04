@@ -71,7 +71,7 @@ export function ScopeSwitcherDialog({
       <div className="border-border relative border-b">
         <SearchIcon
           size={15}
-          className="text-muted pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2"
+          className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2"
         />
         <input
           ref={inputRef}
@@ -113,18 +113,20 @@ export function ScopeSwitcherDialog({
               onClose();
             }}
             className={cn(
-              'hover:bg-highlight focus-visible:ring-accent flex w-full items-center gap-2.5 rounded-md border-0 bg-transparent px-2.5 py-2 text-left text-[13px] focus-visible:ring-2 focus-visible:outline-none',
-              option.id === selectedId ? 'text-text font-medium' : 'text-muted',
+              'hover:bg-highlight focus-visible:ring-ring flex w-full items-center gap-2.5 rounded-md border-0 bg-transparent px-2.5 py-2 text-left text-[13px] focus-visible:ring-2 focus-visible:outline-none',
+              option.id === selectedId ? 'text-text font-medium' : 'text-muted-foreground',
             )}
           >
             <span className="truncate">{option.label}</span>
             {option.meta && (
-              <span className="text-muted ml-auto shrink-0 text-[11.5px]">{option.meta}</span>
+              <span className="text-muted-foreground ml-auto shrink-0 text-[11.5px]">
+                {option.meta}
+              </span>
             )}
             <CheckIcon
               size={14}
               className={cn(
-                'text-accent shrink-0',
+                'text-primary shrink-0',
                 option.meta ? '' : 'ml-auto',
                 option.id !== selectedId && 'invisible',
               )}
@@ -132,7 +134,7 @@ export function ScopeSwitcherDialog({
           </button>
         ))}
         {matches.length === 0 && (
-          <p className="text-muted px-2.5 py-6 text-center text-[13px]">
+          <p className="text-muted-foreground px-2.5 py-6 text-center text-[13px]">
             Nothing matches “{query.trim()}”.
           </p>
         )}

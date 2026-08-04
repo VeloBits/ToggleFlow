@@ -45,16 +45,16 @@ export function AppTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
         type="button"
         onClick={onOpenSidebar}
         aria-label="Open navigation menu"
-        className="text-muted hover:bg-highlight hover:text-text focus-visible:ring-accent -ml-1 inline-flex size-9 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 focus-visible:ring-2 focus-visible:outline-none md:hidden"
+        className="text-muted-foreground hover:bg-highlight hover:text-text focus-visible:ring-ring -ml-1 inline-flex size-9 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 focus-visible:ring-2 focus-visible:outline-none md:hidden"
       >
         <MenuIcon size={18} />
       </button>
 
       <Link
         to="/"
-        className="focus-visible:ring-accent flex shrink-0 items-center gap-2 rounded-md px-1 py-1 focus-visible:ring-2 focus-visible:outline-none"
+        className="focus-visible:ring-ring flex shrink-0 items-center gap-2 rounded-md px-1 py-1 focus-visible:ring-2 focus-visible:outline-none"
       >
-        <ToggleMarkIcon size={20} className="text-accent" />
+        <ToggleMarkIcon size={20} className="text-primary" />
         {/* The wordmark yields before the scope chain does: below `sm` the mark
             alone still identifies the product, but a truncated project name
             identifies nothing. */}
@@ -99,13 +99,13 @@ export function AppTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
               <button
                 type="button"
                 onClick={() => setCreating('project')}
-                className="border-accent bg-accent hover:bg-accent-hover hover:border-accent-hover focus-visible:ring-accent focus-visible:ring-offset-panel ml-1 inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-[13px] font-semibold whitespace-nowrap text-white transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none"
+                className="border-primary bg-primary hover:bg-primary-hover hover:border-primary-hover focus-visible:ring-ring focus-visible:ring-offset-panel ml-1 inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-[13px] font-semibold whitespace-nowrap text-white transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none"
               >
                 <PlusIcon size={14} />
                 Create project
               </button>
             ) : (
-              <span className="text-muted ml-1 px-2 text-[13px] whitespace-nowrap">
+              <span className="text-muted-foreground ml-1 px-2 text-[13px] whitespace-nowrap">
                 No projects yet
               </span>
             )}
@@ -194,7 +194,7 @@ export function AppTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
 export function BrandMark({ className }: { className?: string }) {
   return (
     <span className={cn('flex items-center gap-2', className)}>
-      <ToggleMarkIcon size={20} className="text-accent" />
+      <ToggleMarkIcon size={20} className="text-primary" />
       <span className="text-text text-[15px] font-bold">ToggleFlow</span>
     </span>
   );

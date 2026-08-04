@@ -81,11 +81,26 @@ export class Publisher {
       }
       const version = (latest?.version ?? 0) + 1;
       const snapshot = { ...content, version, publishedAt: new Date().toISOString() };
-      parseRulesetSnapshot(snapshot); // never persist anything the frozen schema rejects
+      /*
+       * Persist the PARSED result, not the input.
+       *
+       * The parse was previously called for its throw alone and the raw object
+       * was stored, so any field the frozen schema does not declare reached both
+       * Postgres and KV - where the edge worker's safeParse strips it at READ
+       * time. That turns "the control plane published something the contract
+       * does not allow" into a silent, per-request omission at the edge instead
+       * of a loud failure at publish. Storing `validated` makes what is served
+       * byte-for-byte what the contract accepted.
+       *
+       * Hash-safe: `contentHash` is computed above from `content`, before
+       * version/publishedAt exist, and `buildSnapshotContent` is deterministic -
+       * so parsing cannot move the hash.
+       */
+      const validated = parseRulesetSnapshot(snapshot);
       try {
         [row] = await this.db
           .insert(rulesetVersions)
-          .values({ environmentId, version, contentHash, snapshot })
+          .values({ environmentId, version, contentHash, snapshot: validated })
           .returning();
       } catch (err) {
         const code = (err as { cause?: { code?: string } }).cause?.code;

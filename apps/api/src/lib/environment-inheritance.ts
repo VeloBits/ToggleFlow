@@ -70,12 +70,17 @@ function rows(result: unknown): Record<string, unknown>[] {
 }
 
 /**
- * Flag state: on/off, rollout percentage and targeting rules.
+ * Flag state: on/off, the served value, rollout percentage and targeting rules.
  *
  * An UPDATE rather than an INSERT because the environment-creation route has
  * already written one default row per tool to hold its (tool, environment)
  * invariant. Updating in place keeps that invariant true for tools the source
  * environment has no row for, instead of leaving them absent.
+ *
+ * The column list is explicit, which means a new per-environment column is
+ * silently NOT inherited until it is added here - `value` was exactly that case.
+ * Leave one out and the new environment diverges from its source on that field
+ * alone, which is the failure this module's docblock says it exists to prevent.
  */
 const flagStates: InheritableResource = {
   key: 'flagStates',
@@ -84,6 +89,7 @@ const flagStates: InheritableResource = {
     const result = await tx.execute(sql`
       update flag_states as target
       set enabled = source.enabled,
+          value = source.value,
           rollout_percent = source.rollout_percent,
           targeting_rules = source.targeting_rules,
           updated_at = now()

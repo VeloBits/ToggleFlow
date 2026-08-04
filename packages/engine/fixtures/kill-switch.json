@@ -14,19 +14,33 @@
         "rolloutPercent": null,
         "targetingRules": [],
         "config": {
-          "fallback": { "mode": "message", "message": "Translate is temporarily unavailable." }
+          "fallback": {
+            "mode": "message",
+            "message": "Translate is temporarily unavailable."
+          }
         }
       },
       "tool.summarize": {
         "enabled": true,
         "rolloutPercent": null,
         "targetingRules": [],
-        "config": { "maxInputChars": 4000, "fallback": { "mode": "hide" } }
+        "config": {
+          "maxInputChars": 4000,
+          "fallback": {
+            "mode": "hide"
+          }
+        }
       },
       "tool.kill-beats-all": {
         "enabled": false,
         "rolloutPercent": 100,
-        "targetingRules": [{ "segments": [], "conditions": [], "enabled": true }],
+        "targetingRules": [
+          {
+            "segments": [],
+            "conditions": [],
+            "enabled": true
+          }
+        ],
         "config": null
       }
     }
@@ -35,37 +49,67 @@
     {
       "name": "kill-switched tool is off for everyone and serves its fallback",
       "toolKey": "tool.translate",
-      "context": { "key": "user-1", "attributes": { "plan": "pro" } },
+      "context": {
+        "key": "user-1",
+        "attributes": {
+          "plan": "pro"
+        }
+      },
       "expected": {
         "key": "tool.translate",
         "enabled": false,
         "reason": "kill_switch",
+        "value": false,
+        "valueType": "boolean",
         "config": {
-          "fallback": { "mode": "message", "message": "Translate is temporarily unavailable." }
+          "fallback": {
+            "mode": "message",
+            "message": "Translate is temporarily unavailable."
+          }
         },
-        "fallback": { "mode": "message", "message": "Translate is temporarily unavailable." }
+        "fallback": {
+          "mode": "message",
+          "message": "Translate is temporarily unavailable."
+        }
       }
     },
     {
       "name": "enabled tool with no rules serves the default (on)",
       "toolKey": "tool.summarize",
-      "context": { "key": "user-1", "attributes": {} },
+      "context": {
+        "key": "user-1",
+        "attributes": {}
+      },
       "expected": {
         "key": "tool.summarize",
         "enabled": true,
         "reason": "default",
-        "config": { "maxInputChars": 4000, "fallback": { "mode": "hide" } },
-        "fallback": { "mode": "hide" }
+        "value": true,
+        "valueType": "boolean",
+        "config": {
+          "maxInputChars": 4000,
+          "fallback": {
+            "mode": "hide"
+          }
+        },
+        "fallback": {
+          "mode": "hide"
+        }
       }
     },
     {
       "name": "kill switch beats a matching catch-all targeting rule and a 100% rollout",
       "toolKey": "tool.kill-beats-all",
-      "context": { "key": "user-2", "attributes": {} },
+      "context": {
+        "key": "user-2",
+        "attributes": {}
+      },
       "expected": {
         "key": "tool.kill-beats-all",
         "enabled": false,
         "reason": "kill_switch",
+        "value": false,
+        "valueType": "boolean",
         "config": null,
         "fallback": null
       }

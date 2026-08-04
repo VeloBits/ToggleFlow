@@ -64,7 +64,7 @@ const GUTTER = 'px-6';
  * and `accent-soft` is a token, so it follows the theme without a `dark:` rule.
  */
 const ICON_PLATE =
-  'border-accent-soft bg-accent-soft text-accent mb-3 grid h-9 w-9 place-items-center rounded-lg border';
+  'border-primary-soft bg-primary-soft text-primary mb-3 grid h-9 w-9 place-items-center rounded-lg border';
 
 /** Feature and use-case cards share a box, so they share the class string. */
 const CARD = 'border-border bg-panel rounded-lg border p-5 leading-relaxed';
@@ -260,7 +260,7 @@ function MockRow({
       <StateIcon size={15} className={tone} />
       <span className="min-w-0">
         <code className="font-mono text-[12.5px]">{flagKey}</code>
-        <span className="text-muted ml-2 hidden text-[12.5px] sm:inline">{name}</span>
+        <span className="text-muted-foreground ml-2 hidden text-[12.5px] sm:inline">{name}</span>
       </span>
       {chip}
     </div>
@@ -283,7 +283,7 @@ function Section({
     // part of the content box, so it runs edge to edge behind the container.
     <section id={id} className={`border-border/60 scroll-mt-24 border-t py-16 sm:py-20 ${GUTTER}`}>
       <div className={CONTAINER}>
-        <p className="text-accent mb-2 text-[12.5px] font-semibold tracking-wide uppercase">
+        <p className="text-primary mb-2 text-[12.5px] font-semibold tracking-wide uppercase">
           {eyebrow}
         </p>
         <h2 className="mb-8 max-w-3xl text-[22px]">{title}</h2>
@@ -303,7 +303,7 @@ export function GuestHomePage() {
     <div className="bg-bg text-text min-h-screen">
       <a
         href="#main"
-        className="border-border bg-panel text-text focus-visible:ring-accent sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-md focus:border focus:px-3 focus:py-2 focus-visible:ring-2 focus-visible:outline-none"
+        className="border-border bg-panel text-text focus-visible:ring-ring sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-md focus:border focus:px-3 focus:py-2 focus-visible:ring-2 focus-visible:outline-none"
       >
         Skip to content
       </a>
@@ -321,7 +321,7 @@ export function GuestHomePage() {
         <section className={`pt-32 pb-16 sm:pt-36 sm:pb-20 ${GUTTER}`}>
           <div className={`${CONTAINER} grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]`}>
             <div>
-              <p className="border-border bg-bg2 text-muted mb-5 inline-block rounded-full border px-3 py-1 text-[12px]">
+              <p className="border-border bg-bg2 text-muted-foreground mb-5 inline-block rounded-full border px-3 py-1 text-[12px]">
                 ToggleFlow · feature management platform
               </p>
               {/*
@@ -336,7 +336,7 @@ export function GuestHomePage() {
                 <span className="block">Ship faster.</span>
                 <span className="block">Roll back instantly.</span>
               </h1>
-              <p className="text-muted mb-8 max-w-xl text-[16px] leading-relaxed">
+              <p className="text-muted-foreground mb-8 max-w-xl text-[16px] leading-relaxed">
                 ToggleFlow is the feature flag and remote configuration platform for your app: kill
                 switches, progressive rollouts, targeting, and live config - changed from a
                 dashboard and delivered in seconds. No redeploy, no waiting on a release.
@@ -356,13 +356,13 @@ export function GuestHomePage() {
                   See how it works
                 </a>
               </div>
-              <p className="text-muted mt-4 text-[12.5px]">
+              <p className="text-muted-foreground mt-4 text-[12.5px]">
                 Free tier · Set up in about 15 minutes · Flat, predictable pricing
               </p>
             </div>
 
             <div className="border-border bg-panel overflow-hidden rounded-xl border shadow-sm">
-              <div className="border-border/60 text-muted flex items-center gap-2 border-b px-3 py-2 text-[12px]">
+              <div className="border-border/60 text-muted-foreground flex items-center gap-2 border-b px-3 py-2 text-[12px]">
                 {/* A live-environment dot: `text-on`, because a red one beside the
                     word "production" reads as an outage, which is not the story. */}
                 <DotIcon size={13} className="text-on" />
@@ -374,7 +374,7 @@ export function GuestHomePage() {
               <MockRow flagKey="tool.rewrite" name="Rewrite" state="rollout" />
               <MockRow flagKey="tool.ocr" name="OCR" state="off" />
               <MockRow flagKey="tool.translate" name="Translate" state="on" />
-              <div className="text-muted px-3 py-2 text-[12px]">
+              <div className="text-muted-foreground px-3 py-2 text-[12px]">
                 254 flags · 246 on · 5 off · 3 rolling out
               </div>
             </div>
@@ -393,7 +393,7 @@ export function GuestHomePage() {
                   <Icon size={18} />
                 </span>
                 <h3 className="mb-1">{feature.title}</h3>
-                <p className="text-muted text-[13px]">{feature.body}</p>
+                <p className="text-muted-foreground text-[13px]">{feature.body}</p>
               </li>
             ))}
           </ul>
@@ -409,20 +409,22 @@ export function GuestHomePage() {
               <ol className="grid gap-6">
                 {STEPS.map((item) => (
                   <li key={item.step} className="grid grid-cols-[28px_1fr] gap-3">
-                    <span className="border-border bg-bg2 text-accent grid h-7 w-7 place-items-center rounded-full border text-[12.5px] font-semibold">
+                    <span className="border-border bg-bg2 text-primary grid h-7 w-7 place-items-center rounded-full border text-[12.5px] font-semibold">
                       {item.step}
                     </span>
                     {/* div, not span: a heading is flow content, not phrasing. */}
                     <div>
                       <h3 className="mb-1">{item.title}</h3>
-                      <p className="text-muted text-[13px] leading-relaxed">{item.body}</p>
+                      <p className="text-muted-foreground text-[13px] leading-relaxed">
+                        {item.body}
+                      </p>
                     </div>
                   </li>
                 ))}
               </ol>
               {/* ch-capped, not container-capped: the wider content box would run
                   this past 74 characters a line. Same trick as the footer blurb. */}
-              <p className="text-muted mt-6 max-w-[68ch] text-[13px] leading-relaxed">
+              <p className="text-muted-foreground mt-6 max-w-[68ch] text-[13px] leading-relaxed">
                 One evaluation engine backs the SDK, the REST API, and the edge worker, so a flag
                 answers the same way everywhere. The React adapter hides tools in the UI, and the
                 Express and Fastify middleware maps routes to flags - guarding a route-shaped tool
@@ -440,7 +442,7 @@ export function GuestHomePage() {
           eyebrow="Use cases"
           title="From progressive rollouts to canary releases, A/B tests, and kill switches"
         >
-          <p className="text-muted mb-8 max-w-[68ch] text-[14px] leading-relaxed">
+          <p className="text-muted-foreground mb-8 max-w-[68ch] text-[14px] leading-relaxed">
             One flag model covers all of it, and it is deliberately sharper for tool-heavy and
             AI-heavy apps: a flag carries its tool&apos;s route, owner, and model parameters rather
             than a bare boolean.
@@ -452,7 +454,7 @@ export function GuestHomePage() {
                   <Icon size={18} />
                 </span>
                 <h3 className="mb-1">{useCase.title}</h3>
-                <p className="text-muted text-[13px]">{useCase.body}</p>
+                <p className="text-muted-foreground text-[13px]">{useCase.body}</p>
               </li>
             ))}
           </ul>
@@ -468,7 +470,7 @@ export function GuestHomePage() {
         <section className={`border-border/60 border-t py-16 text-center sm:py-20 ${GUTTER}`}>
           <div className={CONTAINER}>
             <h2 className="mb-3 text-[22px]">Ship your next feature behind a flag</h2>
-            <p className="text-muted mx-auto mb-7 max-w-lg leading-relaxed">
+            <p className="text-muted-foreground mx-auto mb-7 max-w-lg leading-relaxed">
               Create an organization, add your first project, and flip a real flag in minutes - on
               the free tier.
             </p>

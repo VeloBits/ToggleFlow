@@ -15,6 +15,10 @@ describe('public surface', () => {
     expect(sdk.ANONYMOUS).toEqual({ key: 'anonymous' });
   });
 
+  it('re-exports the flag value types, so narrowing needs no engine dependency', () => {
+    expect(sdk.FLAG_VALUE_TYPES).toEqual(['boolean', 'string', 'string_enum']);
+  });
+
   it('keeps React out of the main entry (optional peer dep behind ./react)', () => {
     expect(Object.keys(sdk)).not.toContain('ToggleFlowProvider');
     expect(Object.keys(sdk)).not.toContain('useFlag');
