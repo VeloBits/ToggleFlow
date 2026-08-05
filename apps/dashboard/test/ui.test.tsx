@@ -11,6 +11,7 @@ import { ConfirmButton, ErrorNote, Modal, StatusChip } from '../src/components/u
 import { cn } from '../src/ui/cn';
 import { Dialog } from '../src/ui/dialog';
 import { SegmentedControl } from '../src/ui/segmented-control';
+import { SidePanel } from '../src/ui/side-panel';
 import { initTheme, isDark, toggleTheme } from '../src/ui/theme';
 import { ToastProvider, useToast } from '../src/ui/toast';
 
@@ -249,6 +250,74 @@ describe('Dialog / Modal', () => {
       </Dialog>,
     );
     await waitFor(() => expect(document.activeElement?.id).toBe('second'));
+  });
+});
+
+describe('SidePanel', () => {
+  it('renders the title, description, body and footer, and closes via the X button', () => {
+    const onClose = vi.fn();
+    render(
+      <SidePanel
+        title="flag.updated"
+        description="Ada Lovelace · 2 minutes ago"
+        onClose={onClose}
+        footer={<button type="button">Copy payload</button>}
+      >
+        <pre>{'{ "enabled": true }'}</pre>
+      </SidePanel>,
+    );
+    expect(screen.getByText('flag.updated')).toBeTruthy();
+    expect(screen.getByText('Ada Lovelace · 2 minutes ago')).toBeTruthy();
+    expect(screen.getByText('{ "enabled": true }')).toBeTruthy();
+    expect(screen.getByText('Copy payload')).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText('Close'));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('closes on Escape - Radix owns the key handling', async () => {
+    const onClose = vi.fn();
+    render(
+      <SidePanel title="Closable" onClose={onClose}>
+        <p>x</p>
+      </SidePanel>,
+    );
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  /*
+   * The deliberate difference from Dialog: this is a reading surface, so focus
+   * stays where Radix put it (the ✕) even when the body happens to contain a
+   * field. Pinned because the two primitives look identical from a call site and
+   * the next person to touch either one will assume they behave the same.
+   */
+  it('does not redirect focus to a field the way Dialog does', async () => {
+    render(
+      <SidePanel title="Event detail" onClose={vi.fn()}>
+        <input id="filter" />
+      </SidePanel>,
+    );
+    await waitFor(() => expect(document.activeElement?.getAttribute('aria-label')).toBe('Close'));
+  });
+
+  it('points aria-describedby at the description, and omits it when there is none', () => {
+    const { unmount } = render(
+      <SidePanel title="Described" description="who, what, when" onClose={vi.fn()}>
+        <p>x</p>
+      </SidePanel>,
+    );
+    const describedBy = screen.getByRole('dialog').getAttribute('aria-describedby');
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy ?? '')?.textContent).toBe('who, what, when');
+
+    unmount();
+    render(
+      <SidePanel title="Bare" onClose={vi.fn()}>
+        <p>x</p>
+      </SidePanel>,
+    );
+    expect(screen.getByRole('dialog').hasAttribute('aria-describedby')).toBe(false);
   });
 });
 

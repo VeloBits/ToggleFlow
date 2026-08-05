@@ -5,6 +5,11 @@
   --panel: #ffffff;
   --border: #c8c8c8;
   --border-strong: #a0a0a0;
+  /* The edge of an interactive control, split from --border because the two
+   * want different weights: a table separator should recede, a field must
+   * announce where you can type. Identical in the light theme, which reads
+   * correctly; they diverge under body.dark. */
+  --field-border: #c8c8c8;
   --text: #1a1a1a;
   --muted: #6b6b6b;
   --accent: #007acc;
@@ -33,8 +38,31 @@ body.dark {
   --bg: #1e1e1e;
   --bg2: #2d2d2d;
   --panel: #252526;
-  --border: #3c3c3c;
+  /*
+   * Opaque, and deliberately so - a translucent border was tried and reverted.
+   *
+   * #3c3c3c was too loud: 23 steps above --panel, which on a table with a rule
+   * under every row read as a grid of highlights. The first fix made it
+   * `rgba(255,255,255,0.07)` to give every border the same *relative* weight,
+   * and that was optimising the wrong quantity. Alpha composites against
+   * whatever sits beneath it, so one token rendered several colours: #2e2e2e on
+   * the sidebar (over --bg) but #343435 inside a card (over --panel). The table
+   * genuinely was brighter than the sidebar, and no amount of tuning the alpha
+   * fixes that - the borders are supposed to *match*.
+   *
+   * #2e2e2e is exactly what that 7% rendered over --bg, i.e. the sidebar edge
+   * and the Integrations card outline that already read correctly. Being opaque,
+   * every border in the app is now that one colour: sidebar, panels, card
+   * outlines and table rules alike. Nine steps above --panel, so it delineates
+   * rows without announcing them.
+   */
+  --border: #2e2e2e;
+  /* Opaque: --border-strong is also used as a fill (the neutral environment dot
+   * in nav/environment-tone.ts), where alpha would wash it out. */
   --border-strong: #4d4d4d;
+  /* Holds the pre-2026-08-04 --border value: controls keep the definition they
+   * had, and only structural borders were softened. */
+  --field-border: #3c3c3c;
   --text: #d4d4d4;
   --muted: #9a9a9a;
   --accent: #007acc;
@@ -76,7 +104,7 @@ a {
 
 button {
   font: inherit;
-  border: 1px solid var(--border);
+  border: 1px solid var(--field-border);
   background: var(--panel);
   border-radius: var(--radius-md);
   padding: 6px 12px;
@@ -126,7 +154,7 @@ input,
 select,
 textarea {
   font: inherit;
-  border: 1px solid var(--border);
+  border: 1px solid var(--field-border);
   border-radius: var(--radius-md);
   padding: 6px 10px;
   background: var(--panel);

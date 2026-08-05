@@ -3,9 +3,9 @@ import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import { CallbackPage } from './auth/CallbackPage';
 import { Layout } from './components/Layout';
+import { AuditLogPage } from './features/audit';
 import { FlagDetailPage, FlagsPage } from './features/flags';
 import { ApiKeysPage } from './pages/ApiKeysPage';
-import { AuditPage } from './pages/AuditPage';
 import { EnvironmentsPage } from './pages/EnvironmentsPage';
 import { GuestHomePage } from './pages/GuestHomePage';
 import { HomePage } from './pages/HomePage';
@@ -53,7 +53,7 @@ export function App() {
                   <Route path="/segments" element={<SegmentsPage />} />
                   <Route path="/environments" element={<EnvironmentsPage />} />
                   <Route path="/keys" element={<ApiKeysPage />} />
-                  <Route path="/audit" element={<AuditPage />} />
+                  <Route path="/audit" element={<AuditLogPage />} />
                   <Route path="/webhooks" element={<WebhooksPage />} />
                   <Route path="/integrations" element={<IntegrationsPage />} />
                   <Route path="/team" element={<MembersPage />} />

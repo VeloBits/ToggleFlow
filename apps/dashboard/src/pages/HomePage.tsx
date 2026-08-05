@@ -13,7 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { ComponentType } from 'react';
 import { Link } from 'react-router-dom';
 
-import { api, type AuditEntry, type Member } from '../api/client';
+import { actorLabel, auditRecentQueryOptions, membersQueryOptions } from '../api/audit';
 import { flagsQueryOptions } from '../api/flags';
 import { environmentTone } from '../components/nav/environment-tone';
 import { EmptyState, PageHeader, Panel } from '../components/page';
@@ -56,25 +56,10 @@ export function HomePage() {
   const ws = useWorkspace();
 
   const flagsQuery = useQuery(flagsQueryOptions(ws.environmentId));
-  const auditQuery = useQuery({
-    queryKey: ['audit', ws.orgId, 'home'],
-    queryFn: () =>
-      api
-        .get<{ entries: AuditEntry[] }>(`/v1/orgs/${ws.orgId}/audit?limit=8`)
-        .then((res) => res.entries),
-    enabled: ws.orgId !== null,
-  });
-  const membersQuery = useQuery({
-    queryKey: ['members', ws.orgId],
-    queryFn: () => api.get<Member[]>(`/v1/orgs/${ws.orgId}/members`),
-    enabled: ws.orgId !== null,
-  });
+  const auditQuery = useQuery(auditRecentQueryOptions(ws.orgId));
+  const membersQuery = useQuery(membersQueryOptions(ws.orgId));
 
-  const actorName = (actorId: string | null) => {
-    if (!actorId) return 'system';
-    const member = membersQuery.data?.find((m) => m.userId === actorId);
-    return member?.displayName ?? member?.email ?? actorId.slice(0, 8);
-  };
+  const actorName = (actorId: string | null) => actorLabel(actorId, membersQuery.data);
 
   const live = (flagsQuery.data ?? []).filter((flag) => !flag.archived);
   const rollingOut = live.filter((flag) => flag.enabled && flag.rolloutPercent !== null);
