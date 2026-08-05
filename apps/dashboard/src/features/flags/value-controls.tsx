@@ -16,9 +16,11 @@
  *   - `Field` is a labelled form control. It is uncontrolled by any mutation -
  *     the form owns the value - and is reused by the create/edit dialog's
  *     "Default value" and by the detail page's value editor, so a new type gets
- *     its table cell and its form input from the same entry.
+ *     its table cell and its form input from the same entry. How a caller's
+ *     `<Label>` attaches to it is part of that entry too (`labelWiring`), because
+ *     not every type's field is an element `htmlFor` can bind to.
  */
-import { useEffect, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 
 import type { FlagConstraints, FlagValueType, JsonValue } from '@toggleflow/engine';
 import { FLAG_TYPES } from '@toggleflow/engine';
@@ -27,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Switch } from '@/components/ui/switch';
+import { SegmentedControl } from '@/ui/segmented-control';
 import { CheckIcon, XIcon } from '@/ui/icons';
 import { cn } from '@/ui/cn';
 
@@ -72,7 +75,28 @@ export interface ValueFieldProps {
 export interface ValueControl {
   Cell: ComponentType<ValueCellProps>;
   Field: ComponentType<ValueFieldProps>;
+  /**
+   * How a caller must pair its `<Label>` with `Field`, because not every type's
+   * field is a labelable element. `'htmlFor'` is the ordinary case - the `id`
+   * lands on an `input` or a `select`. `'aria-labelledby'` says the field's root
+   * is a `div`, so the label carries `fieldLabelId(id)` instead and the field
+   * names itself from it. Read from the registry rather than tested per type, so
+   * a new type declares its own wiring in the same entry as its components.
+   */
+  labelWiring: 'htmlFor' | 'aria-labelledby';
 }
+
+/**
+ * The id a `'aria-labelledby'` field expects its caller's `<Label>` to carry.
+ *
+ * `htmlFor` binds only to *labelable* elements (`input`, `select`, `textarea`,
+ * `button`, …). A segmented control's root is a `div`, so the naive version -
+ * `<Label htmlFor={id}>` over `<div id={id}>` - leaves a dangling `for`: the
+ * field has no accessible name and clicking the label does nothing at all,
+ * silently. Inverting the pair fixes both halves, and it is why this id exists
+ * as a function rather than as a string each call site spells itself.
+ */
+export const fieldLabelId = (id: string) => `${id}-label`;
 
 /**
  * Two-step arming, extracted so both the boolean switch and any future
@@ -147,15 +171,89 @@ function BooleanCell({
   );
 }
 
-function BooleanField({ id, value, onChange, disabled, describedBy }: ValueFieldProps) {
+/**
+ * Off / On as two named choices, for the places a boolean is *chosen in a form*
+ * rather than flipped on a live row.
+ *
+ * ## Why not the switch this replaces
+ *
+ * A bare `Switch` under a "Default value" label said nothing: the only reading of
+ * the selected state was a thumb position, "off" and "not filled in yet" looked
+ * identical, and there was no word on screen tying either state to `true` or
+ * `false`. Two segments put the choice in words, and Radix's ToggleGroup renders
+ * them as `role="radio"` inside a `radiogroup` - "one of these two", which is
+ * what a default value is, arrow-key navigable, and never empty.
+ * `SegmentedControl` is the app's existing spelling of that control (the
+ * environment switcher and `RolloutField` both use it), so this is the same
+ * control rather than a fourth one.
+ *
+ * The switch stays where it belongs: `BooleanCell` is a live production toggle in
+ * a table row, where a two-segment control would be three times as wide and read
+ * as a filter rather than a state.
+ *
+ * ## Naming
+ *
+ * The radiogroup carries the `id` and names itself from the caller's `<Label>`
+ * via `aria-labelledby` (see `fieldLabelId`) - not `htmlFor`, which reaches
+ * labelable elements only and would dangle against a `div`. The remaining
+ * wrapper is layout for the trailing value and carries nothing semantic, so
+ * there is one announcement here, not two.
+ */
+export function OnOffChoice({
+  id,
+  on,
+  onChange,
+  labelledBy,
+  describedBy,
+  disabled = false,
+  children,
+}: {
+  id: string;
+  on: boolean;
+  onChange: (on: boolean) => void;
+  /** Id of the visible `<Label>`; `fieldLabelId(id)` for a registry field. */
+  labelledBy: string;
+  describedBy?: string;
+  disabled?: boolean;
+  /** Trailing note beside the segments - the chosen state spelled out. */
+  children?: ReactNode;
+}) {
   return (
-    <Switch
+    <div className="flex flex-wrap items-center gap-2.5">
+      <SegmentedControl
+        id={id}
+        labelledBy={labelledBy}
+        describedBy={describedBy}
+        disabled={disabled}
+        value={on ? 'on' : 'off'}
+        onValueChange={(next) => onChange(next === 'on')}
+        options={[
+          { value: 'off', label: 'Off' },
+          { value: 'on', label: 'On' },
+        ]}
+      />
+      {children}
+    </div>
+  );
+}
+
+function BooleanField({ id, value, onChange, disabled, describedBy }: ValueFieldProps) {
+  const on = value === true;
+  return (
+    <OnOffChoice
       id={id}
-      checked={value === true}
+      on={on}
+      labelledBy={fieldLabelId(id)}
+      describedBy={describedBy}
       disabled={disabled}
-      aria-describedby={describedBy}
-      onCheckedChange={(checked) => onChange(checked)}
-    />
+      onChange={onChange}
+    >
+      {/* The value, not a third segment: "On" is the gesture, `true` is what the
+          flag serves, and a boolean flag's Settings tab prints it in mono too. */}
+      <span className="text-muted-foreground font-mono text-[12px]">
+        {FLAG_TYPES.boolean.format(on)}
+      </span>
+    </OnOffChoice>
   );
 }
 
@@ -325,9 +423,9 @@ function StringEnumField({
 // ── the registry ─────────────────────────────────────────────────────────────
 
 export const VALUE_CONTROLS: Record<FlagValueType, ValueControl> = {
-  boolean: { Cell: BooleanCell, Field: BooleanField },
-  string: { Cell: StringCell, Field: StringField },
-  string_enum: { Cell: StringEnumCell, Field: StringEnumField },
+  boolean: { Cell: BooleanCell, Field: BooleanField, labelWiring: 'aria-labelledby' },
+  string: { Cell: StringCell, Field: StringField, labelWiring: 'htmlFor' },
+  string_enum: { Cell: StringEnumCell, Field: StringEnumField, labelWiring: 'htmlFor' },
 };
 
 /**
@@ -339,10 +437,14 @@ export function valueControl(valueType: string): ValueControl {
   return VALUE_CONTROLS[valueType as FlagValueType] ?? VALUE_CONTROLS.boolean;
 }
 
-/** The label for a type, from the engine's registry so there is one spelling. */
-export function valueTypeLabel(valueType: string): string {
-  return FLAG_TYPES[valueType as FlagValueType]?.label ?? valueType;
-}
+/*
+ * `valueTypeLabel` used to live here - `FLAG_TYPES[t]?.label ?? t`, with a
+ * docblock claiming it was so there was one spelling of a type's name. It had no
+ * callers, and `FlagTypeBadge` does the same lookup inline, so it was in fact a
+ * second place for that spelling to be. Removed rather than adopted: the engine's
+ * registry is the single source, and a one-line re-export of it is not a seam,
+ * just an extra name to keep in step.
+ */
 
 function Empty() {
   return <span className="text-muted-foreground italic">empty</span>;

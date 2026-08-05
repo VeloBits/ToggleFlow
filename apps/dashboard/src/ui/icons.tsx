@@ -526,40 +526,23 @@ export const TrashIcon = createIcon(
 );
 
 /**
- * Per-type glyphs for `FlagTypeBadge`. Chosen so the three read apart at 13px
- * by silhouette alone, not by detail: a switch is horizontal, a `T` is
- * vertical, a list is stacked.
+ * `flag.update` in the audit log - a switch, lighter than `ToggleMarkIcon`,
+ * which is the brand.
+ *
+ * This was one of three per-type glyphs (`boolean` / `string` / `string_enum`)
+ * that `FlagTypeBadge` rendered before its label. They went when the Flags table
+ * was rebuilt: a type is a fixed property of the definition rather than state,
+ * and fifty outlined pills down a column read as fifty buttons and competed with
+ * the Status badge, which is the one thing people scan a row for. Its two
+ * siblings had no other caller and were deleted with it; this one survives
+ * because `features/audit/audit-events.ts` uses it for the flag-changed event,
+ * where a glyph per action IS the point.
  */
-
-/** valueType `boolean` - a switch. Lighter than ToggleMarkIcon, which is the brand. */
 export const ToggleIcon = createIcon(
   'ToggleIcon',
   <>
     <rect x="2" y="7" width="20" height="10" rx="5" />
     <circle cx="16" cy="12" r="2.5" fill="currentColor" stroke="none" />
-  </>,
-);
-
-/** valueType `string` - a serif `T`, the conventional "text value" mark. */
-export const TypeIcon = createIcon(
-  'TypeIcon',
-  <>
-    <path d="M5 6h14" />
-    <path d="M12 6v13" />
-    <path d="M9 19h6" />
-  </>,
-);
-
-/** valueType `string_enum` - a bulleted list: a value chosen from a fixed set. */
-export const ListIcon = createIcon(
-  'ListIcon',
-  <>
-    <circle cx="5" cy="7" r="1.4" fill="currentColor" stroke="none" />
-    <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
-    <circle cx="5" cy="17" r="1.4" fill="currentColor" stroke="none" />
-    <path d="M10 7h10" />
-    <path d="M10 12h10" />
-    <path d="M10 17h10" />
   </>,
 );
 

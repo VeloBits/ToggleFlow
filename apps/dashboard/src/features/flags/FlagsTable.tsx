@@ -8,7 +8,17 @@
  * on happy-dom's `matchMedia` fidelity: whichever branch its default picks is
  * the only branch the suite would ever exercise, and the other would rot
  * unnoticed.
+ *
+ * ## What this file decides and what the registry decides
+ *
+ * Nothing here knows what a column contains. Widths, breakpoints, head styling
+ * and row padding all arrive from `flag-columns.tsx` so that `FlagsSkeleton` can
+ * draw the identical header from the identical strings. What is left is the two
+ * behaviours that belong to a table rather than to a column: the sort control on
+ * a head, and the click that opens a row.
  */
+import { memo } from 'react';
+
 import {
   Table,
   TableBody,
@@ -20,7 +30,15 @@ import {
 import { ArrowDownIcon, ArrowUpDownIcon } from '@/ui/icons';
 import { cn } from '@/ui/cn';
 
-import { FLAG_COLUMNS, type CellContext, type FlagRow } from './flag-columns';
+import {
+  columnClass,
+  HEAD_CLASS,
+  ROW_CLASS,
+  visibleColumns,
+  type CellContext,
+  type FlagColumn,
+  type FlagRow,
+} from './flag-columns';
 import { nextSort, type FlagSort } from './flags-sort';
 
 export function FlagsTable({
@@ -34,26 +52,29 @@ export function FlagsTable({
   onSortChange: (sort: FlagSort) => void;
   ctx: CellContext;
 }) {
+  const columns = visibleColumns(ctx);
+
   return (
     <div className="hidden md:block">
       <Table aria-label="Flags">
-        <TableHeader>
+        {/* Tinted, so the header reads as chrome rather than as a first row. */}
+        <TableHeader className="bg-bg2">
           <TableRow className="hover:bg-transparent">
-            {FLAG_COLUMNS.map((column) => {
+            {columns.map((column) => {
               const active = column.sortKey && sort.key === column.sortKey;
               return (
                 <TableHead
                   key={column.id}
-                  className={cn(
-                    column.width,
-                    column.align === 'right' && 'text-right',
-                    column.hideBelow === 'lg' && 'hidden lg:table-cell',
-                  )}
+                  className={cn(HEAD_CLASS, columnClass(column))}
                   // Announce the current sort to assistive tech rather than
                   // leaving it to the arrow glyph.
                   aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}
                 >
-                  {column.sortKey ? (
+                  {column.headerCell ? (
+                    // The registry may own its own header - the select column's
+                    // tri-state box, which has nothing to sort by.
+                    column.headerCell(ctx)
+                  ) : column.sortKey ? (
                     <button
                       type="button"
                       /*
@@ -63,8 +84,12 @@ export function FlagsTable({
                        * renders as a bordered box until a utility layer overrides
                        * it. Without these three, every column header looks like a
                        * form control.
+                       *
+                       * The size, colour and letter-spacing are inherited from
+                       * the <th> instead of repeated, so a sortable head and an
+                       * unsortable one cannot drift apart.
                        */
-                      className="text-muted-foreground hover:text-text flex items-center gap-1 border-0 bg-transparent p-0 font-semibold uppercase"
+                      className="hover:text-text flex items-center gap-1 border-0 bg-transparent p-0 font-semibold uppercase"
                       onClick={() => onSortChange(nextSort(sort, column.sortKey!))}
                     >
                       {column.header}
@@ -81,9 +106,7 @@ export function FlagsTable({
                     // Unsortable columns still need their name available to a
                     // screen reader; the actions column has none, and an empty
                     // header cell is the right answer there.
-                    <span className="text-muted-foreground font-semibold uppercase">
-                      {column.header}
-                    </span>
+                    <span>{column.header}</span>
                   )}
                 </TableHead>
               );
@@ -92,34 +115,71 @@ export function FlagsTable({
         </TableHeader>
         <TableBody>
           {flags.map((flag) => (
-            <TableRow
+            <FlagsTableRow
               key={flag.id}
-              className={cn('cursor-pointer', flag.archived && 'opacity-60')}
-              onClick={() => ctx.onOpen(flag)}
-            >
-              {FLAG_COLUMNS.map((column) => (
-                <TableCell
-                  key={column.id}
-                  className={cn(
-                    column.width,
-                    column.align === 'right' && 'text-right',
-                    column.hideBelow === 'lg' && 'hidden lg:table-cell',
-                  )}
-                  /*
-                   * The interactive cells swallow the click so flipping a switch
-                   * or copying a key does not also navigate. Done per column
-                   * from the registry rather than inside each control, so a new
-                   * interactive column cannot forget to do it.
-                   */
-                  onClick={column.interactive ? (event) => event.stopPropagation() : undefined}
-                >
-                  {column.cell(flag, ctx)}
-                </TableCell>
-              ))}
-            </TableRow>
+              flag={flag}
+              columns={columns}
+              ctx={ctx}
+              selected={ctx.selection?.isSelected(flag.id) ?? false}
+            />
           ))}
         </TableBody>
       </Table>
     </div>
   );
 }
+
+function FlagsTableRowBase({
+  flag,
+  columns,
+  ctx,
+  selected,
+}: {
+  flag: FlagRow;
+  columns: FlagColumn[];
+  ctx: CellContext;
+  selected: boolean;
+}) {
+  return (
+    <TableRow
+      className={cn('cursor-pointer', ROW_CLASS, flag.archived && 'opacity-60')}
+      /*
+       * Reuses table.tsx's own `data-[state=selected]:bg-muted` rather than
+       * adding a second class for the same idea - so a selected flag row and a
+       * selected row anywhere else this primitive is used tint identically.
+       */
+      data-state={selected ? 'selected' : undefined}
+      onClick={() => ctx.onOpen(flag)}
+    >
+      {columns.map((column) => (
+        <TableCell
+          key={column.id}
+          className={columnClass(column)}
+          /*
+           * The interactive cells swallow the click so flipping a switch,
+           * ticking a box or copying a key does not also navigate. Done per
+           * column from the registry rather than inside each control, so a new
+           * interactive column cannot forget to do it.
+           */
+          onClick={column.interactive ? (event) => event.stopPropagation() : undefined}
+        >
+          {column.cell(flag, ctx)}
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+}
+
+/**
+ * Memoised for the same reason `AuditTableRow` is: the toolbar's search box
+ * re-derives the filtered list on every keystroke, and this page windows a
+ * couple of thousand rows down to a hundred (see `FlagsPage`'s docblock on
+ * scale). Without the memo each character re-renders all hundred rows, every one
+ * of which formats a timestamp and mounts a switch, a tooltip and a Radix menu.
+ *
+ * It only bites while `ctx` keeps its identity between renders, and `ctx` is
+ * built by `FlagsPage`, so the win is contingent on that object being memoised
+ * there. This file cannot enforce it; what it can do is not be the reason the
+ * comparison fails.
+ */
+const FlagsTableRow = memo(FlagsTableRowBase);

@@ -60,11 +60,19 @@ export function EmptyState({
   title,
   description,
   action,
+  children,
 }: {
   icon?: ComponentType<IconProps>;
   title: string;
   description?: ReactNode;
   action?: ReactNode;
+  /**
+   * Supplemental content under the action - the "what happens next" list the
+   * Flags page shows a first-time project. Below the button rather than above
+   * it, so someone who already knows what a flag is never has to read past the
+   * thing they came to click.
+   */
+  children?: ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
@@ -74,6 +82,7 @@ export function EmptyState({
         <p className="text-muted-foreground m-0 max-w-md text-[13px]">{description}</p>
       )}
       {action && <div className="mt-2">{action}</div>}
+      {children}
     </div>
   );
 }

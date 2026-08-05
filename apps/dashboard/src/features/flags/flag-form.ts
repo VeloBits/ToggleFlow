@@ -30,6 +30,8 @@ import { FLAG_TYPES, flagValueTypeSchema, type FlagValueType } from '@toggleflow
 
 import { FLAG_KEY_PATTERN, slugifyFlagKey } from '@/ui/slug';
 
+import type { RolloutPercent } from './RolloutField';
+
 const enumOption = z.string().trim().min(1, 'Options cannot be blank').max(200);
 
 const base = z.object({
@@ -232,6 +234,46 @@ export function toCreateBody(values: FlagFormValues) {
     // API rejects a `defaultValue` for it rather than ignoring one.
     ...(values.valueType === 'boolean' ? {} : { defaultValue: values.defaultValue }),
   };
+}
+
+/**
+ * The create dialog's optional second half: how the new flag should behave in the
+ * environment the user is standing in.
+ *
+ * Deliberately outside `flagFormSchema`. That schema describes a flag
+ * *definition*, which is project-wide and goes to `POST /tools`; this is one
+ * environment's `flag_states` row and goes to a different endpoint, with
+ * different permissions and a different audit action. Folding it into the union
+ * would make every member carry fields that only exist in one mode.
+ */
+export interface InitialRollout {
+  enabled: boolean;
+  /** null = everyone while on, exactly as `flag_states.rollout_percent` reads it. */
+  percent: RolloutPercent;
+}
+
+/** What `POST /tools` already seeds, so also what "nothing to say" looks like. */
+export const INITIAL_ROLLOUT_OFF: InitialRollout = { enabled: false, percent: null };
+
+/**
+ * The state PATCH a new flag needs, or `null` when it needs none.
+ *
+ * `POST /tools` seeds a `flag_states` row in every environment of the project
+ * with `enabled = false` and `rollout_percent = null`. A PATCH writing those same
+ * values is a round trip whose only lasting effect is a `flag.update` audit entry
+ * against a flag created a second earlier - noise in the one log that has to stay
+ * readable. So off means no request, which is also what makes a collapsed section
+ * provably free rather than free-looking.
+ *
+ * The percentage rides along only while enabled. It is unreachable in the UI
+ * otherwise, and a rollout stored against a flag that is off is a number nothing
+ * reads until someone turns the flag on and is surprised by it.
+ */
+export function toInitialStatePatch(
+  rollout: InitialRollout,
+): { enabled: true; rolloutPercent: RolloutPercent } | null {
+  if (!rollout.enabled) return null;
+  return { enabled: true, rolloutPercent: rollout.percent };
 }
 
 /** Edit sends only what is mutable: never `key`, never `valueType`. */
