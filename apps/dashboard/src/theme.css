@@ -76,7 +76,10 @@
   --color-accent-foreground: var(--text);
   --color-destructive: var(--off);
   --color-destructive-foreground: var(--on-accent);
-  --color-input: var(--border);
+  /* `--field-border`, not `--border`: shadcn's Input/NativeSelect/Textarea draw
+   * their edge from this, and it has to stay firmer than a table separator in
+   * dark mode. See the two tokens' comments in styles.css. */
+  --color-input: var(--field-border);
   --color-ring: var(--accent);
 }
 
@@ -101,6 +104,50 @@
   --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
 
   --transition-base: 0.12s ease;
+}
+
+/*
+ * Default border colour, and it is not optional.
+ *
+ * Tailwind v3's Preflight set `border-color` on every element; v4 dropped that,
+ * so its `border` / `border-b` utilities emit **width and style only** and the
+ * colour falls back to the CSS initial value - `currentColor`.
+ *
+ * That is a real bug wherever a vendored shadcn primitive uses a bare `border`,
+ * because several of them also set a text colour on the same element. `Card` is
+ * `border` + `text-card-foreground`, i.e. `var(--text)`: in dark mode that
+ * painted a **#d4d4d4 near-white outline** around every card, and `TableRow`'s
+ * `border-b` drew the same colour under every row. It reads as a highlight
+ * nobody asked for, and it is why this rule exists rather than a patch to each
+ * primitive - the next `npx shadcn add` would reintroduce it otherwise.
+ *
+ * This is Tailwind's own documented remedy for the v3→v4 change. `border-border`
+ * and friends are utilities, so they still override it.
+ *
+ * ## It must be `var(--border)`, NOT `var(--color-border)`
+ *
+ * `--color-border` is a `@theme` variable, so Tailwind emits it as a real
+ * declaration on `:root`: `--color-border: var(--border)`. A custom property's
+ * value is substituted **where it is declared**, so that `var(--border)` resolves
+ * against `:root` - where `--border` is the *light* `#c8c8c8` - and the resolved
+ * value then inherits to every descendant. `body.dark` is a descendant of `:root`,
+ * so its override never reaches it, and this rule painted light-theme borders on
+ * a dark page. `--border` itself is declared on both `:root` and `body.dark`, so
+ * referencing it directly resolves per element and dark mode works.
+ *
+ * The `border-border` *utility* was never affected: `@theme inline` inlines it to
+ * `var(--border)` at the use site. That asymmetry is why the sidebar looked right
+ * while every `Card` and `TableRow` did not - they use a bare `border`, which is
+ * this rule.
+ */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border, currentColor);
+  }
 }
 
 /*

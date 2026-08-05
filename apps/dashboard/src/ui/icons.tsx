@@ -562,3 +562,76 @@ export const ListIcon = createIcon(
     <path d="M10 17h10" />
   </>,
 );
+
+/* ── Audit log surface ──────────────────────────────────────────────────────
+ * The event list's per-action glyphs and timestamps, plus the detail panel's
+ * before → after separator and its Raw JSON tab. These render at 12-16px, one
+ * step smaller again than the Flags table above, so every one of them is drawn
+ * with nothing thinner than a ~2px gap on the 24 grid and with stroke ends on
+ * whole units.
+ */
+
+/** "before → after". Mirrors ArrowUpIcon exactly: head first, then the shaft. */
+export const ArrowRightIcon = createIcon(
+  'ArrowRightIcon',
+  <>
+    <path d="m12 5 7 7-7 7" />
+    <path d="M5 12h14" />
+  </>,
+);
+
+/**
+ * Timestamps. r=9 rather than Lucide's 10: a 2px stroke at r=10 leaves the hands
+ * roughly 2px of clear air at 13px and the glyph fills in at the rim. The hands
+ * are `HistoryIcon`'s, unchanged, so a timestamp and the history mark read as
+ * the same family rather than two people's clocks.
+ */
+export const ClockIcon = createIcon(
+  'ClockIcon',
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l4 2" />
+  </>,
+);
+
+/**
+ * The "Raw JSON" tab. Pulled in from Lucide's edge-to-edge span (x=2 to x=22),
+ * whose vertices sit on the viewBox edge and clip under a round cap; at 6 units
+ * between the two brackets' open ends the pair also still reads as a pair rather
+ * than one zigzag.
+ */
+export const CodeIcon = createIcon(
+  'CodeIcon',
+  <>
+    <path d="m9 8-4 4 4 4" />
+    <path d="m15 8 4 4-4 4" />
+  </>,
+);
+
+/**
+ * `config.rollback`. This is `HistoryIcon` minus the clock hands, deliberately:
+ * a rollback is a jump backwards along exactly the history that icon stands for,
+ * and the two never appear in the same view (HistoryIcon is a landing-page
+ * feature card, this is an audit row).
+ */
+export const RotateCcwIcon = createIcon(
+  'RotateCcwIcon',
+  <>
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+  </>,
+);
+
+/**
+ * `ruleset.republish` - a publish. The tray is open at the top so the arrow
+ * reads as leaving it; its 5-unit gap to the arrow's tail is the closest two
+ * strokes come anywhere in the glyph.
+ */
+export const UploadIcon = createIcon(
+  'UploadIcon',
+  <>
+    <path d="m7 9 5-5 5 5" />
+    <path d="M12 16V4" />
+    <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+  </>,
+);
