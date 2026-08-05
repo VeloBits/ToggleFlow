@@ -16,12 +16,29 @@
  * they fire. `renderPage` therefore selects the *dev* environment, and the
  * production test opts back in explicitly - otherwise every toggle assertion
  * would silently be exercising the confirm path instead of the happy one.
+ *
+ * ## Convention: the select column is exercised without the page
+ *
+ * `FlagsPage` hands `ctx` a `selection` only when the role can act on one, so a
+ * viewer's list has no select column at all - that absence is asserted through
+ * the page, because it is the page's decision. Everything else about the column
+ * is asserted by rendering `FlagsTable` and `FlagsCards` directly against
+ * `cellContext()` below, which is the only way to hold the header box in its
+ * indeterminate state on demand. The state half lives in `flag-selection.ts` and
+ * has its own suite.
  */
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { FlagValueType } from '@toggleflow/engine';
+
 import type { FlagDefinition } from '../src/api/client';
 import { FlagsPage } from '../src/features/flags';
+import type { CellContext, FlagRow } from '../src/features/flags/flag-columns';
+import type { FlagSelection } from '../src/features/flags/flag-selection';
+import { FlagsCards } from '../src/features/flags/FlagsCards';
+import { FlagsTable } from '../src/features/flags/FlagsTable';
+import { DEFAULT_SORT } from '../src/features/flags/flags-sort';
 import {
   DEV_ENV_ID,
   dynamic,
@@ -117,6 +134,73 @@ function renderProdPage(handlers: Handlers = pageHandlers()): { stub: FetchStub 
 const inTable = () => within(screen.getByRole('table', { name: 'Flags' }));
 const inCards = () => within(screen.getByRole('list', { name: 'Flags (compact)' }));
 
+/**
+ * A row as the columns see it: post-`toFlag`, post-definitions-join. The
+ * harness' `flagRow` is the *wire* body on purpose, so it is the wrong shape to
+ * hand a component directly.
+ */
+const viewRow = (over: Partial<FlagRow> = {}): FlagRow => ({
+  id: 't1',
+  key: 'tool.summarize',
+  name: 'Summarize',
+  archived: false,
+  enabled: true,
+  rolloutPercent: null,
+  targetingRules: [],
+  valueType: 'boolean',
+  enumOptions: [],
+  value: null,
+  defaultValue: null,
+  updatedAt: '2026-07-20T10:00:00.000Z',
+  tags: [],
+  description: null,
+  ...over,
+});
+
+const VIEW_ROWS: FlagRow[] = [
+  viewRow({ id: 't1', key: 'tool.summarize', name: 'Summarize' }),
+  viewRow({ id: 't2', key: 'tool.translate', name: 'Translate' }),
+];
+
+/** A `FlagSelection` with the derived flags forced, so any of its three header states can be asserted. */
+const selectionStub = (selected: string[], over: Partial<FlagSelection> = {}): FlagSelection => {
+  const ids = new Set(selected);
+  return {
+    selectedIds: ids,
+    count: ids.size,
+    allSelected: false,
+    someSelected: ids.size > 0,
+    isSelected: (id) => ids.has(id),
+    toggle: vi.fn(),
+    toggleAll: vi.fn(),
+    clear: vi.fn(),
+    ...over,
+  };
+};
+
+const cellContext = (selection?: FlagSelection): CellContext => ({
+  canEdit: true,
+  canDelete: true,
+  requireConfirm: false,
+  selection,
+  onCommit: vi.fn(),
+  onCopyKey: vi.fn(),
+  onEdit: vi.fn(),
+  onArchive: vi.fn(),
+  onDelete: vi.fn(),
+  onOpen: vi.fn(),
+});
+
+/** Both layouts, as the page mounts them, but with a `ctx` the test controls. */
+const renderLists = (ctx: CellContext, rows: FlagRow[] = VIEW_ROWS) =>
+  renderWithProviders(
+    <>
+      <FlagsTable flags={rows} sort={DEFAULT_SORT} onSortChange={() => {}} ctx={ctx} />
+      <FlagsCards flags={rows} ctx={ctx} />
+    </>,
+    { withWorkspace: false },
+  );
+
 /** Flag keys in table order - the copy button's label carries the key. */
 const tableKeys = () =>
   inTable()
@@ -175,13 +259,23 @@ describe('listing', () => {
     expect(table.getByText('25%')).toBeTruthy();
   });
 
-  it('labels each flag with its value type', async () => {
+  it('labels each flag with its value type, as a word and not a glyph', async () => {
     renderPage();
     await waitForRows();
     const table = inTable();
     expect(table.getAllByText('Boolean')).toHaveLength(3);
     expect(table.getByText('String')).toBeTruthy();
     expect(table.getByText('String (choice)')).toBeTruthy();
+    // The per-type icon is gone with the badge around it: three labels that
+    // differ at the first character do not also need a silhouette.
+    expect(table.getByText('String').querySelector('svg')).toBeNull();
+  });
+
+  it('names a value type this build has never heard of', () => {
+    // A newer control plane can send a type this bundle predates; the row still
+    // has to render, and the raw name beats a blank cell.
+    renderLists(cellContext(), [viewRow({ valueType: 'number' as FlagValueType })]);
+    expect(inTable().getByText('number')).toBeTruthy();
   });
 
   it('joins tags and descriptions from the definitions query onto the rows', async () => {
@@ -190,6 +284,57 @@ describe('listing', () => {
     const table = inTable();
     expect(table.getByText('i18n')).toBeTruthy();
     expect(table.getByText('Text shown in the top banner')).toBeTruthy();
+  });
+
+  it('keeps the flag cell to one line, with the tags in a column of their own', async () => {
+    renderPage();
+    await waitForRows();
+    const table = inTable();
+
+    // Name and description share one cell as a single truncating run, so a row
+    // with a description is no taller than one without.
+    const flagCell = table.getByText('Banner copy').closest('td')!;
+    expect(flagCell.textContent).toContain('Text shown in the top banner');
+
+    // The tag badges used to be stacked in here as a third line. Their absence
+    // from this cell is the assertion; their presence elsewhere is below.
+    expect(flagCell.querySelectorAll('[data-slot="badge"]')).toHaveLength(0);
+    expect(table.getByText('i18n').closest('td')).not.toBe(
+      table.getByText('Translate').closest('td'),
+    );
+  });
+
+  it('caps the tags column at two badges and counts the rest', async () => {
+    renderPage(
+      pageHandlers('admin', {
+        [`GET /v1/projects/${PROJECT_ID}/tools`]: [
+          flagDefinition({ tags: ['text', 'i18n', 'ops', 'beta'] }),
+        ],
+      }),
+    );
+    await waitForRows();
+    const table = inTable();
+    expect(table.getByText('text')).toBeTruthy();
+    expect(table.getByText('i18n')).toBeTruthy();
+    expect(table.queryByText('ops')).toBeNull();
+    // Capped, not truncated silently: the count carries the whole list in order.
+    expect(table.getByText('+2').getAttribute('title')).toBe('text, i18n, ops, beta');
+    // Only one definition was returned, so the other four visible rows have no
+    // tags - and they say so rather than leaving the column blank, which on a
+    // card would read as a failed render.
+    expect(table.getAllByText('—')).toHaveLength(4);
+  });
+
+  it('renders no select column for a viewer, who can run none of the bulk actions', async () => {
+    renderPage(pageHandlers('viewer'));
+    await waitForRows();
+    const table = inTable();
+    expect(table.queryByLabelText('Select all flags on this page')).toBeNull();
+    expect(table.queryByLabelText('Select tool.summarize')).toBeNull();
+    expect(inCards().queryByLabelText('Select tool.summarize')).toBeNull();
+    // Dropped rather than rendered empty: Status is still the first header, so
+    // there is no unexplained gutter down the left of the list.
+    expect(table.getAllByRole('columnheader')[0]!.textContent).toContain('Status');
   });
 });
 
@@ -606,6 +751,95 @@ describe('the compact layout', () => {
     fireEvent.click(inCards().getByText('Summarize'));
     // No mutation from a navigation click.
     expect(stub.calls.some((call) => call.key.startsWith('PATCH'))).toBe(false);
+  });
+});
+
+describe('opening a flag', () => {
+  it('opens the row that was clicked, unless the click was on an interactive cell', () => {
+    const ctx = cellContext();
+    renderLists(ctx);
+    const table = inTable();
+
+    fireEvent.click(table.getByText('Summarize'));
+    expect(ctx.onOpen).toHaveBeenCalledWith(expect.objectContaining({ key: 'tool.summarize' }));
+
+    fireEvent.click(table.getByLabelText('Copy key tool.translate'));
+    expect(ctx.onCopyKey).toHaveBeenCalledWith(expect.objectContaining({ key: 'tool.translate' }));
+    // Still one navigation: `interactive` on the key column stops the click
+    // before it reaches the row.
+    expect(ctx.onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds the same rule inside a card', () => {
+    const ctx = cellContext();
+    renderLists(ctx);
+    const cards = inCards();
+
+    fireEvent.click(cards.getByLabelText('Toggle tool.summarize'));
+    fireEvent.click(cards.getByLabelText('Actions for tool.translate'));
+    expect(ctx.onOpen).not.toHaveBeenCalled();
+
+    fireEvent.click(cards.getByText('Translate'));
+    expect(ctx.onOpen).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the select column', () => {
+  it('offers a box per row and a tri-state box in the header', () => {
+    const selection = selectionStub(['t2']);
+    const ctx = cellContext(selection);
+    renderLists(ctx);
+    const table = inTable();
+
+    // One of two rows selected, so the header is neither on nor off.
+    expect(table.getByLabelText('Select all flags on this page').getAttribute('data-state')).toBe(
+      'indeterminate',
+    );
+
+    fireEvent.click(table.getByLabelText('Select tool.summarize'));
+    expect(selection.toggle).toHaveBeenCalledWith('t1');
+    // The registry marks this cell interactive, so ticking a box does not also
+    // open the flag.
+    expect(ctx.onOpen).not.toHaveBeenCalled();
+
+    fireEvent.click(table.getByLabelText('Select all flags on this page'));
+    expect(selection.toggleAll).toHaveBeenCalled();
+  });
+
+  it('checks the header box once every row on the page is selected', () => {
+    renderLists(
+      cellContext(selectionStub(['t1', 't2'], { allSelected: true, someSelected: false })),
+    );
+    expect(
+      inTable().getByLabelText('Select all flags on this page').getAttribute('data-state'),
+    ).toBe('checked');
+  });
+
+  it('marks the selected row and the selected card', () => {
+    renderLists(cellContext(selectionStub(['t2'])));
+
+    const rows = inTable().getAllByRole('row');
+    // rows[0] is the header. The tint itself comes from table.tsx's
+    // `data-[state=selected]`, so the attribute is the whole contract.
+    expect(rows[1]!.getAttribute('data-state')).toBeNull();
+    expect(rows[2]!.getAttribute('data-state')).toBe('selected');
+
+    // A card is already raised off the background, so it gets a ring as well.
+    const card = inCards().getByLabelText('Select tool.translate').closest('[data-slot="card"]')!;
+    expect(card.className).toContain('ring-2');
+    const unselected = inCards()
+      .getByLabelText('Select tool.summarize')
+      .closest('[data-slot="card"]')!;
+    expect(unselected.className).not.toContain('ring-2');
+  });
+
+  it('ticks a card box without opening the flag', () => {
+    const selection = selectionStub([]);
+    const ctx = cellContext(selection);
+    renderLists(ctx);
+    fireEvent.click(inCards().getByLabelText('Select tool.summarize'));
+    expect(selection.toggle).toHaveBeenCalledWith('t1');
+    expect(ctx.onOpen).not.toHaveBeenCalled();
   });
 });
 

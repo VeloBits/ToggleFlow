@@ -1,28 +1,31 @@
 /**
- * The flag's value type, as a glyph plus its label from the engine's registry.
+ * The flag's value type, as its label from the engine's registry.
  *
- * The label is never hardcoded here: it comes from `FLAG_TYPES[type].label`, so
- * the type picker in the form, this badge and any future CLI all say the same
- * word. Only the icon is a dashboard concern, and it is looked up through a
- * `Record<FlagValueType, …>` so a new type is a compile error until it has one.
+ * ## Why this is plain text and not a badge
+ *
+ * It was an outlined pill with a per-type glyph. Both are gone, because the type
+ * is not state: it is a fixed property of the definition that never changes
+ * after creation, and giving it a pill put it in the same visual class as the
+ * Status badge, which is the one thing in a row that people are scanning for.
+ * Fifty outlined pills down a column also read as fifty buttons.
+ *
+ * The glyph was worse than redundant. Three words already differ at the first
+ * character - Boolean, String, String (choice) - so the switch, the `T` and the
+ * bulleted list were decoration that cost 15px of a column and a `Record` to
+ * maintain. In the detail header, where this sits between the status badge and
+ * the environment badge, unboxed muted text now reads as an annotation of the
+ * flag rather than as a fourth piece of state, which is what it is.
+ *
+ * The name stays `FlagTypeBadge` although it no longer renders a `Badge`:
+ * renaming it means editing `detail/FlagDetailHeader.tsx` too, and a rename is
+ * not worth a second file in the diff.
+ *
+ * The label is never hardcoded: it comes from `FLAG_TYPES[type].label`, so the
+ * type picker in the form, this label and any future CLI all say the same word.
  */
-import type { ComponentType } from 'react';
-
 import { FLAG_TYPES, type FlagValueType } from '@toggleflow/engine';
 
-import { Badge } from '@/components/ui/badge';
-import { ListIcon, ToggleIcon, TypeIcon, type IconProps } from '@/ui/icons';
 import { cn } from '@/ui/cn';
-
-/**
- * Chosen to read apart at 12px by silhouette rather than detail: a switch is
- * horizontal, a `T` is vertical, a bulleted list is stacked.
- */
-const TYPE_ICONS: Record<FlagValueType, ComponentType<IconProps>> = {
-  boolean: ToggleIcon,
-  string: TypeIcon,
-  string_enum: ListIcon,
-};
 
 export function FlagTypeBadge({
   valueType,
@@ -32,14 +35,13 @@ export function FlagTypeBadge({
   className?: string;
 }) {
   // Total rather than indexed directly: a row must still render if a newer
-  // control plane sends a type this build predates.
-  const Icon = TYPE_ICONS[valueType] ?? ToggleIcon;
+  // control plane sends a type this build predates, and the raw type name is a
+  // better answer there than a blank cell.
   const label = FLAG_TYPES[valueType]?.label ?? valueType;
 
   return (
-    <Badge variant="outline" className={cn('text-muted-foreground gap-1 font-normal', className)}>
-      <Icon size={11} />
+    <span className={cn('text-muted-foreground text-[12.5px] whitespace-nowrap', className)}>
       {label}
-    </Badge>
+    </span>
   );
 }
