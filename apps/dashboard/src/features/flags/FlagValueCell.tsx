@@ -15,7 +15,7 @@
 import type { FlagValueType, JsonValue } from '@toggleflow/engine';
 import { flagType } from '@toggleflow/engine';
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@velobits-dev/ui';
 import { valueControl } from './value-controls';
 
 export interface FlagValueCellFlag {

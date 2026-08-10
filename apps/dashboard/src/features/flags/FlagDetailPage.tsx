@@ -28,8 +28,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 
 import { api } from '@/api/client';
 import { flagDetailQueryOptions, flagKeys, flagsQueryOptions } from '@/api/flags';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton, Tabs, TabsContent, TabsList, TabsTrigger } from '@velobits-dev/ui';
 import { ErrorNote } from '@/components/ui';
 import { useWorkspace } from '@/state/WorkspaceContext';
 import { useToast } from '@/ui/toast';

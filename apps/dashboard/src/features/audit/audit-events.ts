@@ -31,7 +31,8 @@ import {
   UploadIcon,
   UsersIcon,
   type IconProps,
-} from '@/ui/icons';
+} from '@velobits-dev/icons';
+import type { BadgeProps } from '@velobits-dev/ui';
 import type { ComponentType } from 'react';
 
 /**
@@ -46,20 +47,25 @@ import type { ComponentType } from 'react';
 export type AuditTone = 'create' | 'update' | 'destroy' | 'notable' | 'neutral';
 
 /**
- * Tone -> badge classes.
+ * Tone -> `Badge` variant.
  *
- * Reuses the flag tokens rather than inventing audit-specific ones: green for
- * additive, blue for routine change, red for removal, amber for "this changed
- * what production serves". There is no `success`/`warning` token in this theme -
- * amber is `rollout` - and every one of these pairs a colour with an icon in
- * `AuditActionBadge`, because colour alone fails for a red/green deficiency.
+ * A variant map rather than the class map this used to be: the design system's
+ * badge variants are semantic, and each one pairs its wash with the matching
+ * text token at a contrast ratio gated over the page, a panel and glass. Naming
+ * the meaning and letting the system pick the paint is strictly better than
+ * repeating `bg-x-soft text-x` here, where the pairing could drift.
+ *
+ * The assignments themselves are unchanged: green for additive, blue for
+ * routine change, red for removal, amber for "this changed what production
+ * serves". Every one of them pairs a colour with an icon in `AuditActionBadge`,
+ * because colour alone fails for a red/green deficiency.
  */
-export const TONE_CLASS: Record<AuditTone, string> = {
-  create: 'bg-on-soft text-on',
-  update: 'bg-primary-soft text-primary',
-  destroy: 'bg-off-soft text-off',
-  notable: 'bg-rollout-soft text-rollout',
-  neutral: 'bg-muted text-muted-foreground',
+export const TONE_VARIANT: Record<AuditTone, NonNullable<BadgeProps['variant']>> = {
+  create: 'success',
+  update: 'primary',
+  destroy: 'danger',
+  notable: 'warning',
+  neutral: 'neutral',
 };
 
 export interface AuditEventMeta {

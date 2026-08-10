@@ -33,7 +33,7 @@ function MetaItem({
       </dt>
       <dd
         className={cn(
-          'text-text m-0 mt-0.5 text-[12.5px] break-words',
+          'text-fg m-0 mt-0.5 text-[12.5px] break-words',
           mono && 'font-mono text-[12px]',
         )}
       >

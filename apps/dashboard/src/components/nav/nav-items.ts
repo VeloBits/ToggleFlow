@@ -26,7 +26,7 @@ import {
   UsersIcon,
   WebhookIcon,
   type IconProps,
-} from '../../ui/icons';
+} from '@velobits-dev/icons';
 
 export interface NavItem {
   to: string;

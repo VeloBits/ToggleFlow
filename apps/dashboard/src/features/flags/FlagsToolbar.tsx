@@ -11,15 +11,19 @@
  * input, and Radix menus cannot host one - `onOpenAutoFocus` is private on menu
  * content, so a field inside one means fighting the primitive.
  */
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { NativeSelect } from '@/components/ui/native-select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
+import {
+  Button,
+  Checkbox,
+  Input,
+  Label,
+  NativeSelect,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Separator,
+} from '@velobits-dev/ui';
 import { FLAG_TYPES, FLAG_VALUE_TYPES } from '@toggleflow/engine';
-import { FilterIcon, SearchIcon, XIcon } from '@/ui/icons';
+import { FilterIcon, SearchIcon, XIcon } from '@velobits-dev/icons';
 
 import { EMPTY_FILTER, type FlagFilter } from './flags-filter';
 
@@ -68,7 +72,7 @@ export function FlagsToolbar({
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" disabled={disabled} className="gap-1.5">
+          <Button variant="secondary" disabled={disabled} className="gap-1.5">
             <FilterIcon size={14} />
             Filters
             {active > 0 && (

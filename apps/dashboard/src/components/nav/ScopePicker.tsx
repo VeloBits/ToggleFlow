@@ -4,19 +4,19 @@
  * label on their create action - so they are one component with props rather
  * than three near-identical dropdowns that drift apart.
  */
+import { CheckIcon, ChevronsUpDownIcon, PlusIcon, type IconProps } from '@velobits-dev/icons';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Skeleton,
+} from '@velobits-dev/ui';
 import { useState, type ComponentType, type ReactNode } from 'react';
 
 import { cn } from '../../ui/cn';
-import { ChevronsUpDownIcon, PlusIcon, type IconProps } from '../../ui/icons';
-import {
-  Menu,
-  MenuContent,
-  MenuItem,
-  MenuLabel,
-  MenuRadioItem,
-  MenuSeparator,
-  MenuTrigger,
-} from '../../ui/menu';
 import { ScopeSwitcherDialog } from './ScopeSwitcherDialog';
 
 export interface ScopeOption {
@@ -86,18 +86,13 @@ export function ScopePicker({
       : options.slice(0, INLINE_LIMIT);
 
   if (loading) {
-    return (
-      <span
-        aria-hidden
-        className="bg-highlight h-[26px] w-28 animate-pulse rounded-md motion-reduce:animate-none"
-      />
-    );
+    return <Skeleton aria-hidden className="h-[26px] w-28 rounded-md" />;
   }
 
   return (
     <>
-      <Menu>
-        <MenuTrigger
+      <DropdownMenu>
+        <DropdownMenuTrigger
           className={TRIGGER}
           aria-label={selected ? `${kind}: ${selected.label}` : `Select ${kind.toLowerCase()}`}
         >
@@ -110,26 +105,41 @@ export function ScopePicker({
             Icon && <Icon size={15} className="text-muted-foreground shrink-0" />
           )}
           <span
-            className={cn('truncate', selected ? 'text-text font-medium' : 'text-muted-foreground')}
+            className={cn('truncate', selected ? 'text-fg font-medium' : 'text-muted-foreground')}
           >
             {selected?.label ?? emptyLabel}
           </span>
           <ChevronsUpDownIcon
             size={13}
-            className="text-muted-foreground group-hover:text-text ml-0.5 shrink-0"
+            className="text-muted-foreground group-hover:text-fg ml-0.5 shrink-0"
           />
-        </MenuTrigger>
+        </DropdownMenuTrigger>
 
-        <MenuContent>
-          <MenuLabel>
+        <DropdownMenuContent>
+          <DropdownMenuLabel>
             {kind}s{options.length > INLINE_LIMIT ? ` · ${options.length}` : ''}
-          </MenuLabel>
+          </DropdownMenuLabel>
           {inline.map((option) => (
-            <MenuRadioItem
+            /*
+             * A plain item wearing `role="menuitemradio"`, NOT the system's
+             * `DropdownMenuRadioItem`.
+             *
+             * These rows navigate as well as select — picking one switches the
+             * whole workspace scope — so a real Radix RadioGroup would own the
+             * value and fight the router for it. The check column is reserved
+             * whether or not the row is current, so labels do not shift by an
+             * icon's width as the selection moves.
+             */
+            <DropdownMenuItem
               key={option.id}
-              selected={option.id === selectedId}
+              role="menuitemradio"
+              aria-checked={option.id === selectedId}
               onSelect={() => onSelect(option.id)}
             >
+              <CheckIcon
+                size={14}
+                className={cn('shrink-0', option.id !== selectedId && 'invisible')}
+              />
               {option.dotClassName ? (
                 <span
                   aria-hidden
@@ -144,7 +154,7 @@ export function ScopePicker({
                   {option.meta}
                 </span>
               )}
-            </MenuRadioItem>
+            </DropdownMenuItem>
           ))}
           {options.length === 0 && (
             <p className="text-muted-foreground px-2 py-2 text-[13px]">
@@ -152,32 +162,37 @@ export function ScopePicker({
             </p>
           )}
           {overflowing && (
-            <MenuItem className="text-muted-foreground" onSelect={() => setSwitcherOpen(true)}>
-              <span className="pl-[calc(15px+0.625rem)]">Browse all {options.length}…</span>
-            </MenuItem>
+            <DropdownMenuItem
+              className="text-muted-foreground"
+              onSelect={() => setSwitcherOpen(true)}
+            >
+              {/* Aligned to the option labels above, past the reserved check
+                  column and the leading mark, so it reads as the end of that
+                  list rather than as another option in it. */}
+              <span className="pl-[calc(14px+15px+0.875rem)]">Browse all {options.length}…</span>
+            </DropdownMenuItem>
           )}
 
-          <MenuSeparator />
-          <MenuItem
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
             disabled={!onCreate}
             onSelect={onCreate}
             title={onCreate ? undefined : createDisabledReason}
           >
             <PlusIcon size={15} className="shrink-0" />
             {createLabel}
-          </MenuItem>
-        </MenuContent>
-      </Menu>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      {switcherOpen && (
-        <ScopeSwitcherDialog
-          title={`Switch ${kind.toLowerCase()}`}
-          options={options}
-          selectedId={selectedId}
-          onSelect={onSelect}
-          onClose={() => setSwitcherOpen(false)}
-        />
-      )}
+      <ScopeSwitcherDialog
+        open={switcherOpen}
+        onOpenChange={setSwitcherOpen}
+        title={`Switch ${kind.toLowerCase()}`}
+        options={options}
+        selectedId={selectedId}
+        onSelect={onSelect}
+      />
     </>
   );
 }

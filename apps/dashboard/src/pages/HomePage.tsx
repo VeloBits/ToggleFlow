@@ -27,9 +27,24 @@ import {
   FlagIcon,
   FolderIcon,
   type IconProps,
-} from '../ui/icons';
+} from '@velobits-dev/icons';
+import { Button, Card, StatusChip } from '@velobits-dev/ui';
 import { relativeTime } from '../ui/relative-time';
 
+/**
+ * A count and what it counts, on the design system's `Card`.
+ *
+ * `surface="panel"` rather than the glass default: four of these sit in a row
+ * inside the authenticated shell, directly above two more panels, and the glass
+ * tier is for surfaces that float over content.
+ *
+ * `icon` deliberately stays a component TYPE here, unlike `EmptyState`'s: the
+ * tile owns the glyph's size, and the only thing a caller varies is its tone.
+ *
+ * The DOM shape — one box, one text block, value `<p>` before label `<p>` — is a
+ * contract with `test/home-page.test.tsx`, which reads a tile's number by walking
+ * up from its label. Keep the two paragraphs siblings.
+ */
 function Stat({
   icon: Icon,
   value,
@@ -42,15 +57,33 @@ function Stat({
   className?: string;
 }) {
   return (
-    <div className="border-border bg-panel flex items-center gap-3 rounded-lg border px-4 py-3">
+    <Card surface="panel" className="flex-row items-center gap-3 px-4 py-3">
       <Icon size={18} className={cn('shrink-0', className ?? 'text-muted-foreground')} />
       <div className="min-w-0">
-        <p className="text-text m-0 text-[18px] leading-none font-bold">{value}</p>
+        <p className="text-fg m-0 text-[18px] leading-none font-bold">{value}</p>
         <p className="text-muted-foreground m-0 mt-1 text-[12px]">{label}</p>
       </div>
-    </div>
+    </Card>
   );
 }
+
+/**
+ * A panel header's "go to the full list" link.
+ *
+ * `Button variant="link"` for the paint, stripped of the control box: this sits
+ * in a 13px header row, not on the button grid. It is the system's link colour
+ * (`--primary-text`), which is the one blue that clears AA as text.
+ */
+function PanelLink({ to, children }: { to: string; children: string }) {
+  return (
+    <Button variant="link" size="sm" asChild className="h-auto px-0 text-[12.5px]">
+      <Link to={to}>{children}</Link>
+    </Button>
+  );
+}
+
+/** A flag key, wherever one is a link. Monospaced, and the system's link blue. */
+const KEY_LINK = 'text-link font-mono hover:underline';
 
 export function HomePage() {
   const ws = useWorkspace();
@@ -73,7 +106,7 @@ export function HomePage() {
         <PageHeader title={`Welcome, ${ws.me?.user.displayName ?? 'there'}`} />
         <Panel>
           <EmptyState
-            icon={FolderIcon}
+            icon={<FolderIcon />}
             title="Create your first project"
             description={
               ws.role === 'admin'
@@ -94,8 +127,8 @@ export function HomePage() {
           ws.environment ? (
             <span className="inline-flex items-center gap-1.5">
               <span aria-hidden className={cn('size-2 rounded-full', tone?.dot)} />
-              Showing <strong className="text-text font-medium">{ws.environment.name}</strong>
-              <span className="mono">({ws.environment.key})</span>
+              Showing <strong className="text-fg font-medium">{ws.environment.name}</strong>
+              <span className="font-mono">({ws.environment.key})</span>
             </span>
           ) : (
             'No environment selected.'
@@ -107,25 +140,18 @@ export function HomePage() {
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={FlagIcon} value={live.length} label="flags in this environment" />
-        <Stat icon={CircleCheckIcon} value={on.length} label="fully on" className="text-on" />
+        <Stat icon={CircleCheckIcon} value={on.length} label="fully on" className="text-success" />
         <Stat
           icon={CircleHalfIcon}
           value={rollingOut.length}
           label="rolling out"
-          className="text-rollout"
+          className="text-warning"
         />
-        <Stat icon={CircleSlashIcon} value={off.length} label="off" className="text-off" />
+        <Stat icon={CircleSlashIcon} value={off.length} label="off" className="text-danger" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel
-          title="Rolling out"
-          actions={
-            <Link to="/flags" className="text-[12.5px]">
-              All flags →
-            </Link>
-          }
-        >
+        <Panel title="Rolling out" actions={<PanelLink to="/flags">All flags →</PanelLink>}>
           {rollingOut.length === 0 ? (
             <EmptyState
               title="Nothing mid-rollout"
@@ -138,24 +164,20 @@ export function HomePage() {
                   key={flag.id}
                   className="border-border flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0"
                 >
-                  <Link to={`/flags/${flag.id}`} className="mono min-w-0 flex-1 truncate">
+                  <Link
+                    to={`/flags/${flag.id}`}
+                    className={cn(KEY_LINK, 'min-w-0 flex-1 truncate')}
+                  >
                     {flag.key}
                   </Link>
-                  <span className="chip chip-rollout shrink-0">{flag.rolloutPercent}%</span>
+                  <StatusChip status="partial">{flag.rolloutPercent}%</StatusChip>
                 </li>
               ))}
             </ul>
           )}
         </Panel>
 
-        <Panel
-          title="Recent activity"
-          actions={
-            <Link to="/audit" className="text-[12.5px]">
-              Audit log →
-            </Link>
-          }
-        >
+        <Panel title="Recent activity" actions={<PanelLink to="/audit">Audit log →</PanelLink>}>
           {(auditQuery.data ?? []).length === 0 ? (
             <EmptyState
               title="No activity yet"
@@ -168,7 +190,9 @@ export function HomePage() {
                   key={entry.id}
                   className="border-border flex items-baseline gap-3 border-b px-4 py-2.5 last:border-b-0"
                 >
-                  <span className="mono min-w-0 flex-1 truncate text-[12.5px]">{entry.action}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-[12.5px]">
+                    {entry.action}
+                  </span>
                   <span className="text-muted-foreground shrink-0 text-[12px]">
                     {actorName(entry.actorId)} · {relativeTime(entry.createdAt)}
                   </span>

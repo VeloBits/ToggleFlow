@@ -5,12 +5,9 @@ import { useAuth } from '../auth/AuthContext';
 import { GuestFooter } from '../components/GuestFooter';
 import { GuestNav } from '../components/GuestNav';
 import { Accordion, type AccordionItem } from '../ui/accordion';
-import type { IconProps } from '../ui/icons';
+import type { IconProps } from '@velobits-dev/icons';
 import {
   AlertTriangleIcon,
-  CircleCheckIcon,
-  CircleHalfIcon,
-  CircleSlashIcon,
   DotIcon,
   GlobeIcon,
   HistoryIcon,
@@ -22,7 +19,8 @@ import {
   TargetIcon,
   TrendingUpIcon,
   UsersIcon,
-} from '../ui/icons';
+} from '@velobits-dev/icons';
+import { Badge, Button, CodeBlock, StatusChip } from '@velobits-dev/ui';
 
 /**
  * Public landing page - the default screen for anyone who isn't signed in, and
@@ -36,18 +34,29 @@ import {
  * Every section pairs GUTTER with CONTAINER (see both constants): one width and
  * one gutter for the whole page, shared with the nav island and the footer, so
  * this reads as a single column of content rather than five differently-inset
- * ones. Icons all come from ../ui/icons - no Unicode glyphs stand in for one,
- * since those inherit the font's metrics instead of the design system's.
+ * ones. Icons all come from `@velobits-dev/icons` - no Unicode glyphs stand in
+ * for one, since those inherit the font's metrics instead of the design system's.
+ *
+ * ## Where this page's colour comes from
+ *
+ * This is the one surface in the product that spends the lime `--brand`: exactly
+ * once, on the hero's primary CTA. Everything else - the nav CTA, the closing
+ * CTA, the footer CTA - is the blue `primary`, which is the app's action colour.
+ * Two lime buttons would stop the first one meaning anything.
+ *
+ * Blue as TEXT is `text-link` (`--primary-text`), never `text-primary`: the fill
+ * blue measures 3.90:1 on the cream page and fails AA for text. That applies to
+ * the section eyebrows, the step numerals and the feature cards' icon plates,
+ * all of which used to paint `text-primary`.
  */
 
 /**
  * The page's content box, and the reason every section starts and ends on the
- * same two vertical lines. `max-w-page` (72rem/1152px, theme.css) is shared with
- * the nav island and the footer; the sections used to sit at max-w-5xl, which
- * inset the whole middle of the page by 64px a side under a full-bleed hairline.
+ * same two vertical lines. `max-w-page` is `--container-page` (72rem/1152px)
+ * from `@velobits-dev/tokens`, shared with the nav island and the footer.
  *
  * The `px-6` gutter belongs on the SECTION, outside this cap, never on the box
- * itself: sizing is border-box (styles.css), so `max-w-page px-6` on one element
+ * itself: sizing is border-box (Preflight), so `max-w-page px-6` on one element
  * spends the gutter out of the 1152px and lands 24px inside the nav island's
  * edges. Gutter outside, and the cap resolves to the full 1152 at every width
  * wide enough to reach it - below that the box shrinks and the gutter holds.
@@ -58,21 +67,36 @@ const CONTAINER = 'mx-auto w-full max-w-page';
 const GUTTER = 'px-6';
 
 /**
- * Card icon plate. A 36px accent-soft tile rather than a bare icon: at 18px on
- * the page background the stroke read as a stray mark, and colouring it up to
- * full accent competed with the CTA. The tile gives it presence at low contrast,
- * and `accent-soft` is a token, so it follows the theme without a `dark:` rule.
+ * Card icon plate. A 36px tinted tile rather than a bare icon: at 18px on the
+ * page background the stroke read as a stray mark, and colouring it up to the
+ * full accent competed with the CTA.
+ *
+ * `bg-primary-soft` + `text-link` is not a guess - it is `Badge`'s own `primary`
+ * variant, which is gated as a composite over the page, the panel and the glass
+ * surface in both themes. The plate is a soft chip with an icon in it.
  */
 const ICON_PLATE =
-  'border-primary-soft bg-primary-soft text-primary mb-3 grid h-9 w-9 place-items-center rounded-lg border';
+  'border-primary-soft bg-primary-soft text-link mb-3 grid h-9 w-9 place-items-center rounded-lg border';
 
-/** Feature and use-case cards share a box, so they share the class string. */
-const CARD = 'border-border bg-panel rounded-lg border p-5 leading-relaxed';
+/**
+ * Feature and use-case cards share a box, so they share the class string.
+ *
+ * `.glass-surface` is the design system's tier-S material, straight from the
+ * token layer - the same thing `Card` paints, reached as a class because these
+ * are `<li>` elements and `Card` renders a `div` with no `asChild`. Tier S
+ * carries NO `backdrop-filter`, which is precisely why it is safe on a component
+ * that appears twelve times on this page.
+ *
+ * It sets `background`, `border` and `box-shadow` as one material, so this string
+ * must never grow a `bg-*`, `border-*` or `shadow-*` utility: those are a later
+ * layer and each would quietly remove the part it names.
+ */
+const CARD = 'glass-surface rounded-lg p-5 leading-relaxed';
 
 interface Highlight {
   title: string;
   body: string;
-  /** Stroke icon from ../ui/icons - sized at the call site, never inline-styled. */
+  /** Stroke icon from @velobits-dev/icons - sized at the call site, never inline-styled. */
   icon: ComponentType<IconProps>;
 }
 
@@ -233,6 +257,15 @@ app.post('/summarize', (req, res) => {
   // …run the tool
 });`;
 
+/**
+ * One row of the hero's mock flag list.
+ *
+ * The state is the design system's `StatusChip`, which is the same chip the real
+ * Flags table renders - so the screenshot-in-HTML cannot drift from the product.
+ * It carries its own glyph as the second channel (WCAG 1.4.1), which is why the
+ * separate coloured state icon this row used to lead with is gone: it was the
+ * chip's icon, drawn twice.
+ */
 function MockRow({
   flagKey,
   name,
@@ -242,27 +275,17 @@ function MockRow({
   name: string;
   state: 'on' | 'off' | 'rollout';
 }) {
-  const chip =
-    state === 'on' ? (
-      <span className="chip chip-on">ON</span>
-    ) : state === 'off' ? (
-      <span className="chip chip-off">OFF</span>
-    ) : (
-      <span className="chip chip-rollout">25%</span>
-    );
-  // The chip already names the state; the icon is the colour cue that lets the
-  // eye scan the column, which is why it stays decorative.
-  const StateIcon =
-    state === 'on' ? CircleCheckIcon : state === 'off' ? CircleSlashIcon : CircleHalfIcon;
-  const tone = state === 'on' ? 'text-on' : state === 'off' ? 'text-off' : 'text-rollout';
   return (
-    <div className="border-border/60 grid grid-cols-[16px_1fr_auto] items-center gap-3 border-b px-3 py-2 last:border-b-0">
-      <StateIcon size={15} className={tone} />
+    <div className="border-border/60 grid grid-cols-[1fr_auto] items-center gap-3 border-b px-3 py-2 last:border-b-0">
       <span className="min-w-0">
         <code className="font-mono text-[12.5px]">{flagKey}</code>
         <span className="text-muted-foreground ml-2 hidden text-[12.5px] sm:inline">{name}</span>
       </span>
-      {chip}
+      {state === 'rollout' ? (
+        <StatusChip status="partial">25%</StatusChip>
+      ) : (
+        <StatusChip status={state} />
+      )}
     </div>
   );
 }
@@ -283,10 +306,13 @@ function Section({
     // part of the content box, so it runs edge to edge behind the container.
     <section id={id} className={`border-border/60 scroll-mt-24 border-t py-16 sm:py-20 ${GUTTER}`}>
       <div className={CONTAINER}>
-        <p className="text-primary mb-2 text-[12.5px] font-semibold tracking-wide uppercase">
+        <p className="text-link mb-2 text-[12.5px] font-semibold tracking-wide uppercase">
           {eyebrow}
         </p>
-        <h2 className="mb-8 max-w-3xl text-[22px]">{title}</h2>
+        {/* `text-balance-heading` (theme.css) is `text-wrap: balance`, which has
+            no Tailwind utility: it stops a two-line section title orphaning its
+            last word, which these titles are long enough to do. */}
+        <h2 className="text-balance-heading mb-8 max-w-3xl text-[22px]">{title}</h2>
         {children}
       </div>
     </section>
@@ -300,10 +326,10 @@ export function GuestHomePage() {
   const returnTo = `${location.pathname}${location.search}`;
 
   return (
-    <div className="bg-bg text-text min-h-screen">
+    <div className="bg-bg text-fg min-h-screen">
       <a
         href="#main"
-        className="border-border bg-panel text-text focus-visible:ring-ring sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-md focus:border focus:px-3 focus:py-2 focus-visible:ring-2 focus-visible:outline-none"
+        className="border-border bg-panel text-fg sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-md focus:border focus:px-3 focus:py-2"
       >
         Skip to content
       </a>
@@ -317,13 +343,20 @@ export function GuestHomePage() {
           both offset 16px from the top. 128/144px therefore leaves ~48px of air
           on a phone and ~76px on a desktop - it used to be 32px on the phone,
           i.e. the tighter gap sat under the *taller* bar.
+
+          `hero-glow` (theme.css) is the aurora wash: two radial gradients built
+          from `--primary-soft` and `--brand-soft`, so it follows the theme with
+          no `dark:` rule and names the page's two accents before a single button
+          does. It is a `background` shorthand, so this section must not also
+          carry a `bg-*` utility - and the nav island is chromeless at rest
+          precisely so the wash reads through it.
         */}
-        <section className={`pt-32 pb-16 sm:pt-36 sm:pb-20 ${GUTTER}`}>
+        <section className={`hero-glow pt-32 pb-16 sm:pt-36 sm:pb-20 ${GUTTER}`}>
           <div className={`${CONTAINER} grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]`}>
             <div>
-              <p className="border-border bg-bg2 text-muted-foreground mb-5 inline-block rounded-full border px-3 py-1 text-[12px]">
+              <Badge variant="neutral" className="rounded-pill mb-5 px-3 py-1 text-[12px]">
                 ToggleFlow · feature management platform
-              </p>
+              </Badge>
               {/*
                 Two beats, each on its own line at every width: the promise and
                 the safety net. `block` spans rather than a <br> so the break is
@@ -342,30 +375,43 @@ export function GuestHomePage() {
                 dashboard and delivered in seconds. No redeploy, no waiting on a release.
               </p>
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  className="primary px-4 py-2.5"
+                {/*
+                  THE page's one lime button. `brand` is charcoal-on-lime at
+                  10.89:1 and it is deliberately spent here and nowhere else: the
+                  nav, the closing section and the footer all say the same words
+                  in blue, so this is the button a visitor's eye lands on first
+                  and every other one is a second chance at it.
+                */}
+                <Button
+                  variant="brand"
+                  size="lg"
+                  className="font-semibold"
                   onClick={() => void signup(returnTo)}
                 >
                   Get started free
-                </button>
-                <a
-                  href="#how"
-                  className="border-border bg-panel text-text hover:bg-highlight inline-flex items-center rounded-md border px-4 py-2.5"
-                >
-                  See how it works
-                </a>
+                </Button>
+                <Button variant="secondary" size="lg" asChild>
+                  <a href="#how">See how it works</a>
+                </Button>
               </div>
               <p className="text-muted-foreground mt-4 text-[12.5px]">
                 Free tier · Set up in about 15 minutes · Flat, predictable pricing
               </p>
             </div>
 
-            <div className="border-border bg-panel overflow-hidden rounded-xl border shadow-sm">
+            {/*
+              The product screenshot that isn't one. Tier-S glass rather than the
+              opaque panel it used to be, so the hero's aurora reads faintly
+              through the surface it is sitting on - the one place on the page
+              where there is genuinely something behind a card worth seeing.
+              `.glass-surface` owns background, border and shadow together; adding
+              any of those three back as a utility takes the material apart.
+            */}
+            <div className="glass-surface overflow-hidden rounded-xl">
               <div className="border-border/60 text-muted-foreground flex items-center gap-2 border-b px-3 py-2 text-[12px]">
-                {/* A live-environment dot: `text-on`, because a red one beside the
+                {/* A live-environment dot: `text-success`, because a red one beside the
                     word "production" reads as an outage, which is not the story. */}
-                <DotIcon size={13} className="text-on" />
+                <DotIcon size={13} className="text-success" />
                 <span>fixmytext · production</span>
                 <span className="flex-1" />
                 <span className="font-mono">ruleset v418</span>
@@ -409,7 +455,7 @@ export function GuestHomePage() {
               <ol className="grid gap-6">
                 {STEPS.map((item) => (
                   <li key={item.step} className="grid grid-cols-[28px_1fr] gap-3">
-                    <span className="border-border bg-bg2 text-primary grid h-7 w-7 place-items-center rounded-full border text-[12.5px] font-semibold">
+                    <span className="border-border bg-bg2 text-link rounded-pill grid h-7 w-7 place-items-center border text-[12.5px] font-semibold">
                       {item.step}
                     </span>
                     {/* div, not span: a heading is flow content, not phrasing. */}
@@ -431,9 +477,20 @@ export function GuestHomePage() {
                 takes no per-tool code at all.
               </p>
             </div>
-            <pre className="border-border bg-panel overflow-x-auto rounded-lg border p-4 font-mono text-[12.5px] leading-relaxed">
+            {/*
+              `CodeBlock`, not a hand-rolled <pre>. It brings three things this
+              page had no business re-deriving: a copy button (the snippet exists
+              to be pasted), `tabIndex={0}` on the scroll region so a keyboard
+              user can actually scroll a long line, and `label` naming the block
+              for assistive tech - which also names the copy button "Copy server
+              SDK example" instead of "Copy code".
+
+              No highlighter is loaded: `language` only emits `data-language` and
+              `language-ts`, which is the right trade for one snippet.
+            */}
+            <CodeBlock copyable language="ts" label="server SDK example" className="min-w-0">
               {SNIPPET}
-            </pre>
+            </CodeBlock>
           </div>
         </Section>
 
@@ -461,33 +518,36 @@ export function GuestHomePage() {
         </Section>
 
         <Section id="faq" eyebrow="FAQ" title="Feature flags and remote configuration, explained">
-          {/* One accordion spanning the content box, rather than the old 3xl list
-              that stopped 384px short of every other section's right edge. The
-              answers stay readable because the panel caps its own measure. */}
+          {/*
+            `../ui/accordion`, NOT the system's `Accordion`, and that is load
+            bearing: the system's is Radix-backed and Radix unmounts collapsed
+            content, which would ship an FAQ whose answers are absent from the
+            served HTML. This page is the product's only crawlable surface.
+          */}
           <Accordion items={FAQ} defaultOpenId="faq-feature-flags" />
         </Section>
 
         <section className={`border-border/60 border-t py-16 text-center sm:py-20 ${GUTTER}`}>
           <div className={CONTAINER}>
-            <h2 className="mb-3 text-[22px]">Ship your next feature behind a flag</h2>
+            <h2 className="text-balance-heading mx-auto mb-3 max-w-2xl text-[22px]">
+              Ship your next feature behind a flag
+            </h2>
             <p className="text-muted-foreground mx-auto mb-7 max-w-lg leading-relaxed">
               Create an organization, add your first project, and flip a real flag in minutes - on
               the free tier.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
-              <button
-                type="button"
-                className="primary px-4 py-2.5"
+              <Button
+                variant="primary"
+                size="lg"
+                className="font-semibold"
                 onClick={() => void signup(returnTo)}
               >
                 Get started free
-              </button>
-              <a
-                href="#use-cases"
-                className="border-border bg-panel text-text hover:bg-highlight inline-flex items-center rounded-md border px-4 py-2.5"
-              >
-                Browse use cases
-              </a>
+              </Button>
+              <Button variant="secondary" size="lg" asChild>
+                <a href="#use-cases">Browse use cases</a>
+              </Button>
             </div>
           </div>
         </section>

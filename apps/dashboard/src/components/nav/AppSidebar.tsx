@@ -2,9 +2,18 @@
  * The navigation rail: primary links, then the product sections, then the
  * account footer (AccountMenu).
  *
- * One column at `md` and up; below that the same markup is rendered as an
- * overlay drawer by Layout, which is why this component takes no responsibility
- * for its own positioning - it fills whatever box it is given.
+ * One column at `md` and up; below that this same node is rendered again inside
+ * `AppShell`'s drawer. It therefore takes no responsibility for its own
+ * positioning — it fills whatever box it is given — and, because it is mounted
+ * twice at once, it must stay **idempotent**: no `id` attributes (they would
+ * duplicate while the drawer is open) and no uncontrolled state worth keeping
+ * (the drawer's copy unmounts on close). It is a pure function of the route.
+ *
+ * ## There is no `<nav>` here
+ *
+ * `AppShell` wraps this node in `<nav aria-label={sidebarLabel}>` in both
+ * places. Keeping one here too would nest two navigation landmarks with the same
+ * name inside each other, which reads to a screen reader as two separate menus.
  */
 import { NavLink } from 'react-router-dom';
 
@@ -24,18 +33,25 @@ const ROW = [
  * left bar is a third, redundant channel for anyone who cannot separate the
  * accent tint from the panel behind it.
  */
-const ROW_ACTIVE = 'bg-primary-soft text-primary font-semibold';
-const ROW_IDLE = 'text-text hover:bg-highlight';
+// `text-link`, not `text-primary`: the label is 13px text, and the blue fill
+// token measures 3.90:1 on the page — fine for the icon beside it, short of
+// AA for the word. `bg-primary-soft` + `text-link` is the pairing the design
+// system gates for its own `primary` Badge.
+const ROW_ACTIVE = 'bg-primary-soft text-link font-semibold';
+const ROW_IDLE = 'text-fg hover:bg-highlight';
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    // `w-full` is load-bearing: Layout's desktop rail is `display: flex`, and a
-    // flex item is sized by its content along the main axis. Without it the
-    // panel background, the row highlights and the footer border all stop at
-    // the width of the longest label - so the rail visibly changed width when
-    // the org name in the footer got shorter.
-    <div className="bg-panel flex h-full min-h-0 w-full flex-col">
-      <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+    // `w-full` is load-bearing: the shell's rail is `display: flex`, and a flex
+    // item is sized by its content along the main axis. Without it the row
+    // highlights and the footer border all stop at the width of the longest
+    // label — so the rail visibly changed width when the org name in the footer
+    // got shorter.
+    //
+    // No `bg-panel` here either: the shell paints the rail (`sidebarSurface`),
+    // and a second background would hide the drawer's own surface.
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
         {NAV_SECTIONS.map((section, index) => (
           <div key={section.label ?? 'primary'}>
             {index > 0 && <hr className="border-border/70 mx-1 my-2.5 border-0 border-t" />}
@@ -81,7 +97,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
             ))}
           </div>
         ))}
-      </nav>
+      </div>
 
       <div className="border-border shrink-0 border-t p-2">
         <AccountMenu onNavigate={onNavigate} />

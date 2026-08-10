@@ -13,12 +13,11 @@ import { useState, type ReactNode } from 'react';
 import { flagType } from '@toggleflow/engine';
 
 import type { FlagDefinitionDetail } from '@/api/client';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button, Skeleton } from '@velobits-dev/ui';
 import { Panel } from '@/components/page';
 import { ConfirmButton } from '@/components/ui';
 import { useWorkspace } from '@/state/WorkspaceContext';
-import { PencilIcon } from '@/ui/icons';
+import { PencilIcon } from '@velobits-dev/icons';
 
 import { FlagFormDialog } from '../FlagFormDialog';
 import type { FlagRow } from '../flag-columns';
@@ -73,7 +72,7 @@ export function FlagSettingsPanel({
         title="Definition"
         actions={
           canEdit && (
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+            <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
               <PencilIcon size={13} /> Edit definition
             </Button>
           )
@@ -108,10 +107,8 @@ export function FlagSettingsPanel({
           </p>
           {canEdit && (
             <ConfirmButton
-              className={buttonVariants({
-                variant: flag.archived ? 'outline' : 'destructive',
-                size: 'sm',
-              })}
+              variant={flag.archived ? 'secondary' : 'destructive'}
+              size="sm"
               label={flag.archived ? 'Restore this flag' : 'Archive this flag'}
               confirmLabel={flag.archived ? 'Yes, restore it' : 'Yes, archive it'}
               onConfirm={() => onArchive(!flag.archived)}
@@ -136,7 +133,7 @@ function Fact({ label, mono, children }: { label: string; mono?: boolean; childr
   return (
     <div className="min-w-0">
       <dt className="text-muted-foreground m-0 text-[12px]">{label}</dt>
-      <dd className={`text-text m-0 mt-0.5 break-words ${mono ? 'font-mono text-[12.5px]' : ''}`}>
+      <dd className={`text-fg m-0 mt-0.5 break-words ${mono ? 'font-mono text-[12.5px]' : ''}`}>
         {children}
       </dd>
     </div>

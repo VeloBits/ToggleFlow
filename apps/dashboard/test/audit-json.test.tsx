@@ -146,14 +146,25 @@ describe('JsonViewer', () => {
 });
 
 describe('AuditJsonDiff', () => {
-  const region = () => within(screen.getByRole('region', { name: 'Payload diff' }));
+  /*
+   * A prefix match, not the exact label. `DiffViewer` composes its accessible
+   * name as `${label}. ${summary}` — "Payload diff. 1 line added, 1 removed" —
+   * so the counts are announced on arrival rather than only if the reader gets
+   * as far as the summary line. That is the component's a11y contract, so the
+   * test bends to it rather than the component being given a flat `aria-label`.
+   */
+  const region = () => within(screen.getByRole('region', { name: /^Payload diff/ }));
 
   it('marks changed lines as well as tinting them', () => {
     render(<AuditJsonDiff before={{ enabled: true }} after={{ enabled: false }} />);
     // Colour alone fails for a red/green deficiency, so the gutter carries it too.
     expect(region().getByText('+')).toBeTruthy();
     expect(region().getByText('−')).toBeTruthy();
-    expect(screen.getByText(/added/).textContent).toContain('+1');
+    // The counted summary is `DiffViewer`'s, and it is prose rather than the
+    // app's old `+1 added · −1 removed`. It is also folded into the region's
+    // accessible name above, which is why it is `aria-hidden` in the DOM — so
+    // this reads it off the region's name rather than off the visible text.
+    expect(screen.getByRole('region', { name: /1 line added, 1 removed/ })).toBeTruthy();
   });
 
   it('reads a creation as all-new rather than as a diff against nothing', () => {
@@ -182,11 +193,23 @@ describe('AuditJsonDiff', () => {
     expect(screen.queryByRole('region')).toBeNull();
   });
 
-  it('keeps a long value reachable by wrapping it', () => {
+  it('keeps a long value whole rather than clipping it', () => {
     render(<AuditJsonDiff before={{ a: 'y'.repeat(400) }} after={{ a: 'z'.repeat(400) }} />);
-    const line = region().getByText(new RegExp('z{50}'));
-    // Wrapped, never clipped: the whole value stays in the DOM for Ctrl+F.
-    expect(line.className).toContain('whitespace-pre-wrap');
-    expect(line.textContent).toContain('z'.repeat(400));
+    const text = region().getByText(new RegExp('z{50}'));
+    const line = text.closest('[data-slot="diff-line"]')!;
+
+    /*
+     * The whole value stays in the DOM — that is the part that matters, and it
+     * is what keeps Ctrl+F working.
+     *
+     * It is now reached by scrolling rather than by wrapping. `DiffViewer` sets
+     * `whitespace-pre` deliberately: a soft-wrapped continuation line carries no
+     * `+`/`−` gutter marker, so a wrapped change reads as unchanged from the
+     * second line on. The region is `tabIndex={0}`, so the scroll is reachable
+     * from the keyboard.
+     */
+    expect(line.className).toContain('whitespace-pre');
+    expect(line.className).not.toContain('whitespace-pre-wrap');
+    expect(text.textContent).toContain('z'.repeat(400));
   });
 });

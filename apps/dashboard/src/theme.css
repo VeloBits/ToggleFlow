@@ -1,161 +1,71 @@
-@import 'tailwindcss';
-
 /*
- * The hand-written component CSS goes into Tailwind's `components` layer, so
- * utilities (a later layer) override it without `!important` while it still
- * beats Preflight. Unlayered, `button { border-radius; padding }` and
- * `a { color }` would win over every utility. Imported here rather than in
- * main.tsx - a second unlayered import would defeat this.
- */
-@import './styles.css' layer(components);
-
-/* Tailwind v4's replacement for tailwindcss-animate; the enter/exit keyframes
- * shadcn's Radix-backed primitives animate their portals with. */
-@import 'tw-animate-css';
-
-/*
- * VeloBits theme bridge - VSCode Dark+/Light inspired, same palette as
- * fixmytext's design system (frontend/packages/design-system/theme.css +
- * shell tokens.css). Values live as runtime CSS variables in styles.css
- * (:root = light, body.dark = dark); the inline tokens below expose them
- * as Tailwind utilities (bg-panel, text-muted-foreground, border-border, ...)
- * that follow the active theme automatically.
+ * The dashboard's Tailwind entry. Everything the app knows about colour, type,
+ * spacing, radius, motion and glass arrives through `@velobits-dev/tokens`;
+ * nothing is redefined here.
  *
- * THIS BLOCK IS THE ONLY BRIDGE. shadcn's semantic names are added here as
- * additional spellings of the SAME runtime variables, never as a second
- * palette - which is why light and dark both work for free and why there is
- * no `.dark` token block to keep in sync. If `npx shadcn add` ever appends its
- * own :root/.dark oklch blocks below, delete them.
+ * Before the design system landed this file carried a hand-written `@theme
+ * inline` bridge and `src/styles.css` carried the literal palette. Both are
+ * gone: the tokens package owns the same bridge (it was upstreamed from here),
+ * so the two cannot drift and a token added to the system reaches this app for
+ * free.
  *
- * Two names collided with shadcn's vocabulary and shadcn won them, because its
- * generated components hardcode the utility strings:
- *   - `muted`  was our foreground grey  -> now `muted-foreground`
- *                                         (`muted` is a background surface)
- *   - `accent` was the brand blue       -> now `primary`
- *                                         (`accent` is the hover surface)
+ * If `npx shadcn add` ever appends its own `:root` / `.dark` oklch blocks below,
+ * DELETE THEM — they would shadow the bridge with a stock grey palette.
  */
 
-@custom-variant dark (&:where(.dark, .dark *));
-
-@theme inline {
-  /* ── ToggleFlow surfaces (names unchanged) ──────────────────────────────── */
-  --color-bg: var(--bg);
-  --color-bg2: var(--bg2);
-  --color-panel: var(--panel);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-text: var(--text);
-  --color-highlight: var(--highlight);
-
-  /* ── Flag state colours - product semantics, no shadcn equivalent ───────── */
-  --color-on: var(--on);
-  --color-on-soft: var(--on-soft);
-  --color-off: var(--off);
-  --color-off-soft: var(--off-soft);
-  --color-rollout: var(--rollout);
-  --color-rollout-soft: var(--rollout-soft);
-
-  /* ── The brand, renamed off `accent` so shadcn can own that word ────────── */
-  --color-primary: var(--accent);
-  --color-primary-hover: var(--accent-hover);
-  --color-primary-soft: var(--accent-soft);
-  --color-primary-foreground: var(--on-accent);
-
-  /* ── shadcn's semantic names, same runtime vars ─────────────────────────── */
-  --color-background: var(--bg);
-  --color-foreground: var(--text);
-  --color-card: var(--panel);
-  --color-card-foreground: var(--text);
-  --color-popover: var(--panel);
-  --color-popover-foreground: var(--text);
-  --color-secondary: var(--bg2);
-  --color-secondary-foreground: var(--text);
-  --color-muted: var(--bg2);
-  --color-muted-foreground: var(--muted);
-  --color-accent: var(--highlight);
-  --color-accent-foreground: var(--text);
-  --color-destructive: var(--off);
-  --color-destructive-foreground: var(--on-accent);
-  /* `--field-border`, not `--border`: shadcn's Input/NativeSelect/Textarea draw
-   * their edge from this, and it has to stay firmer than a table separator in
-   * dark mode. See the two tokens' comments in styles.css. */
-  --color-input: var(--field-border);
-  --color-ring: var(--accent);
-}
-
-@theme {
-  /*
-   * The public page grid, as `max-w-page`. One token because the landing page's
-   * content box is asserted in four separate places - the nav island, the hero,
-   * every section, and the footer - and their left/right edges only line up
-   * while all four agree. 72rem/1152px is the widest of them, which is what the
-   * nav island and footer already used. The authenticated shell does not use
-   * this: it is a fluid full-viewport chrome (see .app-shell in styles.css).
-   */
-  --container-page: 72rem;
-
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
-  --radius-pill: 999px;
-
-  --font-display: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-
-  --transition-base: 0.12s ease;
-}
+/*
+ * The typefaces the token layer NAMES but deliberately does not ship, so it can
+ * stay dependency-free. Skipping this fails silently: everything falls back to
+ * `system-ui`, the layout barely shifts, and the only visible symptom is a glyph
+ * the fallback lacks rendering as tofu.
+ */
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/jetbrains-mono';
 
 /*
- * Default border colour, and it is not optional.
+ * One import. It pulls in `tailwindcss`, the raw token values (`:root` light /
+ * `body.dark` dark), the glass tier, `tw-animate-css`, the `dark` custom
+ * variant, the shadcn name bridge, the z-index and duration utilities, and the
+ * base layer (border-colour reset, body background, one focus ring,
+ * reduced-motion).
+ */
+@import '@velobits-dev/tokens/theme.css';
+
+/*
+ * NOT OPTIONAL. Tailwind v4 does not scan `node_modules`, so every utility used
+ * *inside* `@velobits-dev/ui` would go ungenerated and its components would
+ * render completely unstyled — with nothing logged anywhere. `cva` class strings
+ * survive into `dist` as string literals, which is what makes this work.
  *
- * Tailwind v3's Preflight set `border-color` on every element; v4 dropped that,
- * so its `border` / `border-b` utilities emit **width and style only** and the
- * colour falls back to the CSS initial value - `currentColor`.
+ * The path is resolved from THIS file, and npm hoists the packages to the
+ * workspace root, so it climbs out of `apps/dashboard`.
+ */
+@source "../../../node_modules/@velobits-dev/ui/dist";
+
+/*
+ * ── App typography, which the token layer deliberately does not own ──────────
  *
- * That is a real bug wherever a vendored shadcn primitive uses a bare `border`,
- * because several of them also set a text colour on the same element. `Card` is
- * `border` + `text-card-foreground`, i.e. `var(--text)`: in dark mode that
- * painted a **#d4d4d4 near-white outline** around every card, and `TableRow`'s
- * `border-b` drew the same colour under every row. It reads as a highlight
- * nobody asked for, and it is why this rule exists rather than a patch to each
- * primitive - the next `npx shadcn add` would reintroduce it otherwise.
+ * The design system ships colour, radius, motion and one focus ring, and sets
+ * `body { background; color; font-family }`. It sets no font SIZE and no heading
+ * scale, because those are a product decision — the marketing site and this
+ * dashboard do not want the same ones.
  *
- * This is Tailwind's own documented remedy for the v3→v4 change. `border-border`
- * and friends are utilities, so they still override it.
+ * Both rules below are load-bearing for this app:
  *
- * ## It must be `var(--border)`, NOT `var(--color-border)`
- *
- * `--color-border` is a `@theme` variable, so Tailwind emits it as a real
- * declaration on `:root`: `--color-border: var(--border)`. A custom property's
- * value is substituted **where it is declared**, so that `var(--border)` resolves
- * against `:root` - where `--border` is the *light* `#c8c8c8` - and the resolved
- * value then inherits to every descendant. `body.dark` is a descendant of `:root`,
- * so its override never reaches it, and this rule painted light-theme borders on
- * a dark page. `--border` itself is declared on both `:root` and `body.dark`, so
- * referencing it directly resolves per element and dark mode works.
- *
- * The `border-border` *utility* was never affected: `@theme inline` inlines it to
- * `var(--border)` at the use site. That asymmetry is why the sidebar looked right
- * while every `Card` and `TableRow` did not - they use a bare `border`, which is
- * this rule.
+ * 1. `font-size: 14px`, not the browser's 16px. Every screen here is calibrated
+ *    against a 14px root (the codebase is full of `text-[13px]`, `text-[12.5px]`,
+ *    `text-[11.5px]`), and the shell's `h-13` bar and 26px scope-picker triggers
+ *    were sized to match. Dropping to the default inflates every dense surface.
+ * 2. Heading sizes. Tailwind's Preflight resets `h1`–`h6` to `font-size: inherit`,
+ *    so without this a bare `<h3>` in a feature card renders at body size. Most
+ *    headings that want their own metrics already write `m-0` plus a `text-[…]`,
+ *    and those still win — this is `@layer base`, the earliest layer.
  */
 @layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--border, currentColor);
+  body {
+    font-size: 14px;
   }
-}
 
-/*
- * Preflight resets heading sizes/weights to inherit; the legacy CSS relied
- * on browser defaults. Restore sane base sizes (layer base, so any
- * unlayered page CSS still wins).
- */
-@layer base {
   h1 {
     font-size: 24px;
     font-weight: 700;
@@ -167,5 +77,41 @@
   h3 {
     font-size: 15px;
     font-weight: 600;
+  }
+  h1,
+  h2,
+  h3 {
+    margin: 0 0 0.5rem;
+  }
+}
+
+/*
+ * ── The only app-level component CSS in the dashboard ────────────────────────
+ *
+ * Two utilities, both for the guest landing page, both for things Tailwind has
+ * no utility for. Everything else is a component from the design system or a
+ * utility from the token layer.
+ *
+ * These live in the `components` layer so plain utilities (a later layer) can
+ * override them without `!important`.
+ */
+@layer components {
+  /*
+   * The hero's aurora wash. A `radial-gradient` needs two colour stops and a
+   * position, which is three arbitrary values in one utility — legible as CSS
+   * and not as `bg-[radial-gradient(...)]`.
+   */
+  .hero-glow {
+    background:
+      radial-gradient(60% 55% at 15% 0%, var(--primary-soft) 0%, transparent 60%),
+      radial-gradient(50% 50% at 85% 10%, var(--brand-soft) 0%, transparent 55%);
+  }
+
+  /*
+   * Marketing section headings. `text-wrap: balance` has no Tailwind utility and
+   * is what keeps a two-line heading from orphaning its last word.
+   */
+  .text-balance-heading {
+    text-wrap: balance;
   }
 }

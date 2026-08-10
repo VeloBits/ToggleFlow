@@ -6,6 +6,18 @@
  * feature. `highlightJson` is exported separately from the component so the
  * tokenising - the part with an edge case in it - is testable without a DOM.
  *
+ * ## Why this is not the system's `CodeBlock`
+ *
+ * `CodeBlock` takes `children: string` and renders it verbatim - it emits a
+ * `language-*` class for "an optional highlighter" and ships none. Handing it
+ * `prettyJson(value)` would trade the coloured keys and values below, and the
+ * tokeniser's unit tests, for a monochrome block. It also has no `maxHeight`:
+ * its own scroll box is fixed, where this component is rendered at two heights
+ * (`max-h-64` in a row expansion, `max-h-72` in the panel) and at the default in
+ * neither. What it *does* own well is the copy affordance, so the button is the
+ * system's `Button` and the rest stays local. If `CodeBlock` ever grows a
+ * highlighter hook, this is the first thing that should use it.
+ *
  * ## Long values wrap, they are never cut
  *
  * `whitespace-pre-wrap break-all` plus a scrolling container, and no `slice()`
@@ -17,10 +29,10 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { prettyJson } from '@/components/diff';
+import { Button } from '@velobits-dev/ui';
+import { prettyJson } from '@/components/json';
 import { cn } from '@/ui/cn';
-import { CheckIcon, CopyIcon } from '@/ui/icons';
+import { CheckIcon, CopyIcon } from '@velobits-dev/icons';
 
 export interface JsonToken {
   text: string;
@@ -41,10 +53,13 @@ const TOKEN_CLASS: Record<JsonToken['kind'], string> = {
   // from - blue for keys, green for strings, pale yellow for numbers - so the
   // payload reads the same way as an editor. All four are theme tokens, so dark
   // mode comes free.
-  key: 'text-primary',
-  string: 'text-on',
-  number: 'text-rollout',
-  boolean: 'text-rollout',
+  //
+  // `text-link`, not `text-primary`: the blue fill is 3.90:1 on the cream page
+  // and fails AA as text, and every one of these is 12px text.
+  key: 'text-link',
+  string: 'text-success',
+  number: 'text-warning',
+  boolean: 'text-warning',
   null: 'text-muted-foreground',
   punctuation: 'text-muted-foreground',
   plain: '',
@@ -184,14 +199,14 @@ export function JsonViewer({
     <div className={cn('border-border bg-panel relative rounded-md border', className)}>
       <Button
         variant="ghost"
-        size="icon-sm"
+        size="icon"
         // The label carries the copied state so the confirmation is not
         // colour-and-glyph only.
         aria-label={copied ? `Copied ${label}` : `Copy ${label}`}
         onClick={copy}
-        className="absolute top-1 right-1 z-10"
+        className="absolute top-1 right-1 z-10 size-8"
       >
-        {copied ? <CheckIcon size={13} className="text-on" /> : <CopyIcon size={13} />}
+        {copied ? <CheckIcon size={13} className="text-success" /> : <CopyIcon size={13} />}
       </Button>
       <div
         role="region"

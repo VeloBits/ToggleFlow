@@ -7,8 +7,7 @@
  * boxes announced individually is noise, and the one thing a screen reader user
  * needs to know is that something is loading.
  */
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { Skeleton, Table, TableBody, TableCell, TableRow } from '@velobits-dev/ui';
 import { cn } from '@/ui/cn';
 
 import { AUDIT_COLUMNS, AuditTableHead } from './AuditTable';
@@ -17,7 +16,9 @@ export function AuditSkeleton({ rows = 8 }: { rows?: number }) {
   return (
     <>
       <div aria-hidden className="hidden md:block">
-        <Table>
+        {/* `surface="none"` for the same reason as the real table: it renders
+            inside the page's Card, and nested glass cancels itself out. */}
+        <Table surface="none">
           <AuditTableHead />
           <TableBody>
             {Array.from({ length: rows }, (_, row) => (

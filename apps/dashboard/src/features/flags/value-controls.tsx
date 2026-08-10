@@ -25,12 +25,8 @@ import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 
 import type { FlagConstraints, FlagValueType, JsonValue } from '@toggleflow/engine';
 import { FLAG_TYPES } from '@toggleflow/engine';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { NativeSelect } from '@/components/ui/native-select';
-import { Switch } from '@/components/ui/switch';
-import { SegmentedControl } from '@/ui/segmented-control';
-import { CheckIcon, XIcon } from '@/ui/icons';
+import { Button, Input, NativeSelect, SegmentedControl, Switch } from '@velobits-dev/ui';
+import { CheckIcon, XIcon } from '@velobits-dev/icons';
 import { cn } from '@/ui/cn';
 
 /** How long a production flip stays armed - matches `ConfirmButton`'s window. */
@@ -159,7 +155,10 @@ function BooleanCell({
       />
       {armed && (
         <Button
-          size="xs"
+          // The system's scale has no `xs`; this is the documented spelling of
+          // the old one, and a `h-*`/`px-*` utility beats the cva reliably.
+          size="sm"
+          className="h-6 px-2 text-xs"
           variant="destructive"
           onClick={commit}
           aria-label={`Confirm turning ${flag.enabled ? 'off' : 'on'} ${flag.key}`}
@@ -198,6 +197,11 @@ function BooleanCell({
  * labelable elements only and would dangle against a `div`. The remaining
  * wrapper is layout for the trailing value and carries nothing semantic, so
  * there is one announcement here, not two.
+ *
+ * The props keep the app's `labelledBy` / `describedBy` spelling, which is what
+ * `ValueFieldProps` uses throughout this registry; the system's
+ * `SegmentedControl` now takes the real ARIA attribute names, so this is the one
+ * place the two spellings meet.
  */
 export function OnOffChoice({
   id,
@@ -222,8 +226,8 @@ export function OnOffChoice({
     <div className="flex flex-wrap items-center gap-2.5">
       <SegmentedControl
         id={id}
-        labelledBy={labelledBy}
-        describedBy={describedBy}
+        aria-labelledby={labelledBy}
+        aria-describedby={describedBy}
         disabled={disabled}
         value={on ? 'on' : 'off'}
         onValueChange={(next) => onChange(next === 'on')}
@@ -271,7 +275,8 @@ function StringCell({ flag, onCommit, disabled = false, disabledReason }: ValueC
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus imperatively: `autoFocus` loses to Radix's FocusScope when this cell
-  // is rendered inside a dialog (see src/ui/dialog.tsx).
+  // is rendered inside a dialog - the reason `DialogContent` has a
+  // `focusFirstField` prop at all.
   useEffect(() => {
     if (editing) inputRef.current?.focus();
   }, [editing]);
@@ -296,14 +301,20 @@ function StringCell({ flag, onCommit, disabled = false, disabledReason }: ValueC
           setEditing(true);
         }}
         /*
-         * `bg-transparent` and the border utilities are load-bearing, not
-         * decoration: styles.css's global `button { border; background; padding }`
-         * lives in Tailwind's `components` layer, so any bare <button> in this app
-         * inherits a bordered box unless a utility (a later layer) overrides it.
-         * The dashed border is then deliberate - it affords "click to edit"
-         * without pretending to be an input that already has focus.
+         * Deliberately a bare <button> rather than a `<Button variant="ghost">`:
+         * this is a cell-sized click target that has to look like a value, not
+         * like a control. `bg-transparent` and the border utilities are
+         * therefore load-bearing - Preflight resets neither - and the dashed
+         * border affords "click to edit" without pretending to be an input that
+         * already has focus.
+         *
+         * At rest it takes `border-border`, and only the hover takes
+         * `border-field-border`. Both were `--field-border` after the token
+         * rename (`--color-input` IS `--field-border`), which left the hover
+         * affordance changing nothing at all; the quieter border at rest is what
+         * makes the stronger one on hover legible again.
          */
-        className="border-input hover:bg-accent hover:border-border-strong disabled:hover:bg-transparent flex min-w-0 max-w-full rounded-md border border-dashed bg-transparent px-2 py-1 text-left font-mono text-[12.5px] disabled:cursor-not-allowed"
+        className="border-border hover:bg-accent hover:border-field-border disabled:hover:bg-transparent flex min-w-0 max-w-full cursor-pointer rounded-md border border-dashed bg-transparent px-2 py-1 text-left font-mono text-[12.5px] disabled:cursor-not-allowed"
         aria-label={`Edit value of ${flag.key}`}
       >
         <span className="truncate">{current === '' ? <Empty /> : current}</span>
@@ -330,10 +341,18 @@ function StringCell({ flag, onCommit, disabled = false, disabledReason }: ValueC
           }
         }}
       />
-      <Button size="icon-xs" variant="ghost" onClick={save} aria-label="Save value">
+      {/* `size-6` beats the cva's own `size-9`, which is how the old `icon-xs`
+          is spelled on the system's four-step scale. */}
+      <Button size="icon" className="size-6" variant="ghost" onClick={save} aria-label="Save value">
         <CheckIcon size={13} />
       </Button>
-      <Button size="icon-xs" variant="ghost" onClick={cancel} aria-label="Cancel editing">
+      <Button
+        size="icon"
+        className="size-6"
+        variant="ghost"
+        onClick={cancel}
+        aria-label="Cancel editing"
+      >
         <XIcon size={13} />
       </Button>
     </div>
@@ -364,8 +383,10 @@ function StringEnumCell({ flag, onCommit, disabled = false, disabledReason }: Va
       disabled={disabled}
       title={disabled ? disabledReason : undefined}
       aria-label={`Value of ${flag.key}`}
-      className="h-7 font-mono text-[12.5px]"
-      wrapperClassName="max-w-44"
+      // `max-w-44` used to be the wrapper's, which the system's NativeSelect no
+      // longer renders - the chevron is a background image on the <select>
+      // itself, so the cap belongs on the same element now.
+      className="h-7 max-w-44 font-mono text-[12.5px]"
       onChange={(e) => onCommit({ value: e.target.value })}
     >
       {/* A value outside the option list should be visible rather than silently

@@ -2,30 +2,22 @@
  * The before/after payloads as a unified line diff.
  *
  * Unified rather than side by side: these payloads are narrow and deep, and two
- * columns halve the width available for wrapping a long value inside an already
- * ~576px panel. The raw tab shows both payloads whole for anyone who wants the
+ * columns halve the width available for a long value inside an already ~576px
+ * panel. The raw tab shows both payloads whole for anyone who wants the
  * unchanged fields too - this view answers "what is different" and nothing else.
  *
- * Built on `components/diff.ts`, the same LCS diff the config version history
- * uses, but styled in Tailwind rather than through the legacy `.diff` class: this
- * surface needs wrapping and a scroll container, and `.diff` sets neither.
- *
- * The `+`/`−` gutter is not decoration. Colour alone fails for a red/green
- * deficiency, which is the failure mode a diff is most exposed to, so every
- * added and removed line is marked as well as tinted.
+ * Both halves now come from the design system: `diffLines` is the same LCS diff
+ * this app used to carry in `components/diff.ts` (with a size cap added), and
+ * `DiffViewer` renders it - the `+`/`−` gutter, the counted summary and the
+ * labelled scroll region included. What is left here is the part that is about
+ * audit events rather than about diffing: three payload shapes that must not be
+ * handed to a differ at all.
  */
 import { useMemo } from 'react';
 
-import { diffLines, prettyJson, type DiffLine } from '@/components/diff';
+import { DiffViewer, diffLines, type DiffLine } from '@velobits-dev/ui';
+import { prettyJson } from '@/components/json';
 import { cn } from '@/ui/cn';
-
-const LINE_CLASS: Record<DiffLine['kind'], string> = {
-  added: 'bg-on-soft text-on',
-  removed: 'bg-off-soft text-off',
-  same: 'text-muted-foreground',
-};
-
-const MARK: Record<DiffLine['kind'], string> = { added: '+', removed: '−', same: ' ' };
 
 export function AuditJsonDiff({
   before,
@@ -71,33 +63,25 @@ export function AuditJsonDiff({
     );
   }
 
-  const added = lines.filter((line) => line.kind === 'added').length;
-  const removed = lines.filter((line) => line.kind === 'removed').length;
-
   return (
     <div className={cn('min-w-0', className)}>
-      <p className="text-muted-foreground m-0 mb-1.5 text-[11.5px] tabular-nums">
-        <span className="text-on">+{added} added</span>
-        {' · '}
-        <span className="text-off">−{removed} removed</span>
-        {beforeText === '' && ' · no previous value, every line is new'}
-        {afterText === '' && ' · the payload was removed'}
-      </p>
-      <div
-        role="region"
-        aria-label="Payload diff"
-        tabIndex={0}
-        className="border-border bg-panel max-h-96 overflow-auto rounded-md border p-2 font-mono text-[12px] leading-relaxed"
-      >
-        {lines.map((line, position) => (
-          <div key={position} className={cn('flex gap-2', LINE_CLASS[line.kind])}>
-            <span aria-hidden className="shrink-0 select-none opacity-70">
-              {MARK[line.kind]}
-            </span>
-            <span className="min-w-0 break-all whitespace-pre-wrap">{line.text}</span>
-          </div>
-        ))}
-      </div>
+      {/*
+        Why the one-sided cases still say something above the diff: a wall of
+        green with no explanation reads as a huge edit, when what actually
+        happened is that the thing did not exist before. `DiffViewer`'s own
+        summary counts the lines; it cannot know why they are all one colour.
+      */}
+      {beforeText === '' && (
+        <p className="text-muted-foreground m-0 mb-1.5 text-[11.5px]">
+          Everything here is new — there was no previous value.
+        </p>
+      )}
+      {afterText === '' && (
+        <p className="text-muted-foreground m-0 mb-1.5 text-[11.5px]">
+          Everything here is gone — the payload was removed.
+        </p>
+      )}
+      <DiffViewer lines={lines} label="Payload diff" />
     </div>
   );
 }

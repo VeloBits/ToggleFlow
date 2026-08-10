@@ -33,11 +33,10 @@ import {
   membersQueryOptions,
 } from '@/api/audit';
 import type { AuditEntry } from '@/api/client';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Button, Card } from '@velobits-dev/ui';
 import { EmptyState, PageHeader } from '@/components/page';
 import { ErrorNote } from '@/components/ui';
-import { FilterIcon, HistoryIcon } from '@/ui/icons';
+import { FilterIcon, HistoryIcon } from '@velobits-dev/icons';
 import { useWorkspace } from '@/state/WorkspaceContext';
 
 import { AuditCards } from './AuditCards';
@@ -164,7 +163,7 @@ export function AuditLogPage() {
     if (entries.length === 0) {
       return (
         <EmptyState
-          icon={HistoryIcon}
+          icon={<HistoryIcon />}
           title="No activity yet"
           description="Every change anyone makes in this organization is recorded here — who did it, what changed, and when."
         />
@@ -174,11 +173,11 @@ export function AuditLogPage() {
     if (visible.length === 0) {
       return (
         <EmptyState
-          icon={FilterIcon}
+          icon={<FilterIcon />}
           title="Nothing matches these filters"
           description={`${entries.length} ${entries.length === 1 ? 'entry' : 'entries'} loaded, none of them matching.`}
           action={
-            <Button variant="outline" onClick={() => setFilter(EMPTY_FILTER)}>
+            <Button variant="secondary" onClick={() => setFilter(EMPTY_FILTER)}>
               Clear filters
             </Button>
           }
@@ -207,7 +206,7 @@ export function AuditLogPage() {
               : `${visible.length} of ${entries.length} loaded entries`}
           </span>
           {(hasOlder || loadingOlder) && (
-            <Button variant="outline" size="sm" disabled={loadingOlder} onClick={loadOlder}>
+            <Button variant="secondary" size="sm" disabled={loadingOlder} onClick={loadOlder}>
               {loadingOlder ? 'Loading…' : 'Load older'}
             </Button>
           )}
@@ -231,7 +230,12 @@ export function AuditLogPage() {
         disabled={auditQuery.isPending && entries.length === 0}
       />
       <ErrorNote error={auditQuery.error} />
-      <Card className="overflow-hidden p-0">{body()}</Card>
+      {/* `surface="panel"`, not the system's glass default: this sits flat on the
+          page background inside the authenticated shell, and glass is for the
+          surfaces that float over content. */}
+      <Card surface="panel" className="overflow-hidden p-0">
+        {body()}
+      </Card>
       {openRow && <AuditDetailPanel row={openRow} onClose={() => setOpenRow(null)} />}
     </>
   );

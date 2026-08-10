@@ -46,20 +46,11 @@ export default defineConfig({
         // tests still run and still gate CI; only the denominator changes.
         // Measuring it for real means porting to @cloudflare/vitest-pool-workers.
         'apps/edge-worker/src/**',
-        // Vendored shadcn primitives (`npx shadcn add`, style new-york): cva
-        // variant maps, forwardRef pass-throughs and className merges whose
-        // behaviour belongs to Radix and is tested upstream. Same category as
-        // the edge-worker entry above - not the thing under test.
-        //
-        // They ARE rendered: every Flags suite drives the app through them.
-        // What leaves the denominator is ~35 variant arms whose only possible
-        // assertion is "did Tailwind emit this class string".
-        //
-        // This is safe because eslint.config.js forbids importing src/api/*,
-        // @tanstack/react-query and react-router-dom inside the directory, so
-        // nothing with a branch worth testing can live there. Widen the
-        // exclusion only if that rule widens with it.
-        'apps/dashboard/src/components/ui/**',
+        // The vendored shadcn primitives that used to be excluded here are gone:
+        // apps/dashboard/src/components/ui/ was deleted when the app moved onto
+        // @velobits-dev/ui. Their cva variant maps now live in node_modules,
+        // which coverage does not instrument, so the exclusion is no longer
+        // needed to keep them out of the denominator.
         // Type-only and non-executable.
         '**/*.d.ts',
         '**/*.css',

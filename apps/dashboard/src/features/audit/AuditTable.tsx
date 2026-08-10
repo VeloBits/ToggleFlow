@@ -10,6 +10,22 @@
  * whole feature is reachable by keyboard - the row's own `onClick` is a mouse
  * convenience layered on top of that, never the only route.
  *
+ * ## Why this is not the system's `DataTable`
+ *
+ * `DataTable` is the right answer for the flags table and the wrong one here,
+ * on three counts. It models one `<tr>` per row, and the disclosure below emits
+ * a second, spanning one. It offers a single `onRowActivate`, where this table
+ * has three routes in that mean two different things - chevron expands, button
+ * and row click open the panel - and the two `interactive` cells have to
+ * stopPropagation for *different* reasons. And it earns most of its keep on
+ * `aria-sort` and selection, neither of which this table has: an audit log is
+ * newest-first by definition and there is nothing to act on in bulk.
+ *
+ * So the columns below stay a width-and-heading list rather than a cell
+ * registry, and the markup stays hand-rolled on the system's `Table*`
+ * primitives. If this table ever grows sorting or selection, that is the moment
+ * to move it - not before.
+ *
  * ## Why rows are memoised
  *
  * Typing in the search box re-derives the filtered list on every keystroke. With
@@ -20,17 +36,17 @@
  */
 import { memo } from 'react';
 
-import { Button } from '@/components/ui/button';
 import {
+  Button,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@velobits-dev/ui';
 import { cn } from '@/ui/cn';
-import { ChevronDownIcon, ChevronRightIcon, PanelLeftIcon } from '@/ui/icons';
+import { ChevronDownIcon, ChevronRightIcon, PanelLeftIcon } from '@velobits-dev/icons';
 import { relativeTime } from '@/ui/relative-time';
 
 import { AuditActionBadge } from './AuditActionBadge';
@@ -43,8 +59,8 @@ import type { AuditRow } from './audit-summary';
  *
  * Shared with `AuditSkeleton` so the placeholder cannot drift from the real
  * header - the loading state jumping sideways when data lands is exactly the
- * kind of thing two hand-maintained copies of a column list produce. Not the
- * full cell-rendering registry `features/flags/flag-columns.tsx` uses: this table
+ * kind of thing two hand-maintained copies of a column list produce. Not a
+ * `DataTableColumn` registry, for the reasons in the docblock above: this table
  * has no sorting and no card parity to drive, so the widths and headings are all
  * that need to agree.
  */
@@ -130,7 +146,8 @@ function AuditTableRowBase({
         <TableCell className="w-8 pr-0" onClick={(event) => event.stopPropagation()}>
           <Button
             variant="ghost"
-            size="icon-xs"
+            size="icon"
+            className="size-6"
             aria-expanded={expanded}
             aria-controls={detailId}
             aria-label={`${expanded ? 'Collapse' : 'Expand'} details for ${what}`}
@@ -163,7 +180,7 @@ function AuditTableRowBase({
             {summary.target.name ? (
               <span
                 className={cn(
-                  'text-text min-w-0 truncate text-[12.5px]',
+                  'text-fg min-w-0 truncate text-[12.5px]',
                   summary.target.mono && 'font-mono text-[12px]',
                 )}
                 title={summary.target.name}
@@ -189,7 +206,8 @@ function AuditTableRowBase({
         <TableCell className="w-10 text-right" onClick={(event) => event.stopPropagation()}>
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
+            className="size-8"
             aria-label={`Open full details for ${what}`}
             onClick={() => onOpen(row)}
           >
@@ -233,7 +251,12 @@ export function AuditTable({
 }) {
   return (
     <div className="hidden md:block">
-      <Table aria-label="Audit log">
+      {/*
+        `surface="none"`: this table is already inside the page's `Card`, and the
+        system's default glass wrapper would composite one surface over another -
+        two rounded borders, and two washes that flatten each other out.
+      */}
+      <Table aria-label="Audit log" surface="none">
         <AuditTableHead />
         <TableBody>
           {rows.map((row) => (

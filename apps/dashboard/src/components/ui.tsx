@@ -1,30 +1,29 @@
 /**
- * Small shared UI atoms, predating the design system.
+ * Small shared UI atoms that know product concepts.
  *
- * ## Two places called "ui" - which one you want
+ * ## What lives here now
  *
- * This file (`components/ui.tsx`) holds app-specific atoms that know product
- * concepts: a flag's ON/OFF/% chip, a two-step confirm, an error note.
- * `components/ui/` (the directory) holds the vendored shadcn primitives -
- * Button, Input, Table, Switch and friends, which know nothing about flags.
+ * Only things the design system cannot know about: a flag's ON/OFF/% chip, and a
+ * two-step confirm whose arming timer is a product decision. Everything that was
+ * generic — the modal, the error note, the chip's own paint — is the system's.
  *
- * The bare specifier `components/ui` resolves HERE, because extension
- * resolution beats directory resolution. Import a primitive by its own file:
- *
- *     import { Button } from '@/components/ui/button';   // primitive
- *     import { ErrorNote } from '@/components/ui';       // this file
- *
- * That is also the shadcn convention, so a future `npx shadcn add` needs no
- * fixing up afterwards.
- *
- * `StatusChip` below is superseded on the Flags surfaces by
- * `features/flags/FlagStatusBadge`, which also knows about archived flags and
- * pairs colour with an icon. It stays because Segments and Search still use it.
+ * `components/ui/` (the directory of vendored shadcn primitives) is **gone**;
+ * `Button`, `Input`, `Table` and friends now come straight from
+ * `@velobits-dev/ui`. The bare specifier `@/components/ui` still resolves to
+ * THIS file, so no call site of these three had to move.
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AlertTriangleIcon } from '@velobits-dev/icons';
+import { Alert, AlertDescription, Button, StatusChip as SystemStatusChip } from '@velobits-dev/ui';
+import { useEffect, useRef, useState } from 'react';
 
-import { Dialog } from '../ui/dialog';
-
+/**
+ * A flag's state as a chip, for the surfaces that only have `enabled` and
+ * `rolloutPercent` to hand (Segments, Search, the guest mock).
+ *
+ * `features/flags/FlagStatusBadge` is the richer version — it also knows about
+ * archived flags — and both now render the system's `StatusChip`, so the two
+ * cannot drift in appearance.
+ */
 export function StatusChip({
   enabled,
   rolloutPercent,
@@ -32,14 +31,34 @@ export function StatusChip({
   enabled: boolean;
   rolloutPercent: number | null;
 }) {
-  if (!enabled) return <span className="chip chip-off">OFF</span>;
-  if (rolloutPercent !== null) return <span className="chip chip-rollout">{rolloutPercent}%</span>;
-  return <span className="chip chip-on">ON</span>;
+  if (!enabled) return <SystemStatusChip status="off" />;
+  /*
+   * `partial` is the system's name for a rollout. The percentage replaces the
+   * word, which is why the rename is invisible here: a chip reading "37%" says
+   * more than one reading "PARTIAL".
+   */
+  if (rolloutPercent !== null)
+    return <SystemStatusChip status="partial">{rolloutPercent}%</SystemStatusChip>;
+  return <SystemStatusChip status="on" />;
 }
 
 /**
- * Two-step confirm: first click arms it ("Confirm?"), second click within 4s
- * executes. Used for kill-switch flips on prod environments.
+ * Two-step confirm: the first click arms it ("Confirm?"), a second click within
+ * 4s executes. Used for kill-switch flips on prod environments and for deletes.
+ *
+ * ## Why this is not just `<Button variant="destructive">`
+ *
+ * The arming timer, and the disarm-on-disable effect below, are the whole point:
+ * they make an irreversible action need two deliberate clicks without opening a
+ * dialog for it. The system has no opinion on that, so the behaviour lives here
+ * and the paint comes from `Button`.
+ *
+ * ## The armed state is not signalled by colour alone
+ *
+ * Arming swaps the variant to `destructive` AND changes the label to
+ * `confirmLabel`, so the state is legible without perceiving the colour change
+ * (WCAG 1.4.1). `data-armed` is exposed for tests and for callers that need to
+ * style around it.
  */
 export function ConfirmButton({
   label,
@@ -48,6 +67,8 @@ export function ConfirmButton({
   onConfirm,
   requireConfirm = true,
   disabled = false,
+  variant = 'destructive',
+  size = 'sm',
 }: {
   label: string;
   confirmLabel: string;
@@ -55,11 +76,20 @@ export function ConfirmButton({
   onConfirm: () => void;
   requireConfirm?: boolean;
   /**
-   * For guards rather than permissions - "you may not delete the environment
-   * you are standing in". The button stays on the page (its `title` carries
-   * the reason) instead of vanishing and leaving the absence to be decoded.
+   * For guards rather than permissions — "you may not delete the environment you
+   * are standing in". The button stays on the page (its `title` carries the
+   * reason) instead of vanishing and leaving the absence to be decoded.
    */
   disabled?: boolean;
+  /**
+   * The at-rest variant. Armed always becomes `destructive`.
+   *
+   * `primary` is in the union because not every two-step action is destructive:
+   * turning a kill switch back ON is the page's main action and should look
+   * like it. The arming step is what makes it deliberate, not the colour.
+   */
+  variant?: 'primary' | 'destructive' | 'secondary' | 'ghost';
+  size?: 'sm' | 'md';
 }) {
   const [armed, setArmed] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -83,36 +113,35 @@ export function ConfirmButton({
     setArmed(true);
     timer.current = setTimeout(() => setArmed(false), 4000);
   };
+
   return (
-    <button
+    <Button
       type="button"
       disabled={disabled}
-      className={`${className ?? ''} ${armed ? 'armed' : ''}`}
+      data-armed={armed || undefined}
+      variant={armed ? 'destructive' : variant}
+      size={size}
+      className={className}
       onClick={click}
     >
       {armed ? confirmLabel : label}
-    </button>
+    </Button>
   );
 }
 
-/** Kept as the page-facing API; now backed by Radix (focus trap, Esc, aria). */
-export function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <Dialog title={title} onClose={onClose}>
-      {children}
-    </Dialog>
-  );
-}
-
+/**
+ * A failed request, rendered where the user was working.
+ *
+ * `role="alert"` comes from the system's `Alert` in its `danger` variant, and the
+ * icon means the failure is not signalled by colour alone. Renders nothing when
+ * there is no error, so it can sit unconditionally above a form.
+ */
 export function ErrorNote({ error }: { error: unknown }) {
   if (!error) return null;
-  return <p className="error-note">{error instanceof Error ? error.message : String(error)}</p>;
+  return (
+    <Alert variant="danger" className="mb-3">
+      <AlertTriangleIcon />
+      <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
+    </Alert>
+  );
 }

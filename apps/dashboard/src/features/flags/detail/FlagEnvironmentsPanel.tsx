@@ -29,19 +29,19 @@
 import { flagType } from '@toggleflow/engine';
 
 import type { FlagDefinitionDetail } from '@/api/client';
-import { Button } from '@/components/ui/button';
 import {
+  Button,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@velobits-dev/ui';
 import { EmptyState, Panel } from '@/components/page';
 import { environmentTone } from '@/components/nav/environment-tone';
 import { useWorkspace } from '@/state/WorkspaceContext';
-import { GlobeIcon } from '@/ui/icons';
+import { GlobeIcon } from '@velobits-dev/icons';
 import { cn } from '@/ui/cn';
 import { relativeTime } from '@/ui/relative-time';
 
@@ -58,7 +58,7 @@ export function FlagEnvironmentsPanel({ flag }: { flag: FlagDefinitionDetail }) 
     return (
       <Panel title="Environments">
         <EmptyState
-          icon={GlobeIcon}
+          icon={<GlobeIcon />}
           title="This flag has no environment state yet"
           description="A flag gets a row per environment when it is registered. If this stays empty, the flag was created before this project's environments were."
         />
@@ -107,7 +107,7 @@ export function FlagEnvironmentsPanel({ flag }: { flag: FlagDefinitionDetail }) 
                         environmentTone(state.environmentKey).dot,
                       )}
                     />
-                    <span className="text-text font-medium">
+                    <span className="text-fg font-medium">
                       {environment?.name ?? state.environmentKey}
                     </span>
                     <span className="text-muted-foreground font-mono text-[12px]">
@@ -146,8 +146,9 @@ export function FlagEnvironmentsPanel({ flag }: { flag: FlagDefinitionDetail }) 
                     </span>
                   ) : (
                     <Button
-                      variant="outline"
-                      size="xs"
+                      variant="secondary"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
                       onClick={() => ws.selectEnvironment(state.environmentId)}
                     >
                       Switch to this environment

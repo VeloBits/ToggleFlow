@@ -1,15 +1,22 @@
 /**
- * Page-level furniture shared by the screens this refactor introduced.
+ * Page-level furniture: the three shapes every screen in the app is built from.
  *
- * The pages that predate it still use the legacy `.page-head` rule in
- * styles.css; these are the Tailwind replacements, and moving the older pages
- * onto them belongs with the dashboard v2 content pass, not with a change to
- * the app chrome.
+ * All three are thin compositions over the design system rather than markup of
+ * their own. They exist because a page header, a titled panel and a "not built
+ * yet" body are product decisions about layout, not components the system should
+ * own — but the surfaces they paint (`Card`, `EmptyState`) come from it.
+ *
+ * `EmptyState` is no longer defined here at all: it is re-exported from
+ * `@velobits-dev/ui` so the ~10 call sites keep one import path. The system's
+ * version takes `icon` as a NODE (`icon={<FlagIcon />}`) where this app's took a
+ * component type (`icon={FlagIcon}`) — that is the one call-site change.
  */
-import type { ComponentType, ReactNode } from 'react';
+import { Card, CardAction, CardContent, CardHeader } from '@velobits-dev/ui';
+import type { ReactNode } from 'react';
 
 import { cn } from '../ui/cn';
-import type { IconProps } from '../ui/icons';
+
+export { EmptyState } from '@velobits-dev/ui';
 
 export function PageHeader({
   title,
@@ -23,7 +30,7 @@ export function PageHeader({
   return (
     <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-text m-0 text-[20px] leading-tight font-bold">{title}</h1>
+        <h1 className="text-fg m-0 text-[20px] leading-tight font-bold">{title}</h1>
         {description && <p className="text-muted-foreground m-0 mt-1 text-[13px]">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -31,6 +38,21 @@ export function PageHeader({
   );
 }
 
+/**
+ * A titled section, on the design system's `Card` surface.
+ *
+ * Three deliberate departures from the system's default Card metrics:
+ *
+ * - `surface="panel"`, not the glass default. These stack several to a page over
+ *   a plain background; the glass tier is for surfaces that float over content.
+ * - `gap-0 py-0` and an unpadded `CardContent`, because most callers put a table
+ *   or a full-bleed list inside and pad it themselves when they do not. A Card's
+ *   own `py-4` would inset the first table row from the header rule.
+ * - The title is a real `<h2>` rather than `CardTitle` (a styled `div`). Panel
+ *   titles are document structure — a screen-reader user navigating by heading
+ *   should find them — and the app's 13px header metric is denser than the
+ *   system's `text-base` anyway.
+ */
 export function Panel({
   title,
   actions,
@@ -43,47 +65,15 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn('border-border bg-panel rounded-lg border', className)}>
+    <Card surface="panel" className={cn('gap-0 overflow-hidden py-0', className)}>
       {(title || actions) && (
-        <header className="border-border flex items-center justify-between gap-3 border-b px-4 py-2.5">
-          <h2 className="text-text m-0 text-[13px] font-semibold">{title}</h2>
-          {actions}
-        </header>
+        <CardHeader className="border-border items-center gap-3 border-b px-4 py-2.5">
+          <h2 className="text-fg m-0 text-[13px] font-semibold">{title}</h2>
+          {actions && <CardAction>{actions}</CardAction>}
+        </CardHeader>
       )}
-      {children}
-    </section>
-  );
-}
-
-export function EmptyState({
-  icon: Icon,
-  title,
-  description,
-  action,
-  children,
-}: {
-  icon?: ComponentType<IconProps>;
-  title: string;
-  description?: ReactNode;
-  action?: ReactNode;
-  /**
-   * Supplemental content under the action - the "what happens next" list the
-   * Flags page shows a first-time project. Below the button rather than above
-   * it, so someone who already knows what a flag is never has to read past the
-   * thing they came to click.
-   */
-  children?: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-      {Icon && <Icon size={22} className="text-muted-foreground mb-1" />}
-      <p className="text-text m-0 text-[14px] font-semibold">{title}</p>
-      {description && (
-        <p className="text-muted-foreground m-0 max-w-md text-[13px]">{description}</p>
-      )}
-      {action && <div className="mt-2">{action}</div>}
-      {children}
-    </div>
+      <CardContent className="px-0">{children}</CardContent>
+    </Card>
   );
 }
 
@@ -92,18 +82,18 @@ export function EmptyState({
  * (Webhooks, Integrations, Billing).
  *
  * These have a nav row and a route because the information architecture is a
- * promise about where things will live, and moving a nav item after people
- * have learned it costs more than showing it early. What they must not do is
- * pretend: each one names what it will do, and says plainly that it is not
- * built. That is the difference between a roadmap and a dead link.
+ * promise about where things will live, and moving a nav item after people have
+ * learned it costs more than showing it early. What they must not do is pretend:
+ * each one names what it will do, and says plainly that it is not built. That is
+ * the difference between a roadmap and a dead link.
  */
 export function ComingSoon({
-  icon: Icon,
+  icon,
   title,
   description,
   planned,
 }: {
-  icon: ComponentType<IconProps>;
+  icon: ReactNode;
   title: string;
   description: string;
   planned: string[];
@@ -121,8 +111,8 @@ export function ComingSoon({
       />
       <Panel
         title={
-          <span className="flex items-center gap-2">
-            <Icon size={15} className="text-muted-foreground" />
+          <span className="text-muted-foreground flex items-center gap-2">
+            {icon}
             Planned
           </span>
         }

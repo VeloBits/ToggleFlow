@@ -35,14 +35,18 @@ export default tseslint.config(
     },
   },
   /*
-   * The app icon set is hand-drawn (apps/dashboard/src/ui/icons.tsx) because
-   * Lucide's glyphs lose their read at the 13-18px this dashboard renders at -
-   * each icon's docblock records the measured departure. lucide-react is
-   * installed only because the vendored shadcn primitives import it.
+   * The icon set is @velobits-dev/icons: hand-drawn on a 24x24 grid and tuned
+   * for the 13-18px this dashboard renders at, where Lucide's glyphs lose their
+   * read. Nothing here imports lucide-react any more, and this rule is what
+   * keeps it that way.
+   *
+   * The other three names below are the local UI layer the design system
+   * replaced. They are listed by name because a stale import of any of them
+   * fails at build time with a module-not-found that says nothing about where
+   * the component went.
    */
   {
-    files: ['apps/dashboard/src/**/*.{ts,tsx}'],
-    ignores: ['apps/dashboard/src/components/ui/**'],
+    files: ['apps/dashboard/src/**/*.{ts,tsx}', 'apps/dashboard/test/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -50,32 +54,29 @@ export default tseslint.config(
           paths: [
             {
               name: 'lucide-react',
-              message:
-                'App icons come from src/ui/icons.tsx (tuned for 13-18px). lucide-react is only for the vendored shadcn primitives in src/components/ui/.',
+              message: 'Icons come from @velobits-dev/icons, which is tuned for 13-18px rendering.',
             },
           ],
-        },
-      ],
-    },
-  },
-  /*
-   * src/components/ui/ is excluded from the coverage thresholds in
-   * vitest.coverage.config.ts on the grounds that it holds no logic worth
-   * asserting. This rule is what makes that true rather than merely claimed:
-   * data fetching, routing and app types cannot be imported here, so the
-   * exclusion can never be used to hide a branch.
-   */
-  {
-    files: ['apps/dashboard/src/components/ui/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
           patterns: [
             {
-              group: ['**/api/*', '@/api/*', '@tanstack/react-query', 'react-router-dom'],
+              group: [
+                '**/components/ui/*',
+                '@/components/ui/*',
+                '**/ui/icons',
+                '@/ui/icons',
+                '**/ui/dialog',
+                '@/ui/dialog',
+                '**/ui/side-panel',
+                '@/ui/side-panel',
+                '**/ui/menu',
+                '@/ui/menu',
+                '**/ui/segmented-control',
+                '@/ui/segmented-control',
+                '**/ui/theme',
+                '@/ui/theme',
+              ],
               message:
-                'Presentational primitives only. Anything that fetches, routes or knows an app type belongs in src/features/ or src/components/, which are coverage-gated.',
+                'That module was replaced by the design system. Import it from @velobits-dev/ui or @velobits-dev/icons instead (Menu* is DropdownMenu*, and ui/theme is useTheme).',
             },
           ],
         },

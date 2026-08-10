@@ -6,13 +6,13 @@
  * thread, and a viewer that only shows the friendly label makes the machine
  * value unrecoverable from the screen.
  *
- * Colour is never the only channel: every tone in `TONE_CLASS` arrives with its
- * own glyph, for the same reason `FlagStatusBadge` carries one.
+ * Colour is never the only channel: every tone in `TONE_VARIANT` arrives with
+ * its own glyph, for the same reason `FlagStatusBadge` carries one.
  */
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@velobits-dev/ui';
 import { cn } from '@/ui/cn';
 
-import { TONE_CLASS, type AuditEventMeta } from './audit-events';
+import { TONE_VARIANT, type AuditEventMeta } from './audit-events';
 
 export function AuditActionBadge({
   meta,
@@ -26,13 +26,12 @@ export function AuditActionBadge({
   const Icon = meta.icon;
   return (
     <Badge
-      variant="secondary"
+      variant={TONE_VARIANT[meta.tone]}
       title={action}
-      className={cn(
-        'gap-1 border-transparent px-1.5 text-[11px] font-semibold whitespace-nowrap',
-        TONE_CLASS[meta.tone],
-        className,
-      )}
+      // Only the density is local: the tone's wash, text colour and border all
+      // come from the variant now, so there is nothing here to drift out of step
+      // with the rest of the app's badges.
+      className={cn('gap-1 px-1.5 text-[11px] font-semibold', className)}
     >
       <Icon size={11} className="shrink-0" />
       {meta.badge}

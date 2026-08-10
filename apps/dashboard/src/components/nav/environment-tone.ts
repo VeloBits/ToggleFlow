@@ -19,10 +19,10 @@ export interface EnvironmentTone {
   chip: string;
 }
 
-const PRODUCTION: EnvironmentTone = { dot: 'bg-off', chip: 'bg-off-soft text-off' };
-const STAGING: EnvironmentTone = { dot: 'bg-rollout', chip: 'bg-rollout-soft text-rollout' };
+const PRODUCTION: EnvironmentTone = { dot: 'bg-danger', chip: 'bg-danger-soft text-danger' };
+const STAGING: EnvironmentTone = { dot: 'bg-warning', chip: 'bg-warning-soft text-warning' };
 const DEVELOPMENT: EnvironmentTone = { dot: 'bg-primary', chip: 'bg-primary-soft text-primary' };
-const NEUTRAL: EnvironmentTone = { dot: 'bg-border-strong', chip: 'bg-bg2 text-muted-foreground' };
+const NEUTRAL: EnvironmentTone = { dot: 'bg-field-border', chip: 'bg-bg2 text-muted-foreground' };
 
 /** Prefix rather than exact match, so `prod-eu` and `staging-2` inherit the right colour. */
 export function environmentTone(key: string): EnvironmentTone {

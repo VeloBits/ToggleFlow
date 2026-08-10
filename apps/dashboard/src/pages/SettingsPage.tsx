@@ -8,6 +8,15 @@
  * organization look identical and are not.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Badge,
+  Button,
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldLabel,
+  Input,
+} from '@velobits-dev/ui';
 import { useEffect, useState } from 'react';
 
 import { api, type Project } from '../api/client';
@@ -56,42 +65,46 @@ function ProjectSettings() {
     <>
       <Panel title="Project" className="mb-4">
         <form
-          className="p-4"
+          className="flex flex-col items-start gap-4 p-4"
           noValidate
           onSubmit={(e) => {
             e.preventDefault();
             if (changed && !rename.isPending) rename.mutate(trimmed);
           }}
         >
-          <div className="field max-w-md">
-            <label htmlFor="project-rename">Name</label>
-            <input
-              id="project-rename"
-              value={name}
-              maxLength={200}
-              disabled={!isAdmin}
-              onChange={(e) => setName(e.target.value)}
-            />
+          {/*
+            The read-only explanation is a `FieldDescription` rather than a loose
+            paragraph, so it is wired into the input's `aria-describedby` - the
+            disabled state on its own says the field cannot be edited, never why.
+          */}
+          <Field id="project-rename" className="w-full max-w-md" describedBy={!isAdmin}>
+            <FieldLabel>Name</FieldLabel>
+            <FieldControl>
+              <Input
+                value={name}
+                maxLength={200}
+                disabled={!isAdmin}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </FieldControl>
             {!isAdmin && (
-              <p className="text-muted-foreground m-0 text-[12px]">
-                Only organization admins can rename a project.
-              </p>
+              <FieldDescription>Only organization admins can rename a project.</FieldDescription>
             )}
-          </div>
+          </Field>
           <ErrorNote error={rename.error} />
           {isAdmin && (
-            <button type="submit" className="primary" disabled={!changed || rename.isPending}>
+            <Button type="submit" variant="primary" disabled={!changed || rename.isPending}>
               {rename.isPending ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
           )}
         </form>
       </Panel>
 
       {isAdmin && (
-        <Panel title="Danger zone" className="border-off/40 mb-4">
+        <Panel title="Danger zone" className="border-danger/40 mb-4">
           <div className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div className="min-w-0">
-              <p className="text-text m-0 text-[13px] font-medium">Delete this project</p>
+              <p className="text-fg m-0 text-[13px] font-medium">Delete this project</p>
               <p className="text-muted-foreground m-0 mt-0.5 text-[12.5px]">
                 Removes {ws.project?.name} with all of its flags, environments, API keys and config
                 history. This cannot be undone.
@@ -99,7 +112,7 @@ function ProjectSettings() {
             </div>
             <ErrorNote error={remove.error} />
             <ConfirmButton
-              className="danger"
+              variant="destructive"
               label="Delete project"
               confirmLabel="Delete permanently?"
               onConfirm={() => remove.mutate()}
@@ -117,17 +130,22 @@ function OrganizationSettings() {
 
   return (
     <Panel title="Organization">
+      {/*
+        Still a `<dl>`: these are four labelled facts, not a form and not a
+        table, and the description-list is the element that says so. Only the
+        paint moved onto tokens.
+      */}
       <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 p-4 text-[13px]">
         <dt className="text-muted-foreground">Name</dt>
-        <dd className="text-text m-0">{ws.org.name}</dd>
+        <dd className="text-fg m-0">{ws.org.name}</dd>
         <dt className="text-muted-foreground">Your role</dt>
         <dd className="m-0">
-          <span className="chip chip-role">{ws.role}</span>
+          <Badge variant="primary">{ws.role}</Badge>
         </dd>
         <dt className="text-muted-foreground">Projects</dt>
-        <dd className="text-text m-0">{ws.projects.length}</dd>
+        <dd className="text-fg m-0">{ws.projects.length}</dd>
         <dt className="text-muted-foreground">Organization ID</dt>
-        <dd className="mono m-0">{ws.org.id}</dd>
+        <dd className="text-fg m-0 font-mono text-[12.5px]">{ws.org.id}</dd>
       </dl>
       <p className="text-muted-foreground border-border m-0 border-t px-4 py-2.5 text-[12.5px]">
         Renaming and deleting an organization are not available yet. Members and roles are managed

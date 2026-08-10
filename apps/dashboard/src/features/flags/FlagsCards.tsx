@@ -12,7 +12,7 @@
  * box, the name and the status sit on one line in that order regardless of where
  * the registry puts them. The detail rows below it are the registry's order.
  */
-import { Card } from '@/components/ui/card';
+import { Card } from '@velobits-dev/ui';
 import { cn } from '@/ui/cn';
 
 import { CARD_DETAIL_COLUMNS, FLAG_COLUMNS, type CellContext, type FlagRow } from './flag-columns';
@@ -30,6 +30,13 @@ export function FlagsCards({ flags, ctx }: { flags: FlagRow[]; ctx: CellContext 
         return (
           <li key={flag.id}>
             <Card
+              /*
+               * `panel`, not the system's glass default: these are nested inside
+               * the page's own Card, and glass over glass composites a couple of
+               * levels apart - both layers disappear and the card stops reading
+               * as a card at all.
+               */
+              surface="panel"
               className={cn(
                 'cursor-pointer gap-0 p-3',
                 flag.archived && 'opacity-60',

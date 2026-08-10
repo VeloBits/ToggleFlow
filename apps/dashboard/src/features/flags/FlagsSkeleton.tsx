@@ -16,15 +16,15 @@
  * Eight rows because that is roughly a viewport at this row height - enough to
  * fill the space, not so many that the page scrolls to reveal fake content.
  */
-import { Skeleton } from '@/components/ui/skeleton';
 import {
+  Skeleton,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@velobits-dev/ui';
 import { cn } from '@/ui/cn';
 
 import { columnClass, HEAD_CLASS, ROW_CLASS, visibleColumns } from './flag-columns';
@@ -41,12 +41,19 @@ export function FlagsSkeleton() {
   return (
     <>
       <div className="hidden md:block" aria-hidden>
-        <Table>
+        {/* `surface="none"` for the same reason `FlagsTable` passes it: this sits
+            inside the page's Card, and a glass wrapper inside a glass wrapper
+            cancels. The skeleton must sit on the surface the table will. */}
+        <Table surface="none">
           <TableHeader className="bg-bg2">
             <TableRow className="hover:bg-transparent">
               {COLUMNS.map((column) => (
                 <TableHead key={column.id} className={cn(HEAD_CLASS, columnClass(column))}>
-                  {column.header}
+                  {/* The registry's `hideHeader` columns paint nothing here
+                      either, or the loading state would show two headings the
+                      real table does not. The whole block is `aria-hidden`, so
+                      unlike the table this needs no `sr-only` fallback. */}
+                  {column.hideHeader ? null : column.header}
                 </TableHead>
               ))}
             </TableRow>

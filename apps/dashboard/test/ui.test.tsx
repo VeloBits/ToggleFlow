@@ -1,18 +1,27 @@
 // @vitest-environment happy-dom
 /**
- * The shared UI layer: class merging, theme persistence, the Radix-backed
- * Dialog and SegmentedControl wrappers, and the toast queue.
+ * The shared UI layer this app still owns after the design-system migration:
+ * the flag-state chip, the two-step confirm, the error note, the theme wiring
+ * and the toast queue.
+ *
+ * What used to be here and is not any more: the Dialog, SidePanel and
+ * SegmentedControl wrappers, and `initTheme`/`isDark`/`toggleTheme`. Those files
+ * are deleted — the primitives come from `@velobits-dev/ui` now and are tested
+ * in that package. Re-asserting a dependency's behaviour here would only test
+ * that the import statement is spelled correctly.
+ *
+ * What IS still tested about the theme is the app's own configuration of it:
+ * that the storage key is `tf.theme`, that a stored preference beats the OS,
+ * and that the class lands on `<body>` — which is what the token stylesheet
+ * keys its dark palette on.
  */
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { THEME_STORAGE_KEYS, VelobitsProvider, useTheme } from '@velobits-dev/ui';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConfirmButton, ErrorNote, Modal, StatusChip } from '../src/components/ui';
+import { ConfirmButton, ErrorNote, StatusChip } from '../src/components/ui';
 import { cn } from '../src/ui/cn';
-import { Dialog } from '../src/ui/dialog';
-import { SegmentedControl } from '../src/ui/segmented-control';
-import { SidePanel } from '../src/ui/side-panel';
-import { initTheme, isDark, toggleTheme } from '../src/ui/theme';
 import { ToastProvider, useToast } from '../src/ui/toast';
 
 afterEach(() => {
@@ -36,41 +45,87 @@ describe('theme', () => {
   beforeEach(() => {
     localStorage.clear();
     document.body.className = '';
+    document.documentElement.className = '';
+  });
+
+  /** Mirrors main.tsx: the provider, configured with this app's storage key. */
+  function renderTheme() {
+    function Probe() {
+      const { theme, toggle } = useTheme();
+      return (
+        <button type="button" onClick={toggle}>
+          {theme}
+        </button>
+      );
+    }
+    return render(
+      <VelobitsProvider storageKey={THEME_STORAGE_KEYS.dashboard}>
+        <Probe />
+      </VelobitsProvider>,
+    );
+  }
+
+  it('uses `tf.theme` as its storage key', () => {
+    expect(THEME_STORAGE_KEYS.dashboard).toBe('tf.theme');
   });
 
   it('follows the stored preference over the OS setting', () => {
     localStorage.setItem('tf.theme', 'dark');
-    vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: false } as MediaQueryList);
-    initTheme();
-    expect(isDark()).toBe(true);
+    vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList);
+    renderTheme();
+    expect(screen.getByRole('button').textContent).toBe('dark');
+    expect(document.body.classList.contains('dark')).toBe(true);
   });
 
   it('honours a stored light preference even when the OS prefers dark', () => {
     localStorage.setItem('tf.theme', 'light');
-    vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
-    initTheme();
-    expect(isDark()).toBe(false);
+    vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList);
+    renderTheme();
+    expect(screen.getByRole('button').textContent).toBe('light');
+    expect(document.body.classList.contains('dark')).toBe(false);
   });
 
   it('falls back to the OS setting when nothing is stored', () => {
-    vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
-    initTheme();
-    expect(isDark()).toBe(true);
+    vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList);
+    renderTheme();
+    expect(screen.getByRole('button').textContent).toBe('dark');
   });
 
   it('toggle flips the class and persists the new value', () => {
-    expect(toggleTheme()).toBe(true);
+    vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList);
+    renderTheme();
+    const button = screen.getByRole('button');
+
+    fireEvent.click(button);
     expect(localStorage.getItem('tf.theme')).toBe('dark');
-    expect(toggleTheme()).toBe(false);
+    expect(document.body.classList.contains('dark')).toBe(true);
+
+    fireEvent.click(button);
     expect(localStorage.getItem('tf.theme')).toBe('light');
-    expect(isDark()).toBe(false);
+    expect(document.body.classList.contains('dark')).toBe(false);
   });
 });
 
 describe('StatusChip', () => {
   it('renders OFF when disabled, whatever the rollout is', () => {
     render(<StatusChip enabled={false} rolloutPercent={50} />);
-    expect(screen.getByText('OFF')).toBeTruthy();
+    expect(screen.getByText(/^off$/i)).toBeTruthy();
   });
 
   it('renders the percentage for a partial rollout', () => {
@@ -80,7 +135,7 @@ describe('StatusChip', () => {
 
   it('renders ON for a full rollout', () => {
     render(<StatusChip enabled rolloutPercent={null} />);
-    expect(screen.getByText('ON')).toBeTruthy();
+    expect(screen.getByText(/^on$/i)).toBeTruthy();
   });
 
   it('renders 0% rather than ON - a zero rollout is not the same as off', () => {
@@ -135,14 +190,33 @@ describe('ConfirmButton', () => {
     expect(onConfirm).toHaveBeenCalledOnce();
   });
 
-  it('passes the caller class through alongside the armed marker', () => {
-    render(
-      <ConfirmButton label="Go" confirmLabel="Sure?" className="danger" onConfirm={vi.fn()} />,
-    );
+  it('marks itself armed, and says so in words rather than only in colour', () => {
+    render(<ConfirmButton label="Go" confirmLabel="Sure?" onConfirm={vi.fn()} />);
     const button = screen.getByRole('button');
-    expect(button.className).toContain('danger');
+
+    expect(button.dataset.armed).toBeUndefined();
+
     fireEvent.click(button);
-    expect(button.className).toContain('armed');
+
+    // The label changing is the accessible half of the signal; `data-armed` is
+    // for tests and for callers that need to style around the state.
+    expect(button.dataset.armed).toBe('true');
+    expect(button.textContent).toBe('Sure?');
+  });
+
+  it('escalates a quiet resting variant to destructive once armed', () => {
+    // The design system's Button carries its variant in the class list rather
+    // than in a data attribute, so this reads the one class only the destructive
+    // variant contributes.
+    render(<ConfirmButton label="Go" confirmLabel="Sure?" variant="ghost" onConfirm={vi.fn()} />);
+    const button = screen.getByRole('button');
+
+    expect(button.className).not.toContain('bg-danger');
+
+    fireEvent.click(button);
+
+    expect(button.className).toContain('bg-danger');
+    expect(button.dataset.armed).toBe('true');
   });
 });
 
@@ -160,213 +234,6 @@ describe('ErrorNote', () => {
   it('stringifies a non-Error rejection', () => {
     render(<ErrorNote error="plain string failure" />);
     expect(screen.getByText('plain string failure')).toBeTruthy();
-  });
-});
-
-describe('Dialog / Modal', () => {
-  it('renders the title and children, and closes via the X button', () => {
-    const onClose = vi.fn();
-    render(
-      <Dialog title="New project" onClose={onClose}>
-        <p>body content</p>
-      </Dialog>,
-    );
-    expect(screen.getByText('New project')).toBeTruthy();
-    expect(screen.getByText('body content')).toBeTruthy();
-
-    fireEvent.click(screen.getByLabelText('Close'));
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('closes on Escape - Radix owns the key handling', async () => {
-    const onClose = vi.fn();
-    render(
-      <Dialog title="Closable" onClose={onClose}>
-        <p>x</p>
-      </Dialog>,
-    );
-    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-  });
-
-  it('Modal delegates to Dialog with the page-facing props', () => {
-    render(
-      <Modal title="Example dialog" onClose={vi.fn()}>
-        <p>fields</p>
-      </Modal>,
-    );
-    expect(screen.getByText('Example dialog')).toBeTruthy();
-    expect(screen.getByText('fields')).toBeTruthy();
-  });
-
-  /*
-   * Focus on open. Radix's focus scope grabs the first tabbable element, which
-   * is the header ✕ - so a field's own `autoFocus` loses and the first
-   * keystroke in a form dialog went nowhere (Enter closed it instead). These
-   * pin the redirect, because the failure is invisible until someone opens a
-   * dialog with the keyboard.
-   */
-  it('focuses the first form field rather than the close button', async () => {
-    render(
-      <Dialog title="New environment" onClose={vi.fn()}>
-        <input id="first" />
-        <input id="second" />
-      </Dialog>,
-    );
-    await waitFor(() => expect(document.activeElement?.id).toBe('first'));
-  });
-
-  it('skips a disabled field', async () => {
-    render(
-      <Dialog title="Partly locked" onClose={vi.fn()}>
-        <input id="locked" disabled />
-        <select id="pickable" />
-      </Dialog>,
-    );
-    await waitFor(() => expect(document.activeElement?.id).toBe('pickable'));
-  });
-
-  it('leaves Radix to it when there is no field', async () => {
-    render(
-      <Dialog title="Your new key" onClose={vi.fn()}>
-        <p>tf_srv_abc…</p>
-      </Dialog>,
-    );
-    await waitFor(() => expect(document.activeElement?.getAttribute('aria-label')).toBe('Close'));
-  });
-
-  it('lets a caller override the target', async () => {
-    render(
-      <Dialog
-        title="Switch organization"
-        onClose={vi.fn()}
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          document.getElementById('second')?.focus();
-        }}
-      >
-        <input id="first" />
-        <input id="second" />
-      </Dialog>,
-    );
-    await waitFor(() => expect(document.activeElement?.id).toBe('second'));
-  });
-});
-
-describe('SidePanel', () => {
-  it('renders the title, description, body and footer, and closes via the X button', () => {
-    const onClose = vi.fn();
-    render(
-      <SidePanel
-        title="flag.updated"
-        description="Ada Lovelace · 2 minutes ago"
-        onClose={onClose}
-        footer={<button type="button">Copy payload</button>}
-      >
-        <pre>{'{ "enabled": true }'}</pre>
-      </SidePanel>,
-    );
-    expect(screen.getByText('flag.updated')).toBeTruthy();
-    expect(screen.getByText('Ada Lovelace · 2 minutes ago')).toBeTruthy();
-    expect(screen.getByText('{ "enabled": true }')).toBeTruthy();
-    expect(screen.getByText('Copy payload')).toBeTruthy();
-
-    fireEvent.click(screen.getByLabelText('Close'));
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('closes on Escape - Radix owns the key handling', async () => {
-    const onClose = vi.fn();
-    render(
-      <SidePanel title="Closable" onClose={onClose}>
-        <p>x</p>
-      </SidePanel>,
-    );
-    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-  });
-
-  /*
-   * The deliberate difference from Dialog: this is a reading surface, so focus
-   * stays where Radix put it (the ✕) even when the body happens to contain a
-   * field. Pinned because the two primitives look identical from a call site and
-   * the next person to touch either one will assume they behave the same.
-   */
-  it('does not redirect focus to a field the way Dialog does', async () => {
-    render(
-      <SidePanel title="Event detail" onClose={vi.fn()}>
-        <input id="filter" />
-      </SidePanel>,
-    );
-    await waitFor(() => expect(document.activeElement?.getAttribute('aria-label')).toBe('Close'));
-  });
-
-  it('points aria-describedby at the description, and omits it when there is none', () => {
-    const { unmount } = render(
-      <SidePanel title="Described" description="who, what, when" onClose={vi.fn()}>
-        <p>x</p>
-      </SidePanel>,
-    );
-    const describedBy = screen.getByRole('dialog').getAttribute('aria-describedby');
-    expect(describedBy).toBeTruthy();
-    expect(document.getElementById(describedBy ?? '')?.textContent).toBe('who, what, when');
-
-    unmount();
-    render(
-      <SidePanel title="Bare" onClose={vi.fn()}>
-        <p>x</p>
-      </SidePanel>,
-    );
-    expect(screen.getByRole('dialog').hasAttribute('aria-describedby')).toBe(false);
-  });
-});
-
-describe('SegmentedControl', () => {
-  const options = [
-    { value: 'dev', label: 'Development' },
-    { value: 'prod', label: 'Production', tone: 'danger' as const },
-  ];
-
-  it('reports a new selection', () => {
-    const onValueChange = vi.fn();
-    render(
-      <SegmentedControl
-        value="dev"
-        onValueChange={onValueChange}
-        options={options}
-        aria-label="Environment"
-      />,
-    );
-    fireEvent.click(screen.getByText('Production'));
-    expect(onValueChange).toHaveBeenCalledWith('prod');
-  });
-
-  it('ignores a deselect - the selection can never be empty', () => {
-    const onValueChange = vi.fn();
-    render(
-      <SegmentedControl
-        value="dev"
-        onValueChange={onValueChange}
-        options={options}
-        aria-label="Environment"
-      />,
-    );
-    // Clicking the active item is what Radix reports as an empty value.
-    fireEvent.click(screen.getByText('Development'));
-    expect(onValueChange).not.toHaveBeenCalled();
-  });
-
-  it('marks the active option for assistive tech', () => {
-    render(
-      <SegmentedControl
-        value="prod"
-        onValueChange={vi.fn()}
-        options={options}
-        aria-label="Environment"
-      />,
-    );
-    expect(screen.getByText('Production').getAttribute('data-state')).toBe('on');
-    expect(screen.getByText('Development').getAttribute('data-state')).toBe('off');
   });
 });
 

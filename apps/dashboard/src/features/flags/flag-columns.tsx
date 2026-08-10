@@ -28,12 +28,9 @@ import type { ReactNode } from 'react';
 
 import type { JsonValue } from '@toggleflow/engine';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge, Button, Checkbox, Tooltip, TooltipContent, TooltipTrigger } from '@velobits-dev/ui';
 import { cn } from '@/ui/cn';
-import { CopyIcon } from '@/ui/icons';
+import { CopyIcon } from '@velobits-dev/icons';
 import { relativeTime } from '@/ui/relative-time';
 import type { Flag } from '@/api/client';
 
@@ -83,7 +80,16 @@ export interface CellContext {
 
 export interface FlagColumn {
   id: 'select' | 'status' | 'name' | 'key' | 'type' | 'value' | 'tags' | 'updatedAt' | 'actions';
+  /**
+   * The column's name — and it is a name, not decoration, which is why the two
+   * columns with nothing to *show* in their header still carry one and set
+   * `hideHeader` instead of passing `''`. A `<th>` with no text is an axe
+   * `empty-table-header` violation and, more to the point, a screen reader
+   * announcing every cell in that column with no idea what it contains.
+   */
   header: string;
+  /** Keep `header` as the accessible name but do not paint it. */
+  hideHeader?: boolean;
   /** Absent = not sortable. */
   sortKey?: SortKey;
   /** Dropped from the table below this width; the cards show everything. */
@@ -164,7 +170,8 @@ export const FLAG_COLUMNS: FlagColumn[] = [
    */
   {
     id: 'select',
-    header: '',
+    header: 'Select',
+    hideHeader: true,
     // Fixed and narrow: a flexible select column would shift every other one
     // sideways the moment bulk mode turned on.
     width: 'w-10',
@@ -214,7 +221,7 @@ export const FLAG_COLUMNS: FlagColumn[] = [
        * to their content and clip the name while space remained.
        */
       <div className="min-w-0 truncate" title={flagTitle(flag)}>
-        <span className="text-text font-semibold">{flag.name}</span>
+        <span className="text-fg font-semibold">{flag.name}</span>
         {flag.description && (
           <>
             <span aria-hidden className="text-muted-foreground/50 px-1.5">
@@ -312,7 +319,8 @@ export const FLAG_COLUMNS: FlagColumn[] = [
   },
   {
     id: 'actions',
-    header: '',
+    header: 'Actions',
+    hideHeader: true,
     align: 'right',
     width: 'w-10',
     skeleton: 'w-4',
@@ -361,7 +369,10 @@ function FlagTags({ tags }: { tags: string[] }) {
   return (
     <span className="flex min-w-0 items-center gap-1">
       {tags.slice(0, TAG_LIMIT).map((tag) => (
-        <Badge key={tag} variant="secondary" className="max-w-24 font-normal" title={tag}>
+        // `neutral` is the system's name for the quiet grey badge that shadcn
+        // spelled `secondary`. A tag is filing, not state, so it must not reach
+        // for one of the semantic tones the status chip owns.
+        <Badge key={tag} variant="neutral" className="max-w-24 font-normal" title={tag}>
           <span className="truncate">{tag}</span>
         </Badge>
       ))}

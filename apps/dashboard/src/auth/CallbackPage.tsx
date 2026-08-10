@@ -1,5 +1,7 @@
+import { AlertTriangleIcon } from '@velobits-dev/icons';
+import { Alert, AlertDescription, AlertTitle, Button, Spinner } from '@velobits-dev/ui';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { userManager } from './oidc';
 import { returnToFromState } from './return-to';
@@ -21,11 +23,31 @@ export function CallbackPage() {
 
   if (error) {
     return (
-      <main className="center-page">
-        <p>Sign-in failed: {error}</p>
-        <a href="/">Back</a>
+      <main className="flex h-screen flex-col items-center justify-center gap-4 px-6">
+        <Alert variant="danger" className="max-w-md">
+          <AlertTriangleIcon />
+          <AlertTitle>Sign-in failed</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        {/*
+         * A full page load, not a router navigation: the OIDC client is in a
+         * failed state and the point of this link is to start over cleanly.
+         */}
+        <Button asChild variant="secondary">
+          <Link to="/" reloadDocument>
+            Back
+          </Link>
+        </Button>
       </main>
     );
   }
-  return <main className="center-page">Signing you in…</main>;
+
+  return (
+    <main className="flex h-screen flex-col items-center justify-center gap-3">
+      <Spinner size={20} label={null} className="text-muted-foreground" />
+      <p className="text-muted-foreground m-0 text-[13px]" role="status">
+        Signing you in…
+      </p>
+    </main>
+  );
 }

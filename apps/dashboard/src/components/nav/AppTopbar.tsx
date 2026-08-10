@@ -1,20 +1,31 @@
 /**
- * The authenticated top bar: brand, then the Org → Project → Environment
- * scope chain, and nothing else.
+ * The authenticated top bar's contents: the Org → Project → Environment scope
+ * chain, and nothing else.
  *
  * Identity, role, theme and sign-out used to live up here; they are account
  * controls, not navigation, and they now sit at the foot of the sidebar
- * (AppSidebar) where every SaaS product of the last decade has taught people
- * to look for them. What is left is the answer to one question - "what am I
- * looking at?" - which is the only thing a top bar in a scoped product owes
- * the user.
+ * (AppSidebar) where every SaaS product of the last decade has taught people to
+ * look for them. What is left is the answer to one question — "what am I looking
+ * at?" — which is the only thing a top bar in a scoped product owes the user.
+ *
+ * ## Why this is no longer a `<header>`
+ *
+ * `AppShellHeader` is the bar itself: it owns the sticky positioning, the 52px
+ * height, the surface and the z-index step that keeps it below its own
+ * dropdowns. The hamburger is `AppShellSidebarTrigger`, which is a real Radix
+ * trigger and so carries `aria-expanded`, `aria-controls` and the focus return
+ * that a hand-rolled button had no way to. Both are composed in `Layout`.
+ *
+ * What is left here is the part that knows about the workspace.
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { BuildingIcon, FolderIcon, PlusIcon, ToggleMarkIcon } from '@velobits-dev/icons';
+import { Button } from '@velobits-dev/ui';
+
 import { useWorkspace } from '../../state/WorkspaceContext';
 import { cn } from '../../ui/cn';
-import { BuildingIcon, FolderIcon, MenuIcon, PlusIcon, ToggleMarkIcon } from '../../ui/icons';
 import { useToast } from '../../ui/toast';
 import {
   CreateEnvironmentDialog,
@@ -28,7 +39,7 @@ type Creating = 'org' | 'project' | 'environment' | null;
 
 const ADMIN_ONLY = 'Only organization admins can do this.';
 
-export function AppTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
+export function AppTopbarContent() {
   const ws = useWorkspace();
   const toast = useToast();
   const [creating, setCreating] = useState<Creating>(null);
@@ -38,31 +49,7 @@ export function AppTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
   const hasProject = ws.projectId !== null;
 
   return (
-    <header className="border-border bg-panel flex h-13 shrink-0 items-center gap-1 border-b px-3 sm:px-4">
-      {/* The drawer trigger only exists below `md`, where the sidebar is an
-          overlay rather than a column. */}
-      <button
-        type="button"
-        onClick={onOpenSidebar}
-        aria-label="Open navigation menu"
-        className="text-muted-foreground hover:bg-highlight hover:text-text focus-visible:ring-ring -ml-1 inline-flex size-9 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 focus-visible:ring-2 focus-visible:outline-none md:hidden"
-      >
-        <MenuIcon size={18} />
-      </button>
-
-      <Link
-        to="/"
-        className="focus-visible:ring-ring flex shrink-0 items-center gap-2 rounded-md px-1 py-1 focus-visible:ring-2 focus-visible:outline-none"
-      >
-        <ToggleMarkIcon size={20} className="text-primary" />
-        {/* The wordmark yields before the scope chain does: below `sm` the mark
-            alone still identifies the product, but a truncated project name
-            identifies nothing. */}
-        <span className="text-text hidden text-[15px] font-bold sm:inline">ToggleFlow</span>
-      </Link>
-
-      <span aria-hidden className="bg-border mx-1.5 hidden h-5 w-px sm:block" />
-
+    <>
       {/*
         Horizontally scrollable rather than wrapping: the bar is a fixed 52px
         row that the page grid is measured against, so a second line would
@@ -96,14 +83,15 @@ export function AppTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
           <>
             <ScopeSeparator />
             {isAdmin ? (
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => setCreating('project')}
-                className="border-primary bg-primary hover:bg-primary-hover hover:border-primary-hover focus-visible:ring-ring focus-visible:ring-offset-panel ml-1 inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-[13px] font-semibold whitespace-nowrap text-white transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none motion-reduce:transition-none"
+                className="ml-1 shrink-0 whitespace-nowrap"
               >
                 <PlusIcon size={14} />
                 Create project
-              </button>
+              </Button>
             ) : (
               <span className="text-muted-foreground ml-1 px-2 text-[13px] whitespace-nowrap">
                 No projects yet
@@ -186,16 +174,39 @@ export function AppTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
           onClose={close}
         />
       )}
-    </header>
+    </>
   );
 }
 
-/** Exported for the sidebar's mobile drawer header, which repeats the brand. */
-export function BrandMark({ className }: { className?: string }) {
+/**
+ * The product mark. `asLink` renders it as the home link in the app bar; without
+ * it, it is a plain label (the guest surfaces use that form).
+ *
+ * The wordmark yields before the scope chain does: below `sm` the mark alone
+ * still identifies the product, but a truncated project name identifies nothing.
+ */
+export function BrandMark({ className, asLink = false }: { className?: string; asLink?: boolean }) {
+  const content = (
+    <>
+      <ToggleMarkIcon size={20} className="text-primary shrink-0" />
+      <span className={cn('text-fg text-[15px] font-bold', asLink && 'hidden sm:inline')}>
+        ToggleFlow
+      </span>
+    </>
+  );
+
+  if (!asLink) return <span className={cn('flex items-center gap-2', className)}>{content}</span>;
+
   return (
-    <span className={cn('flex items-center gap-2', className)}>
-      <ToggleMarkIcon size={20} className="text-primary" />
-      <span className="text-text text-[15px] font-bold">ToggleFlow</span>
-    </span>
+    <Link
+      to="/"
+      className={cn(
+        'focus-visible:ring-ring flex shrink-0 items-center gap-2 rounded-md px-1 py-1',
+        'focus-visible:ring-2 focus-visible:outline-none',
+        className,
+      )}
+    >
+      {content}
+    </Link>
   );
 }

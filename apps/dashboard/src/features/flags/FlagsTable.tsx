@@ -9,6 +9,37 @@
  * the only branch the suite would ever exercise, and the other would rot
  * unnoticed.
  *
+ * ## Why this is not the design system's `DataTable`
+ *
+ * It nearly is, and the near-miss is worth recording so nobody re-opens it
+ * cheaply. `DataTable`'s column registry was lifted from THIS file, so
+ * `FlagColumn` is `DataTableColumn` plus four fields, `visibleColumns` is its
+ * `visible`, and it would hand back the sort buttons, the memoised rows and the
+ * keyboard row activation for free.
+ *
+ * One thing stops it, and it is structural rather than cosmetic:
+ * **`DataTable` has no `surface` passthrough.** Its props are
+ * `ComponentProps<'table'>`, so `surface` cannot be spelled, and it always
+ * renders `Table`'s default glass wrapper. This table lives inside `FlagsPage`'s
+ * `Card`, and the system's own `Table` docblock names that exact case - "`none`
+ * leaves the wrapper bare for a table already sitting inside a Card or a Dialog
+ * - because a surface inside a surface is nested glass and both layers cancel".
+ * Neutralising the wrapper from `containerClassName` means fighting
+ * `.glass-surface` with `!important` utilities, which is worse than owning
+ * twenty lines of `<thead>`.
+ *
+ * The second, softer reason: `FlagsSkeleton` and `FlagsCards` read the same
+ * registry, and the skeleton has to draw the identical header from the identical
+ * strings. `DataTable` hardcodes its own head metric, so the skeleton's
+ * `HEAD_CLASS` and the real header would become two hand-maintained copies of
+ * one measurement - the drift this registry exists to prevent.
+ *
+ * So the table is hand-rolled, but only the markup: the `Table*` primitives, the
+ * paint and every behaviour `DataTable` would have supplied - `aria-sort` on the
+ * `<th>` rather than on the button, non-empty headers, click-swallowing
+ * interactive cells and Enter/Space row activation - are reproduced here
+ * deliberately, not left behind.
+ *
  * ## What this file decides and what the registry decides
  *
  * Nothing here knows what a column contains. Widths, breakpoints, head styling
@@ -19,15 +50,8 @@
  */
 import { memo } from 'react';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ArrowDownIcon, ArrowUpDownIcon } from '@/ui/icons';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@velobits-dev/ui';
+import { ArrowDownIcon, ArrowUpDownIcon } from '@velobits-dev/icons';
 import { cn } from '@/ui/cn';
 
 import {
@@ -56,7 +80,10 @@ export function FlagsTable({
 
   return (
     <div className="hidden md:block">
-      <Table aria-label="Flags">
+      {/* `surface="none"`: the page already wraps this in a Card, and glass
+          inside glass composites a couple of levels apart - both layers vanish
+          and the result reads as a rendering bug. */}
+      <Table aria-label="Flags" surface="none">
         {/* Tinted, so the header reads as chrome rather than as a first row. */}
         <TableHeader className="bg-bg2">
           <TableRow className="hover:bg-transparent">
@@ -67,7 +94,10 @@ export function FlagsTable({
                   key={column.id}
                   className={cn(HEAD_CLASS, columnClass(column))}
                   // Announce the current sort to assistive tech rather than
-                  // leaving it to the arrow glyph.
+                  // leaving it to the arrow glyph. On the `<th>`, never on the
+                  // button inside it: the attribute describes the column, and on
+                  // the button it is silently ignored - the arrow still works,
+                  // the announcement does not, and nothing reports a problem.
                   aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}
                 >
                   {column.headerCell ? (
@@ -78,18 +108,16 @@ export function FlagsTable({
                     <button
                       type="button"
                       /*
-                       * `border-0 bg-transparent p-0` is required, not tidying:
-                       * styles.css's global `button { border; background; padding }`
-                       * sits in Tailwind's `components` layer, so a bare <button>
-                       * renders as a bordered box until a utility layer overrides
-                       * it. Without these three, every column header looks like a
-                       * form control.
-                       *
-                       * The size, colour and letter-spacing are inherited from
+                       * `border-0 bg-transparent p-0` stays: Preflight resets
+                       * neither a button's background nor its border, so without
+                       * these three every column header renders as a bordered
+                       * box. This is the case the migration contract calls out
+                       * as a deliberate bare button rather than a `<Button>` -
+                       * the size, colour and letter-spacing are inherited from
                        * the <th> instead of repeated, so a sortable head and an
                        * unsortable one cannot drift apart.
                        */
-                      className="hover:text-text flex items-center gap-1 border-0 bg-transparent p-0 font-semibold uppercase"
+                      className="hover:text-fg focus-visible:ring-ring/40 flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 font-semibold uppercase outline-none focus-visible:ring-[3px]"
                       onClick={() => onSortChange(nextSort(sort, column.sortKey!))}
                     >
                       {column.header}
@@ -103,10 +131,15 @@ export function FlagsTable({
                       )}
                     </button>
                   ) : (
-                    // Unsortable columns still need their name available to a
-                    // screen reader; the actions column has none, and an empty
-                    // header cell is the right answer there.
-                    <span>{column.header}</span>
+                    /*
+                     * `sr-only`, never an empty `<th>`. The select and actions
+                     * columns have nothing to paint up here, but a header cell
+                     * with no text at all announces the whole column as
+                     * nameless - and is an axe `empty-table-header` violation.
+                     */
+                    <span className={column.hideHeader ? 'sr-only' : undefined}>
+                      {column.header}
+                    </span>
                   )}
                 </TableHead>
               );
@@ -144,12 +177,31 @@ function FlagsTableRowBase({
     <TableRow
       className={cn('cursor-pointer', ROW_CLASS, flag.archived && 'opacity-60')}
       /*
-       * Reuses table.tsx's own `data-[state=selected]:bg-muted` rather than
-       * adding a second class for the same idea - so a selected flag row and a
-       * selected row anywhere else this primitive is used tint identically.
+       * Reuses table.tsx's own `data-[state=selected]` tint rather than adding a
+       * second class for the same idea - so a selected flag row and a selected
+       * row anywhere else this primitive is used tint identically.
        */
       data-state={selected ? 'selected' : undefined}
+      /*
+       * A clickable `<tr>` is mouse-only, so it also takes focus and answers
+       * Enter/Space - the treatment `DataTable` gives its rows. The row is
+       * *convenience*: the real keyboard route is the kebab menu's "Open
+       * detail", which is why the row carries the flag's key as its name rather
+       * than duplicating the whole row's text.
+       *
+       * The `event.target !== event.currentTarget` guard is what stops Enter
+       * inside the key-copy button or the inline value input from also
+       * navigating.
+       */
+      tabIndex={0}
+      aria-label={flag.key}
       onClick={() => ctx.onOpen(flag)}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        ctx.onOpen(flag);
+      }}
     >
       {columns.map((column) => (
         <TableCell

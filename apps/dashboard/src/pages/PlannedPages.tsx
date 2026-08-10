@@ -7,12 +7,12 @@
  * `soon` flag in nav-items.ts.
  */
 import { ComingSoon } from '../components/page';
-import { CreditCardIcon, PlugIcon, WebhookIcon } from '../ui/icons';
+import { CreditCardIcon, PlugIcon, WebhookIcon } from '@velobits-dev/icons';
 
 export function WebhooksPage() {
   return (
     <ComingSoon
-      icon={WebhookIcon}
+      icon={<WebhookIcon size={15} />}
       title="Webhooks"
       description="Push flag and config changes to your own systems as they happen."
       planned={[
@@ -28,7 +28,7 @@ export function WebhooksPage() {
 export function IntegrationsPage() {
   return (
     <ComingSoon
-      icon={PlugIcon}
+      icon={<PlugIcon size={15} />}
       title="Integrations"
       description="Connect ToggleFlow to the tools your team already runs incidents from."
       planned={[
@@ -44,7 +44,7 @@ export function IntegrationsPage() {
 export function BillingPage() {
   return (
     <ComingSoon
-      icon={CreditCardIcon}
+      icon={<CreditCardIcon size={15} />}
       title="Billing"
       description="Plan, usage and invoices for this organization."
       planned={[

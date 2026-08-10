@@ -39,7 +39,12 @@
  */
 import type { ComponentType } from 'react';
 
-import { CircleCheckIcon, CircleHalfIcon, CircleSlashIcon, type IconProps } from '@/ui/icons';
+import {
+  CircleCheckIcon,
+  CircleHalfIcon,
+  CircleSlashIcon,
+  type IconProps,
+} from '@velobits-dev/icons';
 
 import { BulkRolloutDialog } from './BulkRolloutDialog';
 import type { FlagRow } from './flag-columns';
@@ -74,8 +79,12 @@ interface BulkActionShape {
   label: (applicable: number) => string;
   summary: (succeeded: number) => string;
   icon: ComponentType<IconProps>;
-  /** Doubles as the armed button's variant, which is why these are Button's own names. */
-  tone: 'default' | 'destructive';
+  /**
+   * Doubles as the armed button's variant, which is why these are Button's own
+   * names — the system's names, since its `Button` renamed `default` to
+   * `primary` and made the unlabelled variant the quieter `secondary`.
+   */
+  tone: 'primary' | 'destructive';
   /**
    * The rows this action would change. Rows it rejects are reported by the bar
    * rather than patched into a no-op: N pointless PATCHes are N audit entries
@@ -109,7 +118,7 @@ const ENABLE: ImmediateBulkAction = {
   label: (n) => `Enable ${flagCount(n)}`,
   summary: (n) => `Turned on ${flagCount(n)}`,
   icon: CircleCheckIcon,
-  tone: 'default',
+  tone: 'primary',
   patch: { enabled: true },
   /*
    * `rolloutPercent` is deliberately untouched: an off flag configured for 25%
@@ -140,7 +149,7 @@ const CONFIGURE_ROLLOUT: DialogBulkAction = {
   label: () => 'Configure rollout…',
   summary: (n) => `Rollout set on ${flagCount(n)}`,
   icon: CircleHalfIcon,
-  tone: 'default',
+  tone: 'primary',
   Dialog: BulkRolloutDialog,
   /*
    * Every live flag, including ones already rolling out: the target percentage

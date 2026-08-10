@@ -30,9 +30,8 @@
  */
 import { useState } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { ChevronDownIcon } from '@/ui/icons';
+import { Button, Label } from '@velobits-dev/ui';
+import { ChevronDownIcon } from '@velobits-dev/icons';
 import { cn } from '@/ui/cn';
 
 import { describeRollout, RolloutField } from './RolloutField';

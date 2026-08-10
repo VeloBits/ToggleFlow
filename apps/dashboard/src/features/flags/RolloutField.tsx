@@ -17,15 +17,14 @@
  *
  * A canary is chosen from a handful of conventional values (1, 5, 10, 25, 50),
  * so those are one click each; anything else is typed. A native
- * `input[type=range]` was the obvious third option and is rejected: styles.css
- * gives every bare `input` a border, a background and padding, and un-doing that
- * plus styling `::-webkit-slider-thumb` and `::-moz-range-thumb` is more
- * cross-browser surface than the control is worth. The bar below the field gives
- * the same at-a-glance read of magnitude without being a second way to set it.
+ * `input[type=range]` was the obvious third option and is rejected: the design
+ * system styles no range input, and `::-webkit-slider-thumb` plus
+ * `::-moz-range-thumb` is more cross-browser surface than the control is worth -
+ * and it would be surface owned here rather than by the system. The bar below
+ * the field gives the same at-a-glance read of magnitude without being a second
+ * way to set it.
  */
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { SegmentedControl } from '@/ui/segmented-control';
+import { Button, Input, SegmentedControl } from '@velobits-dev/ui';
 
 /** null = serve to everyone while on; 0-100 = that share of users. */
 export type RolloutPercent = number | null;
@@ -115,10 +114,11 @@ export function RolloutField({
                 key={preset}
                 type="button"
                 variant={value === preset ? 'secondary' : 'ghost'}
-                size="xs"
+                // No `xs` on the system's scale; this is its documented spelling.
+                size="sm"
                 disabled={disabled}
                 aria-pressed={value === preset}
-                className="tabular-nums"
+                className="h-6 px-2 text-xs tabular-nums"
                 onClick={() => onChange(preset)}
               >
                 {preset}%
@@ -130,7 +130,7 @@ export function RolloutField({
               accessible value, and a second announcement of it is noise. */}
           <div aria-hidden className="bg-bg2 h-1.5 w-full max-w-xs overflow-hidden rounded-pill">
             <div
-              className="bg-rollout h-full rounded-pill transition-[width]"
+              className="bg-warning h-full rounded-pill transition-[width]"
               style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
             />
           </div>

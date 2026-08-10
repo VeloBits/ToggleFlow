@@ -253,8 +253,8 @@ describe('listing', () => {
     renderPage();
     await waitForRows();
     const table = inTable();
-    expect(table.getAllByText('ON').length).toBeGreaterThan(0);
-    expect(table.getByText('OFF')).toBeTruthy();
+    expect(table.getAllByText(/^on$/i).length).toBeGreaterThan(0);
+    expect(table.getByText(/^off$/i)).toBeTruthy();
     // "25%" beats the word "ROLLOUT": same space, strictly more information.
     expect(table.getByText('25%')).toBeTruthy();
   });
