@@ -124,8 +124,9 @@ export function ApiKeysPage() {
             description="An SDK authenticates with a key scoped to one environment, so a key issued here can never read another environment's flags."
           />
         ) : (
-          // `surface="none"`: the Panel above is already a Card, and the table's
-          // own glass wrapper would composite one surface over another.
+          // `surface="none"`: the Panel above is the glass surface. A second one
+          // here would be glass inside glass — the two composite ~2/255 apart,
+          // both layers vanish, and it reads as a rendering bug.
           <Table aria-label="API keys" surface="none">
             <TableHeader className="bg-bg2">
               <TableRow className="hover:bg-transparent">

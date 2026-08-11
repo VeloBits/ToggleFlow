@@ -55,14 +55,21 @@ export type AuditTone = 'create' | 'update' | 'destroy' | 'notable' | 'neutral';
  * the meaning and letting the system pick the paint is strictly better than
  * repeating `bg-x-soft text-x` here, where the pairing could drift.
  *
- * The assignments themselves are unchanged: green for additive, blue for
- * routine change, red for removal, amber for "this changed what production
- * serves". Every one of them pairs a colour with an icon in `AuditActionBadge`,
- * because colour alone fails for a red/green deficiency.
+ * Green for additive, teal for routine change, red for removal, amber for "this
+ * changed what production serves". Every one of them pairs a colour with an icon
+ * in `AuditActionBadge`, because colour alone fails for a red/green deficiency.
+ *
+ * `update` is `info`, not `primary`. It is by far the most common tone on this
+ * page - it covers eight of the twenty-four actions and is what the `neutral`
+ * fallback degrades toward - so painting it in the app's action blue made the
+ * densest surface in the product read as one long blue column, and made a
+ * routine edit look like something you could click. `info` is teal as of tokens
+ * 0.2.0, so it is now genuinely distinct from both the link colour and the
+ * chrome around it.
  */
 export const TONE_VARIANT: Record<AuditTone, NonNullable<BadgeProps['variant']>> = {
   create: 'success',
-  update: 'primary',
+  update: 'info',
   destroy: 'danger',
   notable: 'warning',
   neutral: 'neutral',

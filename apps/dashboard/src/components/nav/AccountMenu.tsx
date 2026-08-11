@@ -64,7 +64,7 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Account menu"
-        className="hover:bg-highlight focus-visible:ring-ring group flex w-full items-center gap-2.5 rounded-md border-0 bg-transparent p-2 text-left transition-colors duration-100 focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none"
+        className="hover:bg-highlight focus-visible:ring-ring group flex w-full items-center gap-2.5 rounded-md border-0 bg-transparent p-2 text-left transition-colors duration-micro focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none"
       >
         <Avatar aria-hidden className="size-7 shrink-0">
           <AvatarFallback className="bg-primary-soft text-link text-[11px] font-semibold">

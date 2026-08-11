@@ -29,14 +29,15 @@ import {
   type IconProps,
 } from '@velobits-dev/icons';
 import { Button, Card, StatusChip } from '@velobits-dev/ui';
+import { Stagger, StaggerItem } from '@velobits-dev/ui/motion';
 import { relativeTime } from '../ui/relative-time';
 
 /**
  * A count and what it counts, on the design system's `Card`.
  *
- * `surface="panel"` rather than the glass default: four of these sit in a row
- * inside the authenticated shell, directly above two more panels, and the glass
- * tier is for surfaces that float over content.
+ * The system's glass default. Four of these sit in a row directly on the
+ * textured page — siblings, not nested, so the tier composites once and each
+ * tile reads as its own surface.
  *
  * `icon` deliberately stays a component TYPE here, unlike `EmptyState`'s: the
  * tile owns the glyph's size, and the only thing a caller varies is its tone.
@@ -57,7 +58,7 @@ function Stat({
   className?: string;
 }) {
   return (
-    <Card surface="panel" className="flex-row items-center gap-3 px-4 py-3">
+    <Card className="flex-row items-center gap-3 px-4 py-3">
       <Icon size={18} className={cn('shrink-0', className ?? 'text-muted-foreground')} />
       <div className="min-w-0">
         <p className="text-fg m-0 text-[18px] leading-none font-bold">{value}</p>
@@ -138,17 +139,39 @@ export function HomePage() {
 
       <ErrorNote error={flagsQuery.error} />
 
-      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat icon={FlagIcon} value={live.length} label="flags in this environment" />
-        <Stat icon={CircleCheckIcon} value={on.length} label="fully on" className="text-success" />
-        <Stat
-          icon={CircleHalfIcon}
-          value={rollingOut.length}
-          label="rolling out"
-          className="text-warning"
-        />
-        <Stat icon={CircleSlashIcon} value={off.length} label="off" className="text-danger" />
-      </div>
+      {/*
+        `Stagger` carries the grid itself rather than wrapping one: its items
+        have to be its DIRECT children, so an intermediate div would take them
+        out of the grid and drop all four tiles into a column.
+
+        Four items, so the twelve-item cap never comes near — this is the size
+        of cascade the effect is for. The counts underneath are a table and
+        deliberately do not stagger.
+      */}
+      <Stagger className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StaggerItem>
+          <Stat icon={FlagIcon} value={live.length} label="flags in this environment" />
+        </StaggerItem>
+        <StaggerItem>
+          <Stat
+            icon={CircleCheckIcon}
+            value={on.length}
+            label="fully on"
+            className="text-success"
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <Stat
+            icon={CircleHalfIcon}
+            value={rollingOut.length}
+            label="rolling out"
+            className="text-warning"
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <Stat icon={CircleSlashIcon} value={off.length} label="off" className="text-danger" />
+        </StaggerItem>
+      </Stagger>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Rolling out" actions={<PanelLink to="/flags">All flags →</PanelLink>}>

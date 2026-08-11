@@ -31,12 +31,17 @@ export function FlagsCards({ flags, ctx }: { flags: FlagRow[]; ctx: CellContext 
           <li key={flag.id}>
             <Card
               /*
-               * `panel`, not the system's glass default: these are nested inside
-               * the page's own Card, and glass over glass composites a couple of
-               * levels apart - both layers disappear and the card stops reading
-               * as a card at all.
+               * The system's glass default. These used to be nested inside the
+               * page's own Card and had to opt out; the page no longer has one,
+               * so each card is a top-level surface on the textured page.
                */
-              surface="panel"
+              /*
+               * The same `data-state` contract the table row carries, so
+               * selection is readable from the DOM rather than only from the
+               * paint. It is what a test should assert against, and it lets the
+               * ring be re-tuned without anything else having to know.
+               */
+              data-state={selected ? 'selected' : undefined}
               className={cn(
                 'cursor-pointer gap-0 p-3',
                 flag.archived && 'opacity-60',

@@ -33,7 +33,7 @@ import {
   membersQueryOptions,
 } from '@/api/audit';
 import type { AuditEntry } from '@/api/client';
-import { Button, Card } from '@velobits-dev/ui';
+import { Button } from '@velobits-dev/ui';
 import { EmptyState, PageHeader } from '@/components/page';
 import { ErrorNote } from '@/components/ui';
 import { FilterIcon, HistoryIcon } from '@velobits-dev/icons';
@@ -230,12 +230,9 @@ export function AuditLogPage() {
         disabled={auditQuery.isPending && entries.length === 0}
       />
       <ErrorNote error={auditQuery.error} />
-      {/* `surface="panel"`, not the system's glass default: this sits flat on the
-          page background inside the authenticated shell, and glass is for the
-          surfaces that float over content. */}
-      <Card surface="panel" className="overflow-hidden p-0">
-        {body()}
-      </Card>
+      {/* No wrapper Card — `body()` is already a surface of its own, and one
+          inside the other is nested glass. */}
+      {body()}
       {openRow && <AuditDetailPanel row={openRow} onClose={() => setOpenRow(null)} />}
     </>
   );

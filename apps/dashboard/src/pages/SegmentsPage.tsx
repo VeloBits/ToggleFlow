@@ -228,7 +228,7 @@ export function SegmentsPage() {
             description="A segment names a group once - beta users, internal staff, one paying account - so every flag that targets it stays in step when the definition changes."
           />
         ) : (
-          // `surface="none"`: the Panel is already a Card.
+          // `surface="none"`: the Panel is the glass surface.
           <Table aria-label="Segments" surface="none">
             <TableHeader className="bg-bg2">
               <TableRow className="hover:bg-transparent">

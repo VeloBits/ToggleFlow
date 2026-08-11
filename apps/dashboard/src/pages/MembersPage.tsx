@@ -105,8 +105,8 @@ export function MembersPage() {
             description="Anyone who has signed in to ToggleFlow can be added by email. Invitations to people without an account are not available yet."
           />
         ) : (
-          // `surface="none"`: the Panel is already a Card, and a nested glass
-          // surface would flatten both.
+          // `surface="none"`: the Panel is the glass surface, and a nested one
+          // flattens both.
           <Table aria-label="Organization members" surface="none">
             <TableHeader className="bg-bg2">
               <TableRow className="hover:bg-transparent">

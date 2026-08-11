@@ -38,7 +38,7 @@ const INLINE_LIMIT = 8;
 
 const TRIGGER = [
   'group flex max-w-[15rem] items-center gap-1.5 rounded-md border-0 bg-transparent px-2 py-1 text-[13px]',
-  'hover:bg-highlight focus-visible:ring-ring transition-colors duration-100 focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none',
+  'hover:bg-highlight focus-visible:ring-ring transition-colors duration-micro focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none',
   'disabled:pointer-events-none disabled:opacity-60',
 ].join(' ');
 

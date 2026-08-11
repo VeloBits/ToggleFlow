@@ -15,7 +15,7 @@
  * and that the class lands on `<body>` — which is what the token stylesheet
  * keys its dark palette on.
  */
-import { THEME_STORAGE_KEYS, VelobitsProvider, useTheme } from '@velobits-dev/ui';
+import { Button, THEME_STORAGE_KEYS, VelobitsProvider, useTheme } from '@velobits-dev/ui';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -205,17 +205,40 @@ describe('ConfirmButton', () => {
   });
 
   it('escalates a quiet resting variant to destructive once armed', () => {
-    // The design system's Button carries its variant in the class list rather
-    // than in a data attribute, so this reads the one class only the destructive
-    // variant contributes.
+    /*
+     * Compared against a reference `Button` of each variant rather than against
+     * a colour class.
+     *
+     * The claim under test is "the resting variant escalates to `destructive`",
+     * and asserting `bg-danger` tested that only by proxy — it pinned the paint
+     * the destructive variant happens to use today, so any re-tune of the
+     * variant broke this test without anything actually regressing. (0.2.0
+     * changed exactly that: destructive now pairs its fill with `--on-danger`.)
+     * ConfirmButton renders a bare `Button` with no extra classes, so the two
+     * class lists are directly comparable.
+     */
+    const reference = (variant: 'ghost' | 'destructive') => {
+      const { unmount } = render(
+        <Button variant={variant} size="sm">
+          Go
+        </Button>,
+      );
+      const className = screen.getByRole('button').className;
+      unmount();
+      return className;
+    };
+    const ghost = reference('ghost');
+    const destructive = reference('destructive');
+    expect(ghost).not.toBe(destructive);
+
     render(<ConfirmButton label="Go" confirmLabel="Sure?" variant="ghost" onConfirm={vi.fn()} />);
     const button = screen.getByRole('button');
 
-    expect(button.className).not.toContain('bg-danger');
+    expect(button.className).toBe(ghost);
 
     fireEvent.click(button);
 
-    expect(button.className).toContain('bg-danger');
+    expect(button.className).toBe(destructive);
     expect(button.dataset.armed).toBe('true');
   });
 });

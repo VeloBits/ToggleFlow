@@ -68,6 +68,8 @@ export function NoProjectState() {
   return (
     <>
       <EmptyState
+        // Page-level: no container around it, so it owns the glass.
+        surface="glass"
         // A node, not a component type: the system's EmptyState takes an
         // element so a caller can size it, or pass something that is not an
         // icon at all.
@@ -118,6 +120,8 @@ export function NoEnvironmentState() {
   const ws = useWorkspace();
   return (
     <EmptyState
+      // Page-level: no container around it, so it owns the glass.
+      surface="glass"
       icon={<GlobeIcon />}
       title={`${ws.project?.name ?? 'This project'} has no environments`}
       description="A flag is on or off per environment, so there is nothing to show until this project has at least one."
@@ -136,6 +140,8 @@ export function NoFlagsState({ canEdit, onCreate }: { canEdit: boolean; onCreate
 
   return (
     <EmptyState
+      // Page-level: no container around it, so it owns the glass.
+      surface="glass"
       icon={<FlagIcon />}
       title={`No flags in ${ws.project?.name ?? 'this project'} yet`}
       description={
@@ -192,6 +198,8 @@ export function NoMatchesState({
 }) {
   return (
     <EmptyState
+      // Page-level: no container around it, so it owns the glass.
+      surface="glass"
       icon={icon}
       title="Nothing matches these filters"
       description={`${total} ${total === 1 ? 'flag' : 'flags'} in this environment, none of them matching.`}

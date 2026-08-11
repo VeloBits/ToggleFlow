@@ -252,11 +252,10 @@ export function AuditTable({
   return (
     <div className="hidden md:block">
       {/*
-        `surface="none"`: this table is already inside the page's `Card`, and the
-        system's default glass wrapper would composite one surface over another -
-        two rounded borders, and two washes that flatten each other out.
+        The page's `Card` is gone, so this table's own wrapper is the glass
+        surface rather than a second one inside it.
       */}
-      <Table aria-label="Audit log" surface="none">
+      <Table aria-label="Audit log">
         <AuditTableHead />
         <TableBody>
           {rows.map((row) => (

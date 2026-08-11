@@ -80,10 +80,11 @@ export function FlagsTable({
 
   return (
     <div className="hidden md:block">
-      {/* `surface="none"`: the page already wraps this in a Card, and glass
-          inside glass composites a couple of levels apart - both layers vanish
-          and the result reads as a rendering bug. */}
-      <Table aria-label="Flags" surface="none">
+      {/* The page no longer wraps this in a Card, so the table's own wrapper is
+          the glass surface. `Table` never takes the blur variant — the wrapper
+          is a scroll container and a live backdrop layer would re-sample on
+          every scroll frame. */}
+      <Table aria-label="Flags">
         {/* Tinted, so the header reads as chrome rather than as a first row. */}
         <TableHeader className="bg-bg2">
           <TableRow className="hover:bg-transparent">

@@ -184,11 +184,28 @@ export function AppTopbarContent() {
  *
  * The wordmark yields before the scope chain does: below `sm` the mark alone
  * still identifies the product, but a truncated project name identifies nothing.
+ *
+ * ## Lime, and why it is a plate rather than a glyph
+ *
+ * The mark used to be `text-primary` — the same blue as the nav's active state,
+ * the focus ring and every primary Button, so the one element on screen that is
+ * pure identity was painted in the app's action colour. `--brand` is the token
+ * that means "this product", and this is the surface it exists for.
+ *
+ * It has to be a fill, not a coloured glyph: `--brand` is lime, which measures
+ * about 1.4:1 against a light panel and would effectively vanish. `--on-brand`
+ * on `--brand` is the pair the design system gates for exactly this, and it is
+ * legible by construction in both themes.
  */
 export function BrandMark({ className, asLink = false }: { className?: string; asLink?: boolean }) {
   const content = (
     <>
-      <ToggleMarkIcon size={20} className="text-primary shrink-0" />
+      <span
+        aria-hidden
+        className="bg-brand text-on-brand grid size-6 shrink-0 place-items-center rounded-md"
+      >
+        <ToggleMarkIcon size={15} />
+      </span>
       <span className={cn('text-fg text-[15px] font-bold', asLink && 'hidden sm:inline')}>
         ToggleFlow
       </span>

@@ -32,6 +32,9 @@
  * satisfies that — `AppSidebar` is a pure function of the route.
  */
 import { AppShell, AppShellHeader, AppShellSidebarTrigger } from '@velobits-dev/ui';
+// Subpath, not the barrel: `motion` is deliberately kept out of it so that
+// importing a Button does not pull in Framer's runtime.
+import { PageTransition } from '@velobits-dev/ui/motion';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -52,16 +55,33 @@ export function Layout({ children }: { children: ReactNode }) {
       onSidebarOpenChange={setSidebarOpen}
       sidebarLabel="Main"
       /*
-       * `panel`, not the shell's glass default. The rail is full-height chrome
-       * against the page rather than a surface floating over content, and the
-       * glass tier's backdrop-filter would establish a containing block for any
-       * `position: fixed` descendant inside it.
+       * The shell root is what owns `bg-bg`, so it is where the page texture
+       * goes. Everything translucent in the app is measured against this: the
+       * dot grid is the high-frequency detail a glass surface has to sit over
+       * for the tier to read as a material rather than a flat tint.
        */
-      sidebarSurface="panel"
+      className="page-texture"
+      /*
+       * Both surfaces are the shell's glass defaults now — the rail is Tier S,
+       * the header Tier O.
+       *
+       * The rail deliberately does NOT take `.glass-surface-blur`. On desktop
+       * this shell is a flex row: the rail is a `shrink-0` sibling of `main`
+       * and `main` is its own scroll container, so nothing ever passes behind
+       * the rail and a live backdrop layer would re-sample every frame to
+       * produce the same picture. The mobile drawer is a different surface
+       * (SidePanel, Tier O) and genuinely does float over content.
+       *
+       * The backdrop-filter caveat that used to justify `panel` here still
+       * holds for the header, which is Tier O and blurs unconditionally: a
+       * `position: fixed` descendant of it would be trapped in its containing
+       * block. Nothing in the header is fixed today — the Radix menus portal to
+       * `body` — so this is a constraint on what may be added, not a live bug.
+       */
       mainId="main"
       mainClassName="px-5 py-5 sm:px-6"
       header={
-        <AppShellHeader surface="panel" className="gap-1">
+        <AppShellHeader className="gap-1">
           <AppShellSidebarTrigger />
           <BrandMark asLink />
           <span aria-hidden className="bg-border mx-1.5 hidden h-5 w-px sm:block" />
@@ -70,7 +90,17 @@ export function Layout({ children }: { children: ReactNode }) {
       }
       sidebar={<AppSidebar onNavigate={() => setSidebarOpen(false)} />}
     >
-      {children}
+      {/*
+       * Keyed on `pathname`, which is the value that actually changes per route
+       * — a constant key renders once and then never animates again, which
+       * reads as a broken transition rather than a wrong key.
+       *
+       * Reduced motion is NOT handled here: `VelobitsProvider` mounts
+       * `MotionConfig reducedMotion="user"`, so Framer already drops the
+       * transform for anyone who asked. Re-checking it at the call site would
+       * be a second source of truth that can disagree with the first.
+       */}
+      <PageTransition transitionKey={pathname}>{children}</PageTransition>
     </AppShell>
   );
 }

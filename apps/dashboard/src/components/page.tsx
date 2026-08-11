@@ -41,10 +41,8 @@ export function PageHeader({
 /**
  * A titled section, on the design system's `Card` surface.
  *
- * Three deliberate departures from the system's default Card metrics:
+ * Two deliberate departures from the system's default Card metrics:
  *
- * - `surface="panel"`, not the glass default. These stack several to a page over
- *   a plain background; the glass tier is for surfaces that float over content.
  * - `gap-0 py-0` and an unpadded `CardContent`, because most callers put a table
  *   or a full-bleed list inside and pad it themselves when they do not. A Card's
  *   own `py-4` would inset the first table row from the header rule.
@@ -65,7 +63,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <Card surface="panel" className={cn('gap-0 overflow-hidden py-0', className)}>
+    <Card className={cn('gap-0 overflow-hidden py-0', className)}>
       {(title || actions) && (
         <CardHeader className="border-border items-center gap-3 border-b px-4 py-2.5">
           <h2 className="text-fg m-0 text-[13px] font-semibold">{title}</h2>

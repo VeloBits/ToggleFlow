@@ -41,10 +41,9 @@ export function FlagsSkeleton() {
   return (
     <>
       <div className="hidden md:block" aria-hidden>
-        {/* `surface="none"` for the same reason `FlagsTable` passes it: this sits
-            inside the page's Card, and a glass wrapper inside a glass wrapper
-            cancels. The skeleton must sit on the surface the table will. */}
-        <Table surface="none">
+        {/* Glass, for the same reason `FlagsTable` is: the skeleton must sit on
+            the surface the table will, and that is now the table's own. */}
+        <Table>
           <TableHeader className="bg-bg2">
             <TableRow className="hover:bg-transparent">
               {COLUMNS.map((column) => (

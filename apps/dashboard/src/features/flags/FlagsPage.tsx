@@ -26,7 +26,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { api } from '@/api/client';
 import { flagDefinitionsQueryOptions, flagKeys, flagsQueryOptions } from '@/api/flags';
-import { Button, Card } from '@velobits-dev/ui';
+import { Button } from '@velobits-dev/ui';
 import { PageHeader } from '@/components/page';
 import { ErrorNote } from '@/components/ui';
 import { useWorkspace } from '@/state/WorkspaceContext';
@@ -234,12 +234,10 @@ export function FlagsPage() {
               : `Nothing to show until ${ws.project?.name ?? 'this project'} has an environment.`
           }
         />
-        {/* `panel`, not the glass default: inside the authenticated app a card
-            is a stacked surface over a plain background, not something floating
-            over content. */}
-        <Card surface="panel" className="overflow-hidden p-0">
-          {workspaceEmpty ? <NoProjectState /> : <NoEnvironmentState />}
-        </Card>
+        {/* No wrapper Card: these are page-level first-run states, so the
+            EmptyState owns the glass itself rather than being a bare block
+            inside a second surface. */}
+        {workspaceEmpty ? <NoProjectState /> : <NoEnvironmentState />}
       </>
     );
   }
@@ -304,9 +302,11 @@ export function FlagsPage() {
       <ErrorNote error={flagsQuery.error} />
       {/* Above the list and outside the Card, deliberately - see FlagsBulkBar. */}
       {selection.count > 0 && <FlagsBulkBar selection={selection} rows={page} />}
-      <Card surface="panel" className="overflow-hidden p-0">
-        {body()}
-      </Card>
+      {/* No wrapper Card: every branch of `body()` is already a surface of its
+          own — the table's own glass wrapper, or an EmptyState that claims
+          glass. Wrapping them would be glass inside glass, which composites to
+          nothing and costs two paints. */}
+      {body()}
 
       {creating && ws.projectId && (
         <FlagFormDialog mode="create" projectId={ws.projectId} onClose={() => setCreating(false)} />

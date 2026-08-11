@@ -23,7 +23,7 @@ import { NAV_SECTIONS } from './nav-items';
 
 const ROW = [
   'flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] no-underline',
-  'transition-colors duration-100 motion-reduce:transition-none',
+  'transition-colors duration-micro motion-reduce:transition-none',
   'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none',
 ].join(' ');
 

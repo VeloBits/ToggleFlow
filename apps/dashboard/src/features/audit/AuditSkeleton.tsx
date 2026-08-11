@@ -16,9 +16,9 @@ export function AuditSkeleton({ rows = 8 }: { rows?: number }) {
   return (
     <>
       <div aria-hidden className="hidden md:block">
-        {/* `surface="none"` for the same reason as the real table: it renders
-            inside the page's Card, and nested glass cancels itself out. */}
-        <Table surface="none">
+        {/* Glass, for the same reason as the real table: the skeleton must sit
+            on the surface the table will. */}
+        <Table>
           <AuditTableHead />
           <TableBody>
             {Array.from({ length: rows }, (_, row) => (
