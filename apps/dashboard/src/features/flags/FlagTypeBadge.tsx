@@ -20,6 +20,21 @@
  * renaming it means editing `detail/FlagDetailHeader.tsx` too, and a rename is
  * not worth a second file in the diff.
  *
+ * ## Rose, and still not a badge
+ *
+ * The value type is the one axis in this product that is a pure category -
+ * Boolean, String, String (choice) carry no severity and no state - and every
+ * other chromatic token means a status or the brand, so before `--rose` existed
+ * a categorical axis could only borrow `primary` and come out blue. This is what
+ * that token is for.
+ *
+ * It is a tint on the existing text, NOT a return of the pill. Everything in the
+ * docblock above still holds: the type is not state, and boxing it would put it
+ * back in the same visual class as the Status badge. Rose measures 6.37:1 light
+ * and 7.04:1 dark against a panel, so it clears AA at this 12.5px size with
+ * room, which muted grey did not have to prove because nobody reads a grey
+ * annotation for meaning.
+ *
  * The label is never hardcoded: it comes from `FLAG_TYPES[type].label`, so the
  * type picker in the form, this label and any future CLI all say the same word.
  */
@@ -40,7 +55,7 @@ export function FlagTypeBadge({
   const label = FLAG_TYPES[valueType]?.label ?? valueType;
 
   return (
-    <span className={cn('text-muted-foreground text-[12.5px] whitespace-nowrap', className)}>
+    <span className={cn('text-rose text-[12.5px] whitespace-nowrap', className)}>
       {label}
     </span>
   );

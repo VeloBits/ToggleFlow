@@ -20,7 +20,12 @@ import { flagDefinitionsQueryOptions, flagsQueryOptions } from '../api/flags';
 import { EmptyState, PageHeader, Panel } from '../components/page';
 import { ErrorNote, StatusChip } from '../components/ui';
 import { useWorkspace } from '../state/WorkspaceContext';
-import { SearchIcon } from '../ui/icons';
+import { cn } from '../ui/cn';
+import { SearchIcon } from '@velobits-dev/icons';
+import { Badge, Input } from '@velobits-dev/ui';
+
+/** A key, wherever one is a link. Monospaced, and the system's link blue. */
+const KEY_LINK = 'text-link font-mono hover:underline';
 
 export function SearchPage() {
   const ws = useWorkspace();
@@ -72,19 +77,27 @@ export function SearchPage() {
         }
       />
 
+      {/*
+        The leading glyph is absolutely positioned over the field rather than
+        wrapped beside it: `Input` is one `<input>` with no adornment slot (by
+        design — an adornment API would have to reserve space it cannot measure),
+        so the icon sits in a `relative` box and the field pays for it with
+        `pl-9`. `pointer-events-none` keeps the whole box clickable as the field.
+        Same treatment as the flags toolbar, so the two searches match.
+      */}
       <div className="relative mb-4 max-w-xl">
         <SearchIcon
           size={16}
           className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
         />
-        <input
+        <Input
           type="search"
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by key, name, tag or description…"
           aria-label="Search flags and segments"
-          className="w-full py-2 pr-3 pl-9"
+          className="h-10 pl-9"
         />
       </div>
 
@@ -93,7 +106,7 @@ export function SearchPage() {
       {!needle ? (
         <Panel>
           <EmptyState
-            icon={SearchIcon}
+            icon={<SearchIcon />}
             title="Start typing"
             description="Matches appear as you type. Flag keys, names and tags are searched, along with segment keys, names and descriptions."
           />
@@ -101,7 +114,7 @@ export function SearchPage() {
       ) : total === 0 ? (
         <Panel>
           <EmptyState
-            icon={SearchIcon}
+            icon={<SearchIcon />}
             title={`Nothing matches “${query.trim()}”`}
             description="Try a shorter fragment of the key, or check that the right project and environment are selected in the top bar."
           />
@@ -117,13 +130,14 @@ export function SearchPage() {
                     className="border-border flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0"
                   >
                     <StatusChip enabled={flag.enabled} rolloutPercent={flag.rolloutPercent} />
-                    <Link to={`/flags/${flag.id}`} className="mono min-w-0 truncate">
+                    <Link to={`/flags/${flag.id}`} className={cn(KEY_LINK, 'min-w-0 truncate')}>
                       {flag.key}
                     </Link>
                     <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px]">
                       {flag.name}
                     </span>
-                    {flag.archived && <span className="tag shrink-0">archived</span>}
+                    {/* A marker, not a flag state — so a Badge, never a StatusChip. */}
+                    {flag.archived && <Badge variant="neutral">archived</Badge>}
                   </li>
                 ))}
               </ul>
@@ -138,7 +152,7 @@ export function SearchPage() {
                     key={segment.id}
                     className="border-border flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0"
                   >
-                    <Link to="/segments" className="mono min-w-0 truncate">
+                    <Link to="/segments" className={cn(KEY_LINK, 'min-w-0 truncate')}>
                       {segment.key}
                     </Link>
                     <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px]">

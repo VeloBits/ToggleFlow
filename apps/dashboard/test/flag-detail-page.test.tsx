@@ -179,7 +179,7 @@ describe('header', () => {
     // both are asserted once it has landed.
     await waitFor(() => {
       expect(screen.getByText('Production')).toBeTruthy();
-      expect(screen.getAllByText('ON')).toHaveLength(2);
+      expect(screen.getAllByText(/^on$/i)).toHaveLength(2);
     });
   });
 
@@ -263,7 +263,7 @@ describe('archive', () => {
     );
     await loaded();
     // Twice: the header badge and the state panel's own.
-    await waitFor(() => expect(screen.getAllByText('ARCHIVED')).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByText(/^archived$/i)).toHaveLength(2));
 
     fireEvent.click(screen.getByText('Restore'));
     fireEvent.click(screen.getByText('Restore?'));
@@ -369,7 +369,7 @@ describe('state tab', () => {
     );
     await stateReady();
     expect(screen.getByText('Turn ON')).toBeTruthy();
-    expect(screen.getAllByText('OFF')).toHaveLength(2);
+    expect(screen.getAllByText(/^off$/i)).toHaveLength(2);
   });
 
   it('pre-fills the rollout and saves it as a number', async () => {
@@ -625,7 +625,7 @@ describe('environments tab', () => {
 
     const [prod, dev, staging] = envRows();
     expect(within(prod!).getByText('Production')).toBeTruthy();
-    expect(within(prod!).getByText('ON')).toBeTruthy();
+    expect(within(prod!).getByText(/^on$/i)).toBeTruthy();
     // A boolean flag's served value IS its switch.
     expect(within(prod!).getByText('true')).toBeTruthy();
     // No rollout and no rules read as absent, not as zero.
@@ -829,7 +829,9 @@ describe('config history', () => {
     fireEvent.click(diffButton!);
     expect(screen.getByText(/removed lines are v3/)).toBeTruthy();
     // The added/removed lines come from the LCS diff of the two payloads.
-    expect(document.querySelector('.diff .removed')).toBeTruthy();
+    // `DiffViewer` marks each line with `data-kind` rather than the legacy
+    // `.diff .removed` classes.
+    expect(document.querySelector('[data-slot="diff-line"][data-kind="removed"]')).toBeTruthy();
 
     fireEvent.click(screen.getByText('hide diff'));
     expect(screen.queryByText(/removed lines are v/)).toBeNull();

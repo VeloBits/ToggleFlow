@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 
 import { useAuth } from '../auth/AuthContext';
 import { cn } from '../ui/cn';
-import { ArrowUpIcon, ToggleMarkIcon } from '../ui/icons';
+import { ArrowUpIcon, ToggleMarkIcon } from '@velobits-dev/icons';
+import { Button } from '@velobits-dev/ui';
 
 /**
  * Footer for the public landing page - a brand column plus four link groups over
@@ -86,9 +87,9 @@ const LINK_GROUPS: FooterGroup[] = [
 ];
 
 /**
- * Inline rather than pulled from `../ui/icons`: that set is stroke-based
+ * Inline rather than pulled from `@velobits-dev/icons`: that set is stroke-based
  * (Feather geometry, `fill="none"`) and the GitHub mark only reads correctly as
- * a filled glyph, so it doesn't belong in that file's stroke pipeline.
+ * a filled glyph, so it does not belong in the system's stroke pipeline.
  */
 function GitHubIcon({ size = 17 }: { size?: number }) {
   return (
@@ -108,42 +109,25 @@ const SOCIAL_LINKS: { label: string; href: string; icon: ReactNode }[] = [
   { label: 'ToggleFlow on GitHub', href: GITHUB_REPO, icon: <GitHubIcon /> },
 ];
 
-/** Same ring as GuestNav, so focus looks identical top and bottom of the page. */
-const FOCUS = 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none';
-
 /**
- * Group link. `text-muted-foreground` is explicit because styles.css sets `a { color:
- * var(--accent) }` - utilities win (styles.css is imported into the components
- * layer) but only where one is actually written. `py-1.5` is for the thumb, not
- * the look: it lifts each row to ~30px so stacked links are tappable at 320px.
+ * Group link.
+ *
+ * A column of quiet text links is not a button grid, so this stays a class
+ * string rather than becoming `Button variant="link"` - the system's link
+ * variant is the blue underlined one, and a footer of forty blue links is the
+ * thing this muted treatment exists to avoid. `py-1.5` is for the thumb, not the
+ * look: it lifts each row to ~30px so stacked links are tappable at 320px.
+ *
+ * No focus classes anywhere in this file: the token layer's base `:focus-visible`
+ * rule draws one ring for the whole system, and the `focus-visible:outline-none`
+ * these constants used to carry was deleting it in order to redraw it.
  */
-const LINK = `text-muted-foreground hover:text-text rounded-sm py-1.5 text-[13px] leading-snug transition-colors duration-150 motion-reduce:transition-none ${FOCUS}`;
+const LINK =
+  'text-muted-foreground hover:text-fg rounded-sm py-1.5 text-[13px] leading-snug transition-colors duration-micro motion-reduce:transition-none';
 
 /** Bottom-bar link - smaller, same treatment. */
-const META_LINK = `text-muted-foreground hover:text-text rounded-sm text-[12.5px] transition-colors duration-150 motion-reduce:transition-none ${FOCUS}`;
-
-/**
- * The one accent action in the footer. `rounded-md` (6px) rather than the nav's
- * pill: down here the neighbours are the page's body buttons, which are 6px.
- * Border/background are written out to undo the legacy unlayered `button` box,
- * and the ring gets an offset in the page background so it stays visible
- * against the accent fill.
- */
-const CTA = cn(
-  'border-primary bg-primary hover:border-primary-hover hover:bg-primary-hover inline-flex items-center',
-  'rounded-md border px-4 py-2 text-[13px] font-semibold whitespace-nowrap text-white',
-  'focus-visible:ring-offset-bg transition-colors duration-150 focus-visible:ring-offset-2',
-  'motion-reduce:transition-none',
-  FOCUS,
-);
-
-/** Icon-only social chip. An `<a>`, so only the `a { color }` rule needs undoing. */
-const SOCIAL = cn(
-  'border-border bg-panel text-muted-foreground hover:border-border-strong hover:text-text',
-  'inline-flex h-9 w-9 items-center justify-center rounded-lg border',
-  'transition-colors duration-150 motion-reduce:transition-none',
-  FOCUS,
-);
+const META_LINK =
+  'text-muted-foreground hover:text-fg rounded-sm text-[12.5px] transition-colors duration-micro motion-reduce:transition-none';
 
 /** http(s) links leave the site; anchors and '#' stay on the page. */
 const isExternal = (href: string) => href.startsWith('http');
@@ -178,22 +162,39 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
             </p>
             {/* Carries returnTo like every other auth entry point, so a visitor who
                 landed on a deep link still lands there after the Keycloak round trip.
-                A guest who scrolled this far past the closing CTA gets one more door. */}
-            <button type="button" className={cn(CTA, 'mt-5')} onClick={() => void signup(returnTo)}>
+                A guest who scrolled this far past the closing CTA gets one more door.
+
+                `primary`, not `brand` - the hero owns the page's one lime button. */}
+            <Button
+              variant="primary"
+              className="mt-5 font-semibold"
+              onClick={() => void signup(returnTo)}
+            >
               Get started free
-            </button>
+            </Button>
             <ul className="mt-6 flex flex-wrap gap-2">
               {SOCIAL_LINKS.map((social) => (
                 <li key={social.label}>
-                  <a
-                    href={social.href}
-                    aria-label={social.label}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={SOCIAL}
+                  {/* `Button variant="secondary" size="icon"` is exactly this chip:
+                      a bordered 36px square on the panel that washes on hover. The
+                      hand-rolled version's `hover:border-field-border` is gone with
+                      it - the secondary variant already sits on that border, so the
+                      hover state is a fill, not an edge that appears from nowhere. */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    asChild
+                    className="text-muted-foreground hover:text-fg rounded-lg"
                   >
-                    {social.icon}
-                  </a>
+                    <a
+                      href={social.href}
+                      aria-label={social.label}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {social.icon}
+                    </a>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -207,14 +208,14 @@ export function GuestFooter({ returnTo }: { returnTo: string }) {
                 {/*
                  * A real heading, so the groups aren't anonymous link soup, and the
                  * <nav> borrows it as its accessible name. Size/weight/margin are
-                 * explicit: theme.css's base layer makes h2 18px/600 and styles.css
-                 * gives it a bottom margin. Headings sit at full text strength
+                 * explicit: theme.css's base layer makes h2 18px/600 with a 0.5rem
+                 * bottom margin. Headings sit at full text strength
                  * against muted links - the page spends its accent on eyebrows and
                  * CTAs, and four accent headings down here would shout over both.
                  */}
                 <h2
                   id={group.id}
-                  className="text-text mb-2 text-[11.5px] font-semibold tracking-[0.09em] uppercase"
+                  className="text-fg mb-2 text-[11.5px] font-semibold tracking-[0.09em] uppercase"
                 >
                   {group.title}
                 </h2>

@@ -33,6 +33,13 @@ function AuditCardBase({ row, onOpen }: { row: AuditRow; onOpen: (row: AuditRow)
 
   return (
     <li className="border-border border-b last:border-b-0">
+      {/*
+        A bare `<button>` rather than a `Button`: the whole card is one click
+        target, three lines tall and full-bleed to the list's edges, which is the
+        one shape none of the system's button variants describe. `border-0
+        bg-transparent` stays for that reason - it is what makes this read as a
+        row and not as a control.
+      */}
       <button
         type="button"
         aria-label={`Open full details for ${what}`}
@@ -41,7 +48,7 @@ function AuditCardBase({ row, onOpen }: { row: AuditRow; onOpen: (row: AuditRow)
       >
         <span className="flex w-full flex-wrap items-center gap-2">
           <AuditActionBadge meta={summary.meta} action={entry.action} />
-          <span className="text-text min-w-0 flex-1 truncate text-[13px] font-medium">
+          <span className="text-fg min-w-0 flex-1 truncate text-[13px] font-medium">
             {summary.meta.subject} {summary.meta.verb}
           </span>
           <span
@@ -55,7 +62,7 @@ function AuditCardBase({ row, onOpen }: { row: AuditRow; onOpen: (row: AuditRow)
         {summary.target.name && (
           <span className="text-muted-foreground flex w-full min-w-0 items-baseline gap-1.5 text-[12px]">
             <span className="shrink-0 tracking-wide uppercase">{summary.target.label}</span>
-            <span className={cn('text-text min-w-0 truncate', summary.target.mono && 'font-mono')}>
+            <span className={cn('text-fg min-w-0 truncate', summary.target.mono && 'font-mono')}>
               {summary.target.name}
             </span>
           </span>

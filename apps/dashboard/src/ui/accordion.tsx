@@ -1,7 +1,8 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 
+import { ChevronDownIcon } from '@velobits-dev/icons';
+
 import { cn } from './cn';
-import { ChevronDownIcon } from './icons';
 
 export interface AccordionItem {
   /** Stable id - also seeds the trigger/panel element ids. */
@@ -20,16 +21,19 @@ export interface AccordionProps {
 }
 
 /**
- * The container is `rounded-xl` (10px) with a 1px border, so the *inner* radius
- * the trigger's hover fill has to follow is 9px. Only the first row's top and
- * the last row's bottom touch the container edge; every other corner is square
- * so the hover band reads as a full-bleed row. Written as one shorthand
- * `border-radius` per case rather than `rounded-none` + `rounded-t-*`, because a
- * single property can't lose a cascade-order argument with the bare
- * `button { border-radius: 6px }` rule in styles.css.
+ * The container is `rounded-lg` (10px in the token layer) with a 1px border, so
+ * the *inner* radius the trigger's hover fill has to follow is 9px. Only the
+ * first row's top and the last row's bottom touch the container edge; every
+ * other corner is square so the hover band reads as a full-bleed row.
  *
- * A last row that is *open* keeps square bottom corners: its panel sits below
- * it, so it is no longer the element at the container's edge.
+ * Still written as one shorthand `border-radius` per case rather than
+ * `rounded-none` + `rounded-t-*`. The original reason — losing a cascade fight
+ * with `button { border-radius }` in the app's own stylesheet — is gone with that
+ * stylesheet, but the shorthand is still the clearer way to say "these two
+ * corners, those two square", and `cn` cannot merge away a single property.
+ *
+ * A last row that is *open* keeps square bottom corners: its panel sits below it,
+ * so it is no longer the element at the container's edge.
  */
 function triggerRadius(isFirst: boolean, isLast: boolean, open: boolean) {
   const roundTop = isFirst;
@@ -44,16 +48,16 @@ function triggerRadius(isFirst: boolean, isLast: boolean, open: boolean) {
 const FOCUS = 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none';
 
 /**
- * `styles.css` lands in Tailwind's `components` layer and styles bare `button`
- * (border, background, radius, padding). Utilities beat it, but only where one
- * is actually written - hence the explicit `border-0`, `bg-transparent`, own
- * padding and own radius. Drop any of those and the row grows a 6px-rounded
- * panel-coloured box inside the container.
+ * A bare `<button>`, not the system's `Button`: this is a full-bleed row that
+ * must square its own corners against the container and take its height from the
+ * title, which is the opposite of what a button variant is for. `border-0
+ * bg-transparent` stay because Preflight's button reset does not cover them.
  *
  * `min-h-11` keeps the row at the 44px touch minimum even if a title renders
- * unusually short.
+ * unusually short. `duration-200` is kept over the token layer's `duration-enter`
+ * (180ms) so the chevron, the height and the fade stay on one clock.
  */
-const TRIGGER = `flex w-full min-h-11 cursor-pointer items-center justify-between gap-4 border-0 bg-transparent px-5 py-4 text-left text-[15px] leading-snug font-semibold text-text transition-colors duration-200 ease-out hover:bg-highlight motion-reduce:transition-none sm:px-6 sm:py-[1.15rem] ${FOCUS}`;
+const TRIGGER = `flex w-full min-h-11 cursor-pointer items-center justify-between gap-4 border-0 bg-transparent px-5 py-4 text-left text-[15px] leading-snug font-semibold text-fg transition-colors duration-200 ease-out hover:bg-highlight motion-reduce:transition-none sm:px-6 sm:py-[1.15rem] ${FOCUS}`;
 
 /**
  * Height animation without JS measuring or a magic max-height: the panel is a
@@ -75,9 +79,27 @@ const PANEL_CONTENT =
 /**
  * Single-expand accordion (WAI-ARIA accordion pattern), uncontrolled.
  *
- * Built for the public landing page's FAQ, but generic: no Radix dependency, no
- * measured heights, no portal. Opening a row closes the previous one, and
- * clicking the open row collapses it, so "nothing open" is a reachable state.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * ## WHY THIS IS NOT `Accordion` FROM `@velobits-dev/ui`
+ *
+ * The system ships one, and it is the right choice everywhere except here.
+ *
+ * It is Radix-backed, and Radix **unmounts collapsed content**. This component
+ * renders the public landing page's FAQ, which is the product's only crawlable
+ * surface — so an unmounting accordion ships an FAQ whose answers are not in the
+ * served HTML, for search engines or for AI crawlers. That is a marketing
+ * regression that nothing in the app would surface as a bug.
+ *
+ * Keeping it also keeps the `items`-array API the FAQ data is written against,
+ * and the mounted-but-inert technique documented on the panel below, which is
+ * what makes "text is in the DOM" and "text is not in the a11y tree" both true.
+ *
+ * Use the system's `Accordion` for anything inside the authenticated app.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * No Radix dependency, no measured heights, no portal. Opening a row closes the
+ * previous one, and clicking the open row collapses it, so "nothing open" is a
+ * reachable state.
  *
  * Element ids are derived from `item.id` (`<id>-trigger` / `<id>-panel`) so they
  * are stable and deep-linkable. That means item ids must be unique across the
@@ -88,8 +110,8 @@ export function Accordion({ items, defaultOpenId, headingLevel = 3, className }:
   const triggerRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // `h2` | `h3` | `h4` as a tag name: the host page decides where the accordion
-  // sits in its outline, and a heading that lies about its depth is worse than
-  // no heading. The heading needs `m-0` - styles.css gives h1–h3 a 0.5rem
+  // sits in its outline, and a heading that lies about its depth is worse than no
+  // heading. The heading needs `m-0` — the app's base layer gives h1–h3 a 0.5rem
   // bottom margin, which would push every row off its divider.
   const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4';
 
@@ -128,7 +150,7 @@ export function Accordion({ items, defaultOpenId, headingLevel = 3, className }:
   return (
     <div
       className={cn(
-        'bg-panel border-border divide-border/60 divide-y rounded-xl border',
+        'bg-panel border-border divide-border/60 divide-y rounded-lg border',
         className,
       )}
     >

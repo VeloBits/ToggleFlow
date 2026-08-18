@@ -98,7 +98,7 @@ describe('listing', () => {
   it('hides all mutation controls from a viewer', async () => {
     renderPage(pageHandlers('viewer'));
     await loaded();
-    expect(screen.queryByText('＋ New segment')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'New segment' })).toBeNull();
     expect(screen.queryByText('edit')).toBeNull();
     expect(screen.queryByText('delete')).toBeNull();
   });
@@ -111,8 +111,8 @@ describe('create', () => {
     );
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ New segment'));
-    expect(screen.getByText('New segment')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'New segment' }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
 
     const save = screen.getByText('Save');
     // Both key and name are required for a create.
@@ -127,7 +127,7 @@ describe('create', () => {
     });
     fireEvent.click(save);
 
-    await waitFor(() => expect(screen.queryByText('New segment')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(stub.calls.find((c) => c.key === `POST ${SEGMENTS_URL}`)?.body).toEqual({
       key: 'power-users',
       name: 'Power users',
@@ -139,7 +139,7 @@ describe('create', () => {
   it('pre-fills a sensible starter condition', async () => {
     renderPage();
     await loaded();
-    fireEvent.click(screen.getByText('＋ New segment'));
+    fireEvent.click(screen.getByRole('button', { name: 'New segment' }));
     expect(screen.getByLabelText('Conditions (ALL must match)')).toHaveProperty(
       'value',
       JSON.stringify([{ attribute: 'plan', operator: 'in', values: ['pro'] }], null, 2),
@@ -150,7 +150,7 @@ describe('create', () => {
     const { stub } = renderPage(pageHandlers('admin', { [`POST ${SEGMENTS_URL}`]: segment() }));
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ New segment'));
+    fireEvent.click(screen.getByRole('button', { name: 'New segment' }));
     fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'k' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'N' } });
     fireEvent.change(screen.getByLabelText('Description'), { target: { value: ' notes ' } });
@@ -168,7 +168,7 @@ describe('create', () => {
     const { stub } = renderPage();
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ New segment'));
+    fireEvent.click(screen.getByRole('button', { name: 'New segment' }));
     fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'k' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'N' } });
     fireEvent.change(screen.getByLabelText('Conditions (ALL must match)'), {
@@ -184,7 +184,7 @@ describe('create', () => {
     const { stub } = renderPage();
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ New segment'));
+    fireEvent.click(screen.getByRole('button', { name: 'New segment' }));
     fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'k' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'N' } });
     fireEvent.change(screen.getByLabelText('Conditions (ALL must match)'), {
@@ -192,7 +192,9 @@ describe('create', () => {
     });
     fireEvent.click(screen.getByText('Save'));
 
-    await waitFor(() => expect(document.querySelector('.error-note')).toBeTruthy());
+    // `ErrorNote` is a design-system `Alert` now, so this asserts the role it
+    // exposes rather than the legacy `.error-note` class it used to carry.
+    await waitFor(() => expect(screen.getAllByRole('alert').length).toBeGreaterThan(0));
     expect(stub.calls.some((c) => c.key.startsWith('POST'))).toBe(false);
   });
 
@@ -207,21 +209,21 @@ describe('create', () => {
     );
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ New segment'));
+    fireEvent.click(screen.getByRole('button', { name: 'New segment' }));
     fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'beta-users' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Dupe' } });
     fireEvent.click(screen.getByText('Save'));
 
     await waitFor(() => expect(screen.getByText('key already used')).toBeTruthy());
-    expect(screen.getByText('New segment')).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
   it('closes on cancel', async () => {
     renderPage();
     await loaded();
-    fireEvent.click(screen.getByText('＋ New segment'));
+    fireEvent.click(screen.getByRole('button', { name: 'New segment' }));
     fireEvent.click(screen.getByText('Cancel'));
-    expect(screen.queryByText('New segment')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 

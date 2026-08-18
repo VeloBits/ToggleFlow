@@ -10,12 +10,17 @@
  * they narrow the entries already loaded, because the endpoint takes no filter
  * parameters. See the docblock in `audit-filter.ts`.
  */
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { NativeSelect } from '@/components/ui/native-select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { FilterIcon, SearchIcon, XIcon } from '@/ui/icons';
+import {
+  Badge,
+  Button,
+  Input,
+  Label,
+  NativeSelect,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@velobits-dev/ui';
+import { FilterIcon, SearchIcon, XIcon } from '@velobits-dev/icons';
 
 import { ACTION_GROUPS } from './audit-events';
 import { EMPTY_FILTER, activeAuditFilterCount, type AuditFilter } from './audit-filter';
@@ -56,13 +61,21 @@ export function AuditToolbar({
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" disabled={disabled} className="gap-1.5">
+          <Button variant="secondary" disabled={disabled} className="gap-1.5">
             <FilterIcon size={14} />
             Filters
+            {/*
+              A `Badge` rather than the hand-rolled pill this was: the metrics
+              fit (a one- or two-digit count needs no more room than a short
+              label), and `variant="primary"` is a soft blue wash rather than the
+              solid fill, which is the better read for a count sitting inside an
+              outlined button. `tabular-nums` so 1 and 2 occupy the same width
+              and the trigger does not twitch as filters are added.
+            */}
             {active > 0 && (
-              <span className="bg-primary text-primary-foreground rounded-pill ml-0.5 px-1.5 text-[11px] font-semibold tabular-nums">
+              <Badge variant="primary" className="ml-0.5 px-1.5 tabular-nums">
                 {active}
-              </span>
+              </Badge>
             )}
           </Button>
         </PopoverTrigger>

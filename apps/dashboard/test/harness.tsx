@@ -19,7 +19,7 @@ import { expect, vi, type MockInstance } from 'vitest';
 
 import type { Environment, Flag, FlagDefinition, Me, Project } from '../src/api/client';
 import { userManager } from '../src/auth/oidc';
-import { TooltipProvider } from '../src/components/ui/tooltip';
+import { THEME_STORAGE_KEYS, VelobitsProvider } from '@velobits-dev/ui';
 import { WorkspaceProvider } from '../src/state/WorkspaceContext';
 import { ToastProvider } from '../src/ui/toast';
 
@@ -250,18 +250,22 @@ export function renderWithProviders(
   const inner = withWorkspace ? <WorkspaceProvider>{ui}</WorkspaceProvider> : ui;
 
   /*
-   * The provider stack mirrors src/main.tsx, TooltipProvider included: shadcn's
-   * `Tooltip` is a bare Radix Root and throws "must be used within
-   * TooltipProvider" at render time. Leaving it out here would mean any
-   * component that grows a tooltip breaks its suite for a reason that has
-   * nothing to do with the test.
+   * The provider stack mirrors src/main.tsx. `VelobitsProvider` is the design
+   * system's ThemeProvider + TooltipProvider in one, and both halves matter
+   * here: `Tooltip` is a bare Radix Root that throws "must be used within
+   * TooltipProvider" at render time, and `useTheme()` throws outside its
+   * provider — so a component that grows either would otherwise break its suite
+   * for a reason that has nothing to do with the test.
+   *
+   * `MotionConfig` from main.tsx is deliberately NOT mirrored: nothing under
+   * test animates, and happy-dom has no `matchMedia` for it to read.
    */
   return render(
     <MemoryRouter initialEntries={[route]}>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
+        <VelobitsProvider storageKey={THEME_STORAGE_KEYS.dashboard}>
           <ToastProvider>{inner}</ToastProvider>
-        </TooltipProvider>
+        </VelobitsProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );

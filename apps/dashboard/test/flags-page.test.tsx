@@ -253,8 +253,8 @@ describe('listing', () => {
     renderPage();
     await waitForRows();
     const table = inTable();
-    expect(table.getAllByText('ON').length).toBeGreaterThan(0);
-    expect(table.getByText('OFF')).toBeTruthy();
+    expect(table.getAllByText(/^on$/i).length).toBeGreaterThan(0);
+    expect(table.getByText(/^off$/i)).toBeTruthy();
     // "25%" beats the word "ROLLOUT": same space, strictly more information.
     expect(table.getByText('25%')).toBeTruthy();
   });
@@ -824,13 +824,19 @@ describe('the select column', () => {
     expect(rows[1]!.getAttribute('data-state')).toBeNull();
     expect(rows[2]!.getAttribute('data-state')).toBe('selected');
 
-    // A card is already raised off the background, so it gets a ring as well.
+    // The card carries the same `data-state` contract as the row, so this
+    // asserts the state rather than the paint that currently expresses it — a
+    // card is raised off the background and gets a ring as well as a tint, but
+    // which utilities do that is a styling decision, not a contract.
     const card = inCards().getByLabelText('Select tool.translate').closest('[data-slot="card"]')!;
-    expect(card.className).toContain('ring-2');
+    expect(card.getAttribute('data-state')).toBe('selected');
     const unselected = inCards()
       .getByLabelText('Select tool.summarize')
       .closest('[data-slot="card"]')!;
-    expect(unselected.className).not.toContain('ring-2');
+    expect(unselected.getAttribute('data-state')).toBeNull();
+    // ...and that the two are still visually distinguishable at all, without
+    // naming the utility that does it.
+    expect(card.className).not.toBe(unselected.className);
   });
 
   it('ticks a card box without opening the flag', () => {

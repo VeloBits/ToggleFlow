@@ -20,14 +20,14 @@
  * project from the page they landed on and lands back on a working Flags page,
  * with no second implementation of the flow to keep in step.
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@velobits-dev/ui';
 import { NameDialog } from '@/components/nav/CreateScopeDialogs';
 import { EmptyState } from '@/components/page';
 import { useWorkspace } from '@/state/WorkspaceContext';
-import { FlagIcon, FolderIcon, GlobeIcon, PlusIcon } from '@/ui/icons';
+import { FlagIcon, FolderIcon, GlobeIcon, PlusIcon } from '@velobits-dev/icons';
 import { useToast } from '@/ui/toast';
 
 /**
@@ -68,7 +68,12 @@ export function NoProjectState() {
   return (
     <>
       <EmptyState
-        icon={FolderIcon}
+        // Page-level: no container around it, so it owns the glass.
+        surface="glass"
+        // A node, not a component type: the system's EmptyState takes an
+        // element so a caller can size it, or pass something that is not an
+        // icon at all.
+        icon={<FolderIcon />}
         title={
           ws.orgId === null
             ? 'Create an organization to start using flags'
@@ -81,9 +86,11 @@ export function NoProjectState() {
               ? 'Flags live inside a project, alongside its own environments. A new project starts with Production; add more environments whenever you need them.'
               : 'No projects exist in this organization yet, and flags live inside a project. An admin needs to create the first one.'
         }
+        // `action` is the system's own slot, so there is no wrapper here to
+        // centre or space it.
         action={
           canCreate && (
-            <Button onClick={() => setCreating(true)}>
+            <Button variant="primary" onClick={() => setCreating(true)}>
               <PlusIcon size={14} /> Create project
             </Button>
           )
@@ -113,11 +120,13 @@ export function NoEnvironmentState() {
   const ws = useWorkspace();
   return (
     <EmptyState
-      icon={GlobeIcon}
+      // Page-level: no container around it, so it owns the glass.
+      surface="glass"
+      icon={<GlobeIcon />}
       title={`${ws.project?.name ?? 'This project'} has no environments`}
       description="A flag is on or off per environment, so there is nothing to show until this project has at least one."
       action={
-        <Button variant="outline" asChild>
+        <Button variant="secondary" asChild>
           <Link to="/environments">Manage environments</Link>
         </Button>
       }
@@ -131,7 +140,9 @@ export function NoFlagsState({ canEdit, onCreate }: { canEdit: boolean; onCreate
 
   return (
     <EmptyState
-      icon={FlagIcon}
+      // Page-level: no container around it, so it owns the glass.
+      surface="glass"
+      icon={<FlagIcon />}
       title={`No flags in ${ws.project?.name ?? 'this project'} yet`}
       description={
         canEdit
@@ -140,7 +151,9 @@ export function NoFlagsState({ canEdit, onCreate }: { canEdit: boolean; onCreate
       }
       action={
         canEdit && (
-          <Button onClick={onCreate}>
+          // Explicit: the system's Button defaults to `secondary`, so the one
+          // action a first-run state offers would otherwise be the quiet one.
+          <Button variant="primary" onClick={onCreate}>
             <PlusIcon size={14} /> Create your first flag
           </Button>
         )
@@ -180,15 +193,18 @@ export function NoMatchesState({
 }: {
   total: number;
   onClear: () => void;
-  icon: Parameters<typeof EmptyState>[0]['icon'];
+  /** A rendered element - `EmptyState`'s `icon` is a node, not a component. */
+  icon: ReactNode;
 }) {
   return (
     <EmptyState
+      // Page-level: no container around it, so it owns the glass.
+      surface="glass"
       icon={icon}
       title="Nothing matches these filters"
       description={`${total} ${total === 1 ? 'flag' : 'flags'} in this environment, none of them matching.`}
       action={
-        <Button variant="outline" onClick={onClear}>
+        <Button variant="secondary" onClick={onClear}>
           Clear filters
         </Button>
       }

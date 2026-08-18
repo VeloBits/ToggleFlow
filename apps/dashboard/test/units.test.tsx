@@ -12,10 +12,11 @@ vi.mock('../src/auth/AuthContext', () => ({
   useAuth: () => ({ user: null, loading: false, logout: vi.fn(), ...auth }),
 }));
 
+import { THEME_STORAGE_KEYS, VelobitsProvider, diffLines } from '@velobits-dev/ui';
+
 import type { Flag } from '../src/api/client';
 import { flagKeys } from '../src/api/flags';
 import { returnToFromState, safeReturnTo } from '../src/auth/return-to';
-import { diffLines } from '../src/components/diff';
 import { ConfirmButton, StatusChip } from '../src/components/ui';
 import { EMPTY_FILTER, filterFlags } from '../src/features/flags/flags-filter';
 import { GuestHomePage } from '../src/pages/GuestHomePage';
@@ -27,6 +28,12 @@ import {
   slugifyFlagKey,
 } from '../src/ui/slug';
 
+/**
+ * `diffLines` is the design system's now, not this app's — but the config
+ * history and the audit payload viewer both render its output, so these two
+ * cases stay as a contract check on the dependency rather than on our own code.
+ * They are the exact inputs the old local implementation was written against.
+ */
 describe('diffLines', () => {
   it('marks added, removed, and unchanged lines', () => {
     const before = '{\n  "limit": 5,\n  "mode": "a"\n}';
@@ -199,9 +206,9 @@ describe('slugify', () => {
 describe('StatusChip', () => {
   it('renders ON / OFF / percentage', () => {
     const { rerender } = render(<StatusChip enabled={true} rolloutPercent={null} />);
-    expect(screen.getByText('ON')).toBeTruthy();
+    expect(screen.getByText(/^on$/i)).toBeTruthy();
     rerender(<StatusChip enabled={false} rolloutPercent={null} />);
-    expect(screen.getByText('OFF')).toBeTruthy();
+    expect(screen.getByText(/^off$/i)).toBeTruthy();
     rerender(<StatusChip enabled={true} rolloutPercent={25} />);
     expect(screen.getByText('25%')).toBeTruthy();
   });
@@ -266,10 +273,20 @@ describe('GuestHomePage', () => {
     window.history.replaceState(null, '', '/');
   });
 
+  /*
+   * `VelobitsProvider` is not optional here, and it is the one thing this file
+   * has to keep in step with `src/main.tsx`. The landing page's nav renders
+   * `ThemeToggle`, which subscribes with `useTheme()` — and that hook throws
+   * outside its provider rather than silently rendering the wrong icon. The
+   * shared harness mounts the same provider for every other suite; this file
+   * hand-rolls its render because it wants no query client or workspace.
+   */
   const renderAt = (path: string) =>
     render(
       <MemoryRouter initialEntries={[path]}>
-        <GuestHomePage />
+        <VelobitsProvider storageKey={THEME_STORAGE_KEYS.dashboard}>
+          <GuestHomePage />
+        </VelobitsProvider>
       </MemoryRouter>,
     );
 

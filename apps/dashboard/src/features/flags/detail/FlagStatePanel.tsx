@@ -31,17 +31,21 @@ import { z } from 'zod';
 import { flagType, targetingRuleSchema, type JsonValue } from '@toggleflow/engine';
 
 import type { Flag, FlagDefinitionDetail } from '@/api/client';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
-import { prettyJson } from '@/components/diff';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Input,
+  Label,
+  Skeleton,
+} from '@velobits-dev/ui';
+import { prettyJson } from '@/components/json';
 import { JsonField } from '@/components/JsonField';
 import { Panel } from '@/components/page';
 import { ConfirmButton } from '@/components/ui';
 import { useWorkspace } from '@/state/WorkspaceContext';
-import { AlertTriangleIcon } from '@/ui/icons';
+import { AlertTriangleIcon } from '@velobits-dev/icons';
 
 import { FlagStatusBadge } from '../FlagStatusBadge';
 import { valueControl } from '../value-controls';
@@ -151,7 +155,11 @@ export function FlagStatePanel({
   return (
     <div className="flex flex-col gap-4">
       {flag.archived && (
-        <Alert>
+        // `warning`, where the old two-variant Alert could only be neutral or
+        // destructive. Archiving is not a failure, but it IS the reason the
+        // controls below are locked - and a warning triangle on a neutral panel
+        // was the icon and the colour disagreeing.
+        <Alert variant="warning">
           <AlertTriangleIcon size={15} />
           <AlertTitle>This flag is archived</AlertTitle>
           <AlertDescription>
@@ -175,10 +183,15 @@ export function FlagStatePanel({
               {canEdit && (
                 <>
                   <ConfirmButton
-                    className={buttonVariants({
-                      variant: state.enabled ? 'destructive' : 'default',
-                      size: 'sm',
-                    })}
+                    // `secondary` rather than the filled primary the old
+                    // `default` painted: `ConfirmButton` only offers
+                    // destructive / secondary / ghost, because its armed state
+                    // is always destructive and a fill that flips to another
+                    // fill reads as a different button rather than a changed
+                    // one. Turning a flag ON is not the page's primary action
+                    // anyway - the kill switch is.
+                    variant={state.enabled ? 'destructive' : 'primary'}
+                    size="sm"
                     label={state.enabled ? 'Turn OFF (kill switch)' : 'Turn ON'}
                     confirmLabel={`Confirm ${state.enabled ? 'OFF' : 'ON'} in ${ws.environment?.key}?`}
                     // Production asks twice. Keyed off the environment key, the
@@ -217,7 +230,7 @@ export function FlagStatePanel({
                 </div>
                 {canEdit && (
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     disabled={patch.isPending}
                     onClick={() => commit({ value })}
@@ -248,7 +261,7 @@ export function FlagStatePanel({
               />
               {canEdit && (
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={() => commit({ rolloutPercent: rolloutValue() })}
                 >
@@ -276,7 +289,7 @@ export function FlagStatePanel({
             />
             {canEdit && (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 className="self-start"
                 disabled={patch.isPending}

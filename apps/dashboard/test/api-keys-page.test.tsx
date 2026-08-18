@@ -119,7 +119,7 @@ describe('creation', () => {
     );
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ Create key'));
+    fireEvent.click(screen.getByText('Create key'));
     const submit = screen.getByText('Create');
     expect(submit).toHaveProperty('disabled', true);
 
@@ -147,12 +147,12 @@ describe('creation', () => {
     );
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ Create key'));
+    fireEvent.click(screen.getByText('Create key'));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'browser' } });
     fireEvent.click(screen.getByText('Create'));
 
     await waitFor(() => expect(screen.getByText('Copy your key now')).toBeTruthy());
-    fireEvent.click(screen.getByText('Copy'));
+    fireEvent.click(screen.getByLabelText('Copy API key'));
     expect(writeText).toHaveBeenCalledWith('tf_cli_secret');
   });
 
@@ -162,7 +162,7 @@ describe('creation', () => {
     );
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ Create key'));
+    fireEvent.click(screen.getByText('Create key'));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'temp' } });
     fireEvent.click(screen.getByText('Create'));
 
@@ -183,7 +183,7 @@ describe('creation', () => {
     );
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ Create key'));
+    fireEvent.click(screen.getByText('Create key'));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'one too many' } });
     fireEvent.click(screen.getByText('Create'));
 
@@ -195,7 +195,7 @@ describe('creation', () => {
     const { stub } = renderPage();
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ Create key'));
+    fireEvent.click(screen.getByText('Create key'));
     fireEvent.click(screen.getByText('Cancel'));
     expect(screen.queryByText('Create API key')).toBeNull();
     expect(stub.calls.some((c) => c.key.startsWith('POST'))).toBe(false);

@@ -16,9 +16,42 @@
     />
     <link rel="canonical" href="https://toggleflow.dev/" />
 
-    <!-- Matches --bg in src/styles.css so the browser chrome follows the theme. -->
-    <meta name="theme-color" content="#f8f8f8" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1e1e1e" media="(prefers-color-scheme: dark)" />
+    <!--
+      Matches `--bg` in @velobits-dev/tokens/tokens.css so the browser chrome
+      follows the theme. Keep in step with that file if the page surface moves.
+    -->
+    <meta name="theme-color" content="#f4edea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#151615" media="(prefers-color-scheme: dark)" />
+
+    <!--
+      Applies the stored theme BEFORE first paint, so a dark-mode user does not
+      get a frame of the cream page on every load. Without it the theme lands
+      only once React boots, which on a cold cache is a visible white flash.
+
+      This is a verbatim copy of what `themeInitScript(THEME_STORAGE_KEYS.dashboard)`
+      from `@velobits-dev/ui/theme` emits — inlined because a static Vite
+      `index.html` cannot call into a module, and `type="module"` scripts are
+      deferred, i.e. too late to beat the paint. The runtime `ThemeProvider`
+      takes over immediately after and also mirrors the class onto `<body>`
+      (the token file keys dark mode on `.dark, body.dark`, so either element
+      works; the init script only needs the one it can reach).
+
+      If the storage key or the resolution rule ever changes in the design
+      system, this line has to change with it.
+    -->
+    <script>
+      (function () {
+        try {
+          var m = localStorage.getItem('tf.theme');
+          var d =
+            m === 'dark' ||
+            ((m === 'system' || !m) && matchMedia('(prefers-color-scheme: dark)').matches);
+          var h = document.documentElement;
+          h.classList.toggle('dark', d);
+          h.style.colorScheme = d ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="ToggleFlow" />

@@ -31,7 +31,8 @@ import {
   UploadIcon,
   UsersIcon,
   type IconProps,
-} from '@/ui/icons';
+} from '@velobits-dev/icons';
+import type { BadgeProps } from '@velobits-dev/ui';
 import type { ComponentType } from 'react';
 
 /**
@@ -46,20 +47,32 @@ import type { ComponentType } from 'react';
 export type AuditTone = 'create' | 'update' | 'destroy' | 'notable' | 'neutral';
 
 /**
- * Tone -> badge classes.
+ * Tone -> `Badge` variant.
  *
- * Reuses the flag tokens rather than inventing audit-specific ones: green for
- * additive, blue for routine change, red for removal, amber for "this changed
- * what production serves". There is no `success`/`warning` token in this theme -
- * amber is `rollout` - and every one of these pairs a colour with an icon in
- * `AuditActionBadge`, because colour alone fails for a red/green deficiency.
+ * A variant map rather than the class map this used to be: the design system's
+ * badge variants are semantic, and each one pairs its wash with the matching
+ * text token at a contrast ratio gated over the page, a panel and glass. Naming
+ * the meaning and letting the system pick the paint is strictly better than
+ * repeating `bg-x-soft text-x` here, where the pairing could drift.
+ *
+ * Green for additive, teal for routine change, red for removal, amber for "this
+ * changed what production serves". Every one of them pairs a colour with an icon
+ * in `AuditActionBadge`, because colour alone fails for a red/green deficiency.
+ *
+ * `update` is `info`, not `primary`. It is by far the most common tone on this
+ * page - it covers eight of the twenty-four actions and is what the `neutral`
+ * fallback degrades toward - so painting it in the app's action blue made the
+ * densest surface in the product read as one long blue column, and made a
+ * routine edit look like something you could click. `info` is teal as of tokens
+ * 0.2.0, so it is now genuinely distinct from both the link colour and the
+ * chrome around it.
  */
-export const TONE_CLASS: Record<AuditTone, string> = {
-  create: 'bg-on-soft text-on',
-  update: 'bg-primary-soft text-primary',
-  destroy: 'bg-off-soft text-off',
-  notable: 'bg-rollout-soft text-rollout',
-  neutral: 'bg-muted text-muted-foreground',
+export const TONE_VARIANT: Record<AuditTone, NonNullable<BadgeProps['variant']>> = {
+  create: 'success',
+  update: 'info',
+  destroy: 'danger',
+  notable: 'warning',
+  neutral: 'neutral',
 };
 
 export interface AuditEventMeta {

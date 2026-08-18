@@ -150,7 +150,7 @@ describe('adding a member', () => {
     const { stub } = renderPage(pageHandlers('admin', { [`POST ${MEMBERS_URL}`]: { ok: true } }));
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ Add member'));
+    fireEvent.click(screen.getByRole('button', { name: 'Add member' }));
     const submit = screen.getByText('Add');
     expect(submit).toHaveProperty('disabled', true);
     expect(screen.getByLabelText('Role')).toHaveProperty('value', 'developer');
@@ -159,7 +159,7 @@ describe('adding a member', () => {
     expect(submit).toHaveProperty('disabled', false);
     fireEvent.click(submit);
 
-    await waitFor(() => expect(screen.queryByText('Add member')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(stub.calls.find((c) => c.key === `POST ${MEMBERS_URL}`)?.body).toEqual({
       email: 'new@velobits.test',
       role: 'developer',
@@ -170,7 +170,7 @@ describe('adding a member', () => {
     const { stub } = renderPage(pageHandlers('admin', { [`POST ${MEMBERS_URL}`]: { ok: true } }));
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ Add member'));
+    fireEvent.click(screen.getByRole('button', { name: 'Add member' }));
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'boss@velobits.test' } });
     fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'admin' } });
     fireEvent.click(screen.getByText('Add'));
@@ -193,20 +193,20 @@ describe('adding a member', () => {
     );
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ Add member'));
+    fireEvent.click(screen.getByRole('button', { name: 'Add member' }));
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'ghost@velobits.test' } });
     fireEvent.click(screen.getByText('Add'));
 
     await waitFor(() => expect(screen.getByText(/no such user/)).toBeTruthy());
-    expect(screen.getByText('Add member')).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
   it('closes on cancel', async () => {
     renderPage();
     await loaded();
-    fireEvent.click(screen.getByText('＋ Add member'));
+    fireEvent.click(screen.getByRole('button', { name: 'Add member' }));
     fireEvent.click(screen.getByText('Cancel'));
-    expect(screen.queryByText('Add member')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 
@@ -215,7 +215,7 @@ describe('non-admin view', () => {
     renderPage(pageHandlers('developer'));
     await loaded();
 
-    expect(screen.queryByText('＋ Add member')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add member' })).toBeNull();
     expect(screen.queryByText('Remove')).toBeNull();
     expect(screen.queryByLabelText('Role for ops@velobits.test')).toBeNull();
     // Roles still readable, just not editable.

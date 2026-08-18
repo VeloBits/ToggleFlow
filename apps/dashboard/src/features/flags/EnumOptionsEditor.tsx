@@ -10,10 +10,8 @@
  */
 import { useRef } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ArrowDownIcon, PlusIcon, XIcon } from '@/ui/icons';
+import { Button, Input, Label } from '@velobits-dev/ui';
+import { ArrowDownIcon, PlusIcon, XIcon } from '@velobits-dev/icons';
 
 export function EnumOptionsEditor({
   options,
@@ -74,7 +72,8 @@ export function EnumOptionsEditor({
                 />
                 <Button
                   type="button"
-                  size="icon-sm"
+                  size="icon"
+                  className="size-8"
                   variant="ghost"
                   disabled={disabled || index === 0}
                   aria-label={`Move option ${index + 1} up`}
@@ -84,7 +83,8 @@ export function EnumOptionsEditor({
                 </Button>
                 <Button
                   type="button"
-                  size="icon-sm"
+                  size="icon"
+                  className="size-8"
                   variant="ghost"
                   disabled={disabled || index === options.length - 1}
                   aria-label={`Move option ${index + 1} down`}
@@ -94,7 +94,10 @@ export function EnumOptionsEditor({
                 </Button>
                 <Button
                   type="button"
-                  size="icon-sm"
+                  // `size-8` beats the cva's own `size-9` - the documented
+                  // spelling of the old `icon-sm` on the four-step scale.
+                  size="icon"
+                  className="size-8"
                   variant="ghost"
                   // Never leave zero options: an enum with no members can serve
                   // nothing, and the API's CHECK constraint rejects it anyway.
@@ -105,16 +108,16 @@ export function EnumOptionsEditor({
                   <XIcon size={14} />
                 </Button>
               </div>
-              {error && <p className="text-destructive m-0 text-[12px]">{error}</p>}
+              {error && <p className="text-danger m-0 text-[12px]">{error}</p>}
             </li>
           );
         })}
       </ul>
-      {listError && <p className="text-destructive m-0 text-[12px]">{listError}</p>}
+      {listError && <p className="text-danger m-0 text-[12px]">{listError}</p>}
       <Button
         type="button"
         size="sm"
-        variant="outline"
+        variant="secondary"
         disabled={disabled}
         onClick={add}
         className="self-start"

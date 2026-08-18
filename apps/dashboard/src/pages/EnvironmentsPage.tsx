@@ -8,8 +8,14 @@
  * config and keys with it, so it is behind the two-step ConfirmButton and
  * refused outright for the environment you are currently in - switching first
  * makes the consequence visible instead of silently relocating you.
+ *
+ * A list rather than a table: a row is a name, a key and four controls, none of
+ * which line up into columns worth scanning, and the count is small enough that
+ * sorting and filtering would be furniture with nothing to do.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LayersIcon, PlusIcon } from '@velobits-dev/icons';
+import { Button, Input } from '@velobits-dev/ui';
 import { useState } from 'react';
 
 import { api, type Environment } from '../api/client';
@@ -22,7 +28,6 @@ import { EmptyState, PageHeader, Panel } from '../components/page';
 import { ConfirmButton, ErrorNote } from '../components/ui';
 import { useWorkspace } from '../state/WorkspaceContext';
 import { cn } from '../ui/cn';
-import { LayersIcon, PlusIcon } from '../ui/icons';
 import { useToast } from '../ui/toast';
 
 export function EnvironmentsPage() {
@@ -72,7 +77,7 @@ export function EnvironmentsPage() {
         <PageHeader title="Environments" />
         <Panel>
           <EmptyState
-            icon={LayersIcon}
+            icon={<LayersIcon />}
             title="No project selected"
             description="Environments belong to a project. Create one from the top bar to get started."
           />
@@ -88,20 +93,18 @@ export function EnvironmentsPage() {
         description={
           <>
             Separate copies of every flag and config in{' '}
-            <strong className="text-text font-medium">{ws.project?.name}</strong>. Each has its own
+            <strong className="text-fg font-medium">{ws.project?.name}</strong>. Each has its own
             API keys and its own published ruleset.
           </>
         }
         actions={
           isAdmin && (
-            <button
-              type="button"
-              className="primary"
+            <Button
+              variant="primary"
               onClick={() => setCreating({ inheritFromId: ws.environmentId })}
             >
-              <PlusIcon size={14} className="mr-1 inline align-[-2px]" />
-              New environment
-            </button>
+              <PlusIcon size={14} /> New environment
+            </Button>
           )
         }
       />
@@ -111,7 +114,7 @@ export function EnvironmentsPage() {
       <Panel>
         {environments.length === 0 ? (
           <EmptyState
-            icon={LayersIcon}
+            icon={<LayersIcon />}
             title="No environments"
             description="Every project needs at least one. Production is created with the project by default."
           />
@@ -124,13 +127,13 @@ export function EnvironmentsPage() {
               return (
                 <li
                   key={environment.id}
-                  className="border-border flex flex-wrap items-center gap-3 border-b px-4 py-3 last:border-b-0"
+                  className="border-border flex flex-wrap items-center gap-2 border-b px-4 py-3 last:border-b-0"
                 >
                   <span aria-hidden className={cn('size-2.5 shrink-0 rounded-full', tone.dot)} />
 
                   {renaming === environment.id ? (
                     <form
-                      className="flex min-w-0 flex-1 items-center gap-2"
+                      className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
                       onSubmit={(e) => {
                         e.preventDefault();
                         const name = draftName.trim();
@@ -140,7 +143,7 @@ export function EnvironmentsPage() {
                       <label className="sr-only" htmlFor={`rename-${environment.id}`}>
                         New name for {environment.name}
                       </label>
-                      <input
+                      <Input
                         id={`rename-${environment.id}`}
                         autoFocus
                         value={draftName}
@@ -148,21 +151,27 @@ export function EnvironmentsPage() {
                         onChange={(e) => setDraftName(e.target.value)}
                         className="min-w-0 flex-1"
                       />
-                      <button
+                      <Button
                         type="submit"
-                        className="primary"
+                        variant="primary"
+                        size="sm"
                         disabled={!draftName.trim() || rename.isPending}
                       >
-                        Save
-                      </button>
-                      <button type="button" onClick={() => setRenaming(null)}>
+                        {rename.isPending ? 'Saving…' : 'Save'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRenaming(null)}
+                      >
                         Cancel
-                      </button>
+                      </Button>
                     </form>
                   ) : (
                     <>
                       <div className="min-w-0 flex-1">
-                        <p className="text-text m-0 truncate text-[13.5px] font-medium">
+                        <p className="text-fg m-0 truncate text-[13.5px] font-medium">
                           {environment.name}
                           {isCurrent && (
                             <span className="text-muted-foreground ml-2 text-[11.5px] font-normal">
@@ -170,39 +179,51 @@ export function EnvironmentsPage() {
                             </span>
                           )}
                         </p>
-                        <p className="mono text-muted-foreground m-0">{environment.key}</p>
+                        <p className="text-muted-foreground m-0 font-mono text-[12px]">
+                          {environment.key}
+                        </p>
                       </div>
 
                       {!isCurrent && (
-                        <button type="button" onClick={() => ws.selectEnvironment(environment.id)}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => ws.selectEnvironment(environment.id)}
+                        >
                           Switch to
-                        </button>
+                        </Button>
                       )}
                       {isAdmin && (
                         <>
                           {/* The shortest path to "another environment like this
                               one" - opens the create dialog with this row
                               pre-selected as the inheritance source. */}
-                          <button
-                            type="button"
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setCreating({ inheritFromId: environment.id })}
                           >
                             Duplicate
-                          </button>
-                          <button
-                            type="button"
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setRenaming(environment.id);
                               setDraftName(environment.name);
                             }}
                           >
                             Rename
-                          </button>
+                          </Button>
                           {/*
                             Refusing to delete the current or the last
                             environment is a guard, not a permission - so the
                             control stays visible and explains itself rather
                             than disappearing and leaving the user to guess.
+                            The `title` is on the wrapper, not the button: a
+                            disabled button gets no pointer events, so a tooltip
+                            on it would never be shown by the one control that
+                            needs to explain itself.
                           */}
                           <span
                             title={
@@ -214,7 +235,7 @@ export function EnvironmentsPage() {
                             }
                           >
                             <ConfirmButton
-                              className="danger"
+                              variant="destructive"
                               label="Delete"
                               confirmLabel="Delete for good?"
                               disabled={isOnly || isCurrent}

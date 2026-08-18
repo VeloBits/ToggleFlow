@@ -9,14 +9,26 @@
  * created.
  */
 import { cn } from '@/ui/cn';
-import { ArrowRightIcon } from '@/ui/icons';
+import { ArrowRightIcon } from '@velobits-dev/icons';
 
 import { formatFieldValue, type AuditChange, type AuditFact } from './audit-summary';
 
+/**
+ * Deliberately still classes, and deliberately still not a `Badge`.
+ *
+ * The three pairs below are exactly the system's `success`, `danger` and
+ * `neutral` badge variants (minus neutral's border), so nothing here diverges
+ * from how the rest of the app paints a tone - but `Badge` cannot be the element
+ * a `ValueChip` renders. `Badge` is `inline-flex`, and `text-overflow: ellipsis`
+ * has no effect on a flex container: the `max-w-[22ch] truncate` clip below is
+ * this chip's entire reason to exist, and it silently stops working. The chip
+ * also has to sit on the text baseline of the `items-baseline` change lines,
+ * which an inline-flex box does not do the same way.
+ */
 const TONE_CLASS = {
-  on: 'bg-on-soft text-on',
-  off: 'bg-off-soft text-off',
-  neutral: 'bg-bg2 text-text',
+  on: 'bg-success-soft text-success',
+  off: 'bg-danger-soft text-danger',
+  neutral: 'bg-bg2 text-fg',
 } as const;
 
 /**
@@ -191,7 +203,7 @@ export function AuditChangeTable({ changes }: { changes: AuditChange[] }) {
             key={change.field}
             className="border-border grid grid-cols-[minmax(6rem,1fr)_minmax(0,1.4fr)_minmax(0,1.4fr)] items-baseline gap-3 border-b px-3 py-2 last:border-b-0"
           >
-            <dt className="text-text m-0 text-[12.5px] font-medium break-words">{change.label}</dt>
+            <dt className="text-fg m-0 text-[12.5px] font-medium break-words">{change.label}</dt>
             <dd className="m-0 min-w-0">
               {change.kind === 'added' ? (
                 <span className="text-muted-foreground text-[12px]">not set</span>
@@ -230,7 +242,7 @@ export function AuditFactTable({ facts }: { facts: AuditFact[] }) {
           key={fact.field}
           className="border-border grid grid-cols-[minmax(6rem,1fr)_minmax(0,2fr)] items-baseline gap-3 border-b px-3 py-2 last:border-b-0"
         >
-          <dt className="text-text m-0 text-[12.5px] font-medium break-words">{fact.label}</dt>
+          <dt className="text-fg m-0 text-[12.5px] font-medium break-words">{fact.label}</dt>
           <dd className="m-0 min-w-0">
             <ValueChip
               field={fact.field}

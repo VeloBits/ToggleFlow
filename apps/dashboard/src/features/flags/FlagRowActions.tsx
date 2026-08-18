@@ -1,10 +1,11 @@
 /**
  * The per-row overflow menu.
  *
- * Uses `src/ui/menu.tsx` (the existing Radix dropdown) rather than a generated
- * shadcn one - it already encodes the `data-[highlighted]` styling that makes
- * keyboard and pointer navigation look identical, which a fresh generate would
- * discard.
+ * The system's `DropdownMenu` rather than a locally generated shadcn one: it
+ * already encodes the `data-[highlighted]` styling that makes keyboard and
+ * pointer navigation look identical, and it owns the `variant="danger"` item -
+ * so the delete row no longer restates `text-danger data-[highlighted]:text-danger`
+ * and cannot drift from the destructive item in any other menu.
  *
  * "Edit definition" opens a Dialog rather than expanding in place, because a
  * Radix menu cannot host a text input: `onOpenAutoFocus` is private on menu
@@ -16,8 +17,14 @@
  */
 import { useState } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '@/ui/menu';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@velobits-dev/ui';
 import {
   ArchiveIcon,
   CopyIcon,
@@ -25,7 +32,7 @@ import {
   PencilIcon,
   ChevronRightIcon,
   TrashIcon,
-} from '@/ui/icons';
+} from '@velobits-dev/icons';
 
 import type { CellContext, FlagRow } from './flag-columns';
 
@@ -42,12 +49,14 @@ export function FlagRowActions({ flag, ctx }: { flag: FlagRow; ctx: CellContext 
   };
 
   return (
-    <Menu onOpenChange={closeAndReset}>
-      <MenuTrigger asChild>
+    <DropdownMenu onOpenChange={closeAndReset}>
+      <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="icon-sm"
-          className="text-muted-foreground"
+          // `size-8` beats the cva's own `size-9`, which is the documented way
+          // to reach the old `icon-sm` now that the size scale is four steps.
+          size="icon"
+          className="text-muted-foreground size-8"
           // The key is in the name because a column of identical "Actions"
           // buttons is unusable with a screen reader, and it is how the tests
           // reach a specific row's menu.
@@ -55,23 +64,23 @@ export function FlagRowActions({ flag, ctx }: { flag: FlagRow; ctx: CellContext 
         >
           <MoreHorizontalIcon size={15} />
         </Button>
-      </MenuTrigger>
-      <MenuContent align="end">
-        <MenuItem onSelect={() => ctx.onOpen(flag)}>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => ctx.onOpen(flag)}>
           <ChevronRightIcon size={14} /> Open detail
-        </MenuItem>
-        <MenuItem onSelect={() => ctx.onCopyKey(flag)}>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => ctx.onCopyKey(flag)}>
           <CopyIcon size={14} /> Copy key
-        </MenuItem>
+        </DropdownMenuItem>
         {ctx.canEdit && (
-          <MenuItem onSelect={() => ctx.onEdit(flag)}>
+          <DropdownMenuItem onSelect={() => ctx.onEdit(flag)}>
             <PencilIcon size={14} /> Edit definition
-          </MenuItem>
+          </DropdownMenuItem>
         )}
         {ctx.canEdit && (
           <>
-            <MenuSeparator />
-            <MenuItem
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
               // Keep the menu open on the arming click, close it on the firing
               // one, so the two steps are one continuous interaction.
               onSelect={(event) => {
@@ -89,12 +98,12 @@ export function FlagRowActions({ flag, ctx }: { flag: FlagRow; ctx: CellContext 
                 : flag.archived
                   ? 'Restore flag'
                   : 'Archive flag'}
-            </MenuItem>
+            </DropdownMenuItem>
           </>
         )}
         {ctx.canDelete && (
-          <MenuItem
-            className="text-destructive data-[highlighted]:text-destructive"
+          <DropdownMenuItem
+            variant="danger"
             onSelect={(event) => {
               if (armed !== 'delete') {
                 event.preventDefault();
@@ -106,9 +115,9 @@ export function FlagRowActions({ flag, ctx }: { flag: FlagRow; ctx: CellContext 
           >
             <TrashIcon size={14} />
             {armed === 'delete' ? 'Confirm delete — this cannot be undone' : 'Delete flag'}
-          </MenuItem>
+          </DropdownMenuItem>
         )}
-      </MenuContent>
-    </Menu>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

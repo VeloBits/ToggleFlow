@@ -26,12 +26,11 @@ import { useNavigate } from 'react-router-dom';
 
 import { api } from '@/api/client';
 import { flagDefinitionsQueryOptions, flagKeys, flagsQueryOptions } from '@/api/flags';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Button } from '@velobits-dev/ui';
 import { PageHeader } from '@/components/page';
 import { ErrorNote } from '@/components/ui';
 import { useWorkspace } from '@/state/WorkspaceContext';
-import { FilterIcon, PlusIcon } from '@/ui/icons';
+import { FilterIcon, PlusIcon } from '@velobits-dev/icons';
 import { useToast } from '@/ui/toast';
 
 import { FlagFormDialog } from './FlagFormDialog';
@@ -235,9 +234,10 @@ export function FlagsPage() {
               : `Nothing to show until ${ws.project?.name ?? 'this project'} has an environment.`
           }
         />
-        <Card className="overflow-hidden p-0">
-          {workspaceEmpty ? <NoProjectState /> : <NoEnvironmentState />}
-        </Card>
+        {/* No wrapper Card: these are page-level first-run states, so the
+            EmptyState owns the glass itself rather than being a bare block
+            inside a second surface. */}
+        {workspaceEmpty ? <NoProjectState /> : <NoEnvironmentState />}
       </>
     );
   }
@@ -250,7 +250,7 @@ export function FlagsPage() {
     if (visible.length === 0) {
       return (
         <NoMatchesState
-          icon={FilterIcon}
+          icon={<FilterIcon />}
           total={rows.length}
           onClear={() => setFilter(EMPTY_FILTER)}
         />
@@ -281,7 +281,9 @@ export function FlagsPage() {
         actions={
           canEdit &&
           rows.length > 0 && (
-            <Button onClick={() => setCreating(true)}>
+            // Explicit: an unlabelled Button is now the outlined `secondary`,
+            // so the page's one primary action has to say so.
+            <Button variant="primary" onClick={() => setCreating(true)}>
               <PlusIcon size={14} /> Create flag
             </Button>
           )
@@ -300,7 +302,11 @@ export function FlagsPage() {
       <ErrorNote error={flagsQuery.error} />
       {/* Above the list and outside the Card, deliberately - see FlagsBulkBar. */}
       {selection.count > 0 && <FlagsBulkBar selection={selection} rows={page} />}
-      <Card className="overflow-hidden p-0">{body()}</Card>
+      {/* No wrapper Card: every branch of `body()` is already a surface of its
+          own — the table's own glass wrapper, or an EmptyState that claims
+          glass. Wrapping them would be glass inside glass, which composites to
+          nothing and costs two paints. */}
+      {body()}
 
       {creating && ws.projectId && (
         <FlagFormDialog mode="create" projectId={ws.projectId} onClose={() => setCreating(false)} />
@@ -326,7 +332,7 @@ function Footer({ shown, total, onMore }: { shown: number; total: number; onMore
         Showing {shown === total ? shown : `1–${shown}`} of {total}
       </span>
       {shown < total && (
-        <Button variant="outline" size="sm" onClick={onMore}>
+        <Button variant="secondary" size="sm" onClick={onMore}>
           Show {Math.min(PAGE_SIZE, total - shown)} more
         </Button>
       )}

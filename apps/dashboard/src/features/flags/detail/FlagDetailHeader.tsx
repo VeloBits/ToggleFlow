@@ -13,13 +13,22 @@
 import { Link } from 'react-router-dom';
 
 import type { Flag, FlagDefinitionDetail } from '@/api/client';
-import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Badge,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@velobits-dev/ui';
 import { environmentTone } from '@/components/nav/environment-tone';
 import { ConfirmButton } from '@/components/ui';
 import { useWorkspace } from '@/state/WorkspaceContext';
-import { CopyIcon } from '@/ui/icons';
+import { CopyIcon } from '@velobits-dev/icons';
 import { cn } from '@/ui/cn';
 import { useToast } from '@/ui/toast';
 
@@ -44,35 +53,51 @@ export function FlagDetailHeader({
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <div className="text-muted-foreground flex min-w-0 items-center gap-1 text-[12.5px]">
-          <Link to="/flags" className="hover:text-text underline-offset-2 hover:underline">
-            Flags
-          </Link>
-          <span aria-hidden>/</span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              {/* The key, not the name, is the breadcrumb leaf: it is the string
-                  that goes into an SDK call, so the place it is displayed is the
-                  place it should be copyable from. */}
-              <Button
-                variant="ghost"
-                size="xs"
-                aria-label={`Copy key ${flag.key}`}
-                className="-mx-1.5 max-w-full gap-1.5 font-mono text-[12.5px] font-normal"
-                onClick={() => {
-                  void navigator.clipboard?.writeText(flag.key);
-                  toast(`Copied ${flag.key}`);
-                }}
-              >
-                <span className="truncate">{flag.key}</span>
-                <CopyIcon size={12} className="shrink-0 opacity-60" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Copy this key for your SDK call</TooltipContent>
-          </Tooltip>
-        </div>
+        <Breadcrumb>
+          <BreadcrumbList className="min-w-0 gap-1.5 text-[12.5px] sm:gap-1.5">
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/flags">Flags</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem className="min-w-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* The key, not the name, is the breadcrumb leaf: it is the
+                      string that goes into an SDK call, so the place it is
+                      displayed is the place it should be copyable from.
 
-        <h1 className="text-text m-0 mt-0.5 text-[20px] leading-tight font-bold">{flag.name}</h1>
+                      Which is also why the leaf is this button rather than
+                      `BreadcrumbPage`, whose whole point is a non-interactive
+                      span. The one thing that component would have contributed
+                      is `aria-current="page"`, and on an interactive crumb it
+                      belongs on the control itself - there it is announced with
+                      the button, where on a wrapper it would not be. */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-current="page"
+                    aria-label={`Copy key ${flag.key}`}
+                    className="-mx-1.5 h-6 max-w-full gap-1.5 px-1.5 font-mono text-[12.5px] font-normal"
+                    onClick={() => {
+                      void navigator.clipboard?.writeText(flag.key);
+                      toast(`Copied ${flag.key}`);
+                    }}
+                  >
+                    <span className="truncate">{flag.key}</span>
+                    {/* `size` is an attribute, and `Button`'s `size-4` rule wins
+                        over it in CSS - so the class is what actually sets 12px. */}
+                    <CopyIcon size={12} className="size-3 shrink-0 opacity-60" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copy this key for your SDK call</TooltipContent>
+              </Tooltip>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <h1 className="text-fg m-0 mt-0.5 text-[20px] leading-tight font-bold">{flag.name}</h1>
         {flag.description && (
           <p className="text-muted-foreground m-0 mt-1 text-[13px]">{flag.description}</p>
         )}
@@ -98,7 +123,7 @@ export function FlagDetailHeader({
             </Badge>
           )}
           {flag.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="font-normal">
+            <Badge key={tag} variant="neutral" className="font-normal">
               {tag}
             </Badge>
           ))}
@@ -107,10 +132,8 @@ export function FlagDetailHeader({
 
       {canEdit && (
         <ConfirmButton
-          className={buttonVariants({
-            variant: flag.archived ? 'outline' : 'destructive',
-            size: 'sm',
-          })}
+          variant={flag.archived ? 'secondary' : 'destructive'}
+          size="sm"
           label={flag.archived ? 'Restore' : 'Archive'}
           confirmLabel={flag.archived ? 'Restore?' : 'Archive (drops from snapshots)?'}
           onConfirm={() => onArchive(!flag.archived)}

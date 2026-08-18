@@ -23,14 +23,24 @@ import { FLAG_TYPES, FLAG_VALUE_TYPES, type FlagValueType } from '@toggleflow/en
 
 import { api, type FlagDefinition } from '@/api/client';
 import { flagKeys } from '@/api/flags';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { NativeSelect } from '@/components/ui/native-select';
-import { Textarea } from '@/components/ui/textarea';
-import { DialogActions, Form, useSubmit } from '@/components/form';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  Input,
+  Label,
+  NativeSelect,
+  Textarea,
+} from '@velobits-dev/ui';
+import { DialogActions, DialogForm, useSubmit } from '@/components/form';
 import { ErrorNote } from '@/components/ui';
 import { useWorkspace } from '@/state/WorkspaceContext';
-import { Dialog } from '@/ui/dialog';
 import { useToast } from '@/ui/toast';
 
 import type { FlagRow } from './flag-columns';
@@ -198,176 +208,213 @@ export function FlagFormDialog({
     toast(`${values.key} created${describeInitialState(statePatch, environmentName)}`);
   }, onClose);
 
-  const { Field, labelWiring } = valueControl(form.state.valueType);
+  /*
+   * Aliased: `Field` is also the system's form-row wrapper, imported above. The
+   * registry's is the *control* for a flag's type, not a row.
+   */
+  const { Field: ValueField, labelWiring } = valueControl(form.state.valueType);
   const defaultValueId = 'flag-default-value';
 
   return (
-    <Dialog title={isEdit ? `Edit ${flag?.key}` : 'Create a flag'} onClose={onClose}>
-      <Form onSubmit={submit}>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="flag-name">Name</Label>
-            <Input
-              id="flag-name"
-              value={form.state.name}
-              aria-invalid={form.errors.name ? true : undefined}
-              onChange={(event) => form.setField('name', event.target.value)}
-            />
-            {form.errors.name && <FieldError>{form.errors.name}</FieldError>}
+    /*
+     * `open` is a constant because both call sites mount and unmount this
+     * component - the dialog's whole state, including the form, is meant to be
+     * thrown away on close. `onOpenChange` is still wired, because it is what
+     * Escape, the ✕ and an outside click go through.
+     */
+    <Dialog
+      open
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      {/* `focusFirstField` replaces the deleted local dialog's focus redirect:
+          Radix's FocusScope lands on the header ✕ otherwise, and `autoFocus` on
+          a field has never won against it. `aria-describedby={undefined}`
+          because there is no DialogDescription to claim the reference. */}
+      <DialogContent size="md" focusFirstField aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? `Edit ${flag?.key}` : 'Create a flag'}</DialogTitle>
+        </DialogHeader>
+        <DialogForm onSubmit={submit}>
+          <div className="flex flex-col gap-3">
+            {/* Every row below is the system's `Field`, so the id, the
+                `aria-describedby` and the `aria-invalid` are wired by it rather
+                than spelled out per field - which is exactly where this form's
+                aria bugs used to live. `describedBy={false}` on the rows that
+                render no description, so nothing points at an id that is not
+                there. */}
+            <Field id="flag-name" error={form.errors.name} describedBy={false}>
+              <FieldLabel>Name</FieldLabel>
+              <FieldControl>
+                <Input
+                  value={form.state.name}
+                  onChange={(event) => form.setField('name', event.target.value)}
+                />
+              </FieldControl>
+              <FieldError>{form.errors.name}</FieldError>
+            </Field>
+
+            <Field id="flag-key" error={form.errors.key}>
+              <FieldLabel>Key</FieldLabel>
+              <FieldControl>
+                <Input
+                  value={form.effectiveKey}
+                  // The API has no rename path, and the key is what every
+                  // deployed SDK call site passes.
+                  disabled={isEdit}
+                  className="font-mono text-[12.5px]"
+                  onChange={(event) => form.editKey(event.target.value)}
+                />
+              </FieldControl>
+              {/*
+               * The rule and the violation, not one replacing the other: the
+               * description says what a key may contain, and it is still worth
+               * reading while the error explains which part was broken.
+               */}
+              <FieldDescription>
+                {isEdit
+                  ? 'How your SDKs address this flag. It cannot be changed.'
+                  : 'How your SDKs address this flag. Derived from the name until you edit it.'}
+              </FieldDescription>
+              <FieldError>{form.errors.key}</FieldError>
+            </Field>
+
+            <Field id="flag-description" describedBy={false}>
+              <FieldLabel>Description</FieldLabel>
+              <FieldControl>
+                <Textarea
+                  rows={2}
+                  value={form.state.description}
+                  onChange={(event) => form.setField('description', event.target.value)}
+                />
+              </FieldControl>
+            </Field>
+
+            <Field id="flag-type">
+              <FieldLabel>Type</FieldLabel>
+              <FieldControl>
+                <NativeSelect
+                  value={form.state.valueType}
+                  // Enforced by the API too, not only here: changing a type
+                  // would orphan every stored value, every targeting-rule value
+                  // and every deployed `getStringValue` call site.
+                  disabled={isEdit}
+                  onChange={(event) =>
+                    form.setField('valueType', event.target.value as FlagValueType)
+                  }
+                >
+                  {FLAG_VALUE_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {FLAG_TYPES[type].label}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </FieldControl>
+              <FieldDescription>
+                {isEdit ? "A flag's type is fixed. Create a new flag to change it." : form.typeHint}
+              </FieldDescription>
+            </Field>
+
+            {form.state.valueType === 'string_enum' && (
+              <EnumOptionsEditor
+                options={form.state.enumOptions}
+                errors={form.errors}
+                onChange={(options) => form.setField('enumOptions', options)}
+              />
+            )}
+
+            {/*
+             * The one row that is NOT a system `Field`, and deliberately so.
+             * `FieldLabel` always emits `htmlFor`, and the registry decides per
+             * type whether the control is something `htmlFor` can bind to: the
+             * boolean field's root is a radiogroup `div`, where a `for` dangles
+             * silently - no accessible name, and clicking the label does
+             * nothing. So the label wiring stays inverted here, driven by
+             * `labelWiring`, which is the whole reason that field exists.
+             */}
+            <div className="flex flex-col gap-1.5">
+              <Label
+                id={fieldLabelId(defaultValueId)}
+                htmlFor={labelWiring === 'htmlFor' ? defaultValueId : undefined}
+              >
+                Default value
+              </Label>
+              {/* Rendered through the same registry as the table cell, so a new
+                  flag type gets its form input and its list rendering from one
+                  entry rather than two that can disagree. */}
+              <ValueField
+                id={defaultValueId}
+                value={
+                  form.state.valueType === 'boolean'
+                    ? form.state.booleanDefault
+                    : form.state.valueType === 'string'
+                      ? form.state.stringDefault
+                      : form.state.enumDefault
+                }
+                constraints={{ enumOptions: form.state.enumOptions.filter(Boolean) }}
+                invalid={form.errors.defaultValue ? true : undefined}
+                describedBy="flag-default-hint"
+                onChange={(value) => {
+                  if (form.state.valueType === 'boolean')
+                    form.setField('booleanDefault', value === true);
+                  else if (form.state.valueType === 'string')
+                    form.setField('stringDefault', String(value));
+                  else form.setField('enumDefault', String(value));
+                }}
+              />
+              <p id="flag-default-hint" className="text-muted-foreground m-0 text-xs">
+                {form.errors.defaultValue ? (
+                  <span className="text-danger">{form.errors.defaultValue}</span>
+                ) : form.state.valueType === 'boolean' ? (
+                  // The API rejects a `defaultValue` on a boolean flag rather
+                  // than storing one, so "seeded into every environment" is a
+                  // promise this field cannot keep for this type.
+                  'A boolean flag stores no value of its own: on is true, off is false, per environment.'
+                ) : (
+                  'Seeded into every environment that does not set its own value.'
+                )}
+              </p>
+            </div>
+
+            <Field id="flag-tags" describedBy={false}>
+              <FieldLabel>Tags</FieldLabel>
+              <FieldControl>
+                <Input
+                  value={form.state.tags}
+                  placeholder="billing, experiment"
+                  onChange={(event) => form.setField('tags', event.target.value)}
+                />
+              </FieldControl>
+            </Field>
+
+            {/* Create only, and only once an environment is known. Editing a
+                definition must not touch per-environment state: that screen is
+                reached from the detail page's Settings tab, where State is the
+                tab next door and is the one place a live rollout should change. */}
+            {!isEdit && ws.environment && (
+              <FlagFormRolloutSection
+                environmentName={ws.environment.name}
+                value={rollout}
+                onChange={setRollout}
+              />
+            )}
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="flag-key">Key</Label>
-            <Input
-              id="flag-key"
-              value={form.effectiveKey}
-              // The API has no rename path, and the key is what every deployed
-              // SDK call site passes.
-              disabled={isEdit}
-              className="font-mono text-[12.5px]"
-              aria-invalid={form.errors.key ? true : undefined}
-              aria-describedby="flag-key-hint"
-              onChange={(event) => form.editKey(event.target.value)}
-            />
-            <p id="flag-key-hint" className="text-muted-foreground m-0 text-[12px]">
-              {form.errors.key ? (
-                <span className="text-destructive">{form.errors.key}</span>
-              ) : isEdit ? (
-                'How your SDKs address this flag. It cannot be changed.'
-              ) : (
-                'How your SDKs address this flag. Derived from the name until you edit it.'
-              )}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="flag-description">Description</Label>
-            <Textarea
-              id="flag-description"
-              rows={2}
-              value={form.state.description}
-              onChange={(event) => form.setField('description', event.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="flag-type">Type</Label>
-            <NativeSelect
-              id="flag-type"
-              value={form.state.valueType}
-              // Enforced by the API too, not only here: changing a type would
-              // orphan every stored value, every targeting-rule value and every
-              // deployed `getStringValue` call site.
-              disabled={isEdit}
-              aria-describedby="flag-type-hint"
-              onChange={(event) => form.setField('valueType', event.target.value as FlagValueType)}
-            >
-              {FLAG_VALUE_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {FLAG_TYPES[type].label}
-                </option>
-              ))}
-            </NativeSelect>
-            <p id="flag-type-hint" className="text-muted-foreground m-0 text-[12px]">
-              {isEdit ? "A flag's type is fixed. Create a new flag to change it." : form.typeHint}
-            </p>
-          </div>
-
-          {form.state.valueType === 'string_enum' && (
-            <EnumOptionsEditor
-              options={form.state.enumOptions}
-              errors={form.errors}
-              onChange={(options) => form.setField('enumOptions', options)}
-            />
-          )}
-
-          <div className="flex flex-col gap-1.5">
-            <Label
-              id={fieldLabelId(defaultValueId)}
-              // `htmlFor` only where the registry says the field is an element it
-              // can bind to. The boolean field is a group, and a `for` pointing at
-              // a div is a label that silently does nothing.
-              htmlFor={labelWiring === 'htmlFor' ? defaultValueId : undefined}
-            >
-              Default value
-            </Label>
-            {/* Rendered through the same registry as the table cell, so a new
-                flag type gets its form input and its list rendering from one
-                entry rather than two that can disagree. */}
-            <Field
-              id={defaultValueId}
-              value={
-                form.state.valueType === 'boolean'
-                  ? form.state.booleanDefault
-                  : form.state.valueType === 'string'
-                    ? form.state.stringDefault
-                    : form.state.enumDefault
-              }
-              constraints={{ enumOptions: form.state.enumOptions.filter(Boolean) }}
-              invalid={form.errors.defaultValue ? true : undefined}
-              describedBy="flag-default-hint"
-              onChange={(value) => {
-                if (form.state.valueType === 'boolean')
-                  form.setField('booleanDefault', value === true);
-                else if (form.state.valueType === 'string')
-                  form.setField('stringDefault', String(value));
-                else form.setField('enumDefault', String(value));
-              }}
-            />
-            <p id="flag-default-hint" className="text-muted-foreground m-0 text-[12px]">
-              {form.errors.defaultValue ? (
-                <span className="text-destructive">{form.errors.defaultValue}</span>
-              ) : form.state.valueType === 'boolean' ? (
-                // The API rejects a `defaultValue` on a boolean flag rather than
-                // storing one, so "seeded into every environment" is a promise
-                // this field cannot keep for this type.
-                'A boolean flag stores no value of its own: on is true, off is false, per environment.'
-              ) : (
-                'Seeded into every environment that does not set its own value.'
-              )}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="flag-tags">Tags</Label>
-            <Input
-              id="flag-tags"
-              value={form.state.tags}
-              placeholder="billing, experiment"
-              onChange={(event) => form.setField('tags', event.target.value)}
-            />
-          </div>
-
-          {/* Create only, and only once an environment is known. Editing a
-              definition must not touch per-environment state: that screen is
-              reached from the detail page's Settings tab, where State is the tab
-              next door and is the one place a live rollout should change. */}
-          {!isEdit && ws.environment && (
-            <FlagFormRolloutSection
-              environmentName={ws.environment.name}
-              value={rollout}
-              onChange={setRollout}
-            />
-          )}
-        </div>
-
-        <ErrorNote error={error} />
-        <DialogActions
-          submitLabel={isEdit ? 'Save changes' : 'Create flag'}
-          pendingLabel={isEdit ? 'Saving…' : 'Creating…'}
-          // Never disabled by validity: a disabled submit cannot tell you WHY it
-          // is disabled, and this form has cross-field rules ("the default must
-          // be one of the options") that are invisible from the button. Submit
-          // always fires, `attemptSubmit` reveals the errors in place.
-          disabled={false}
-          pending={pending}
-          onClose={onClose}
-        />
-      </Form>
+          <ErrorNote error={error} />
+          <DialogActions
+            submitLabel={isEdit ? 'Save changes' : 'Create flag'}
+            pendingLabel={isEdit ? 'Saving…' : 'Creating…'}
+            // Never disabled by validity: a disabled submit cannot tell you WHY
+            // it is disabled, and this form has cross-field rules ("the default
+            // must be one of the options") that are invisible from the button.
+            // Submit always fires, `attemptSubmit` reveals the errors in place.
+            disabled={false}
+            pending={pending}
+            onClose={onClose}
+          />
+        </DialogForm>
+      </DialogContent>
     </Dialog>
   );
-}
-
-function FieldError({ children }: { children: React.ReactNode }) {
-  return <p className="text-destructive m-0 text-[12px]">{children}</p>;
 }

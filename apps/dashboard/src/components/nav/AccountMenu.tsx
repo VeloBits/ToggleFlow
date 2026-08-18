@@ -8,12 +8,6 @@
  * action (sign out) is as far as it can be from the scope switchers, which are
  * the controls people click fastest.
  */
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-
-import { useAuth } from '../../auth/AuthContext';
-import { useWorkspace } from '../../state/WorkspaceContext';
-import { cn } from '../../ui/cn';
 import {
   ChevronsUpDownIcon,
   LogOutIcon,
@@ -21,9 +15,23 @@ import {
   SlidersIcon,
   SunIcon,
   UserIcon,
-} from '../../ui/icons';
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '../../ui/menu';
-import { isDark, toggleTheme } from '../../ui/theme';
+} from '@velobits-dev/icons';
+import {
+  Avatar,
+  AvatarFallback,
+  Badge,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  useTheme,
+} from '@velobits-dev/ui';
+import { Link } from 'react-router-dom';
+
+import { useAuth } from '../../auth/AuthContext';
+import { useWorkspace } from '../../state/WorkspaceContext';
 
 /**
  * Two letters from the display name, or one from the email. Deliberately not a
@@ -41,25 +49,30 @@ function initials(name: string): string {
 export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   const ws = useWorkspace();
-  const [dark, setDark] = useState(isDark);
+  /*
+   * A subscription, not a snapshot. The old version read the DOM once into
+   * `useState`, so flipping the theme from the landing page's toggle left this
+   * item offering to switch to the theme already showing.
+   */
+  const { theme, toggle } = useTheme();
+  const dark = theme === 'dark';
 
   const email = ws.me?.user.email ?? user?.profile.email ?? '';
   const displayName = ws.me?.user.displayName ?? email;
 
   return (
-    <Menu>
-      <MenuTrigger
+    <DropdownMenu>
+      <DropdownMenuTrigger
         aria-label="Account menu"
-        className="hover:bg-highlight focus-visible:ring-ring group flex w-full items-center gap-2.5 rounded-md border-0 bg-transparent p-2 text-left transition-colors duration-100 focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none"
+        className="hover:bg-highlight focus-visible:ring-ring group flex w-full items-center gap-2.5 rounded-md border-0 bg-transparent p-2 text-left transition-colors duration-micro focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none"
       >
-        <span
-          aria-hidden
-          className="bg-primary-soft text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
-        >
-          {initials(displayName || '?')}
-        </span>
+        <Avatar aria-hidden className="size-7 shrink-0">
+          <AvatarFallback className="bg-primary-soft text-link text-[11px] font-semibold">
+            {initials(displayName || '?')}
+          </AvatarFallback>
+        </Avatar>
         <span className="min-w-0 flex-1">
-          <span className="text-text block truncate text-[13px] font-medium">
+          <span className="text-fg block truncate text-[13px] font-medium">
             {displayName || '…'}
           </span>
           {/* Organization and role: the context every action on the page runs
@@ -70,52 +83,54 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
         </span>
         <ChevronsUpDownIcon
           size={13}
-          className="text-muted-foreground group-hover:text-text shrink-0"
+          className="text-muted-foreground group-hover:text-fg shrink-0"
         />
-      </MenuTrigger>
+      </DropdownMenuTrigger>
 
-      <MenuContent side="top" align="start" className="min-w-[15rem]">
+      <DropdownMenuContent side="top" align="start" className="min-w-[15rem]">
         <div className="px-2 py-1.5">
-          <p className="text-text m-0 truncate text-[13px] font-medium">{displayName}</p>
+          <p className="text-fg m-0 truncate text-[13px] font-medium">{displayName}</p>
           {email && email !== displayName && (
             <p className="text-muted-foreground m-0 truncate text-[12px]">{email}</p>
           )}
         </div>
-        <MenuSeparator />
+        <DropdownMenuSeparator />
 
         {ws.org && (
           <>
-            <MenuLabel>Signed in to</MenuLabel>
+            <DropdownMenuLabel>Signed in to</DropdownMenuLabel>
             <div className="flex items-center gap-2 px-2 pb-1.5">
-              <span className="text-text min-w-0 flex-1 truncate text-[13px]">{ws.org.name}</span>
-              <span className="chip chip-role shrink-0">{ws.role}</span>
+              <span className="text-fg min-w-0 flex-1 truncate text-[13px]">{ws.org.name}</span>
+              <Badge variant="primary" className="shrink-0">
+                {ws.role}
+              </Badge>
             </div>
-            <MenuSeparator />
+            <DropdownMenuSeparator />
           </>
         )}
 
-        <MenuItem asChild onSelect={onNavigate}>
+        <DropdownMenuItem asChild onSelect={onNavigate}>
           <Link to="/settings">
             <SlidersIcon size={15} className="shrink-0" />
             Settings
           </Link>
-        </MenuItem>
-        <MenuItem asChild onSelect={onNavigate}>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild onSelect={onNavigate}>
           <Link to="/team">
             <UserIcon size={15} className="shrink-0" />
             Team &amp; roles
           </Link>
-        </MenuItem>
+        </DropdownMenuItem>
 
         {/*
           Preventing the default select keeps the menu open, so the user can see
           the theme change and flip back without reopening - the one item here
           you might plausibly use twice in a row.
         */}
-        <MenuItem
+        <DropdownMenuItem
           onSelect={(event) => {
             event.preventDefault();
-            setDark(toggleTheme());
+            toggle();
           }}
         >
           {dark ? (
@@ -124,17 +139,17 @@ export function AccountMenu({ onNavigate }: { onNavigate?: () => void }) {
             <MoonIcon size={15} className="shrink-0" />
           )}
           {dark ? 'Switch to light theme' : 'Switch to dark theme'}
-        </MenuItem>
+        </DropdownMenuItem>
 
-        <MenuSeparator />
-        <MenuItem
-          className={cn('text-off data-[highlighted]:text-off')}
-          onSelect={() => void logout()}
-        >
+        <DropdownMenuSeparator />
+        {/* `variant="danger"` is the system's own destructive item styling, which
+            also tints correctly while highlighted — the pair of classes this used
+            to carry by hand. */}
+        <DropdownMenuItem variant="danger" onSelect={() => void logout()}>
           <LogOutIcon size={15} className="shrink-0" />
           Sign out
-        </MenuItem>
-      </MenuContent>
-    </Menu>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

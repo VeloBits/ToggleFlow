@@ -1,3 +1,4 @@
+import { Spinner } from '@velobits-dev/ui';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { useAuth } from './auth/AuthContext';
@@ -32,7 +33,12 @@ export function App() {
         path="*"
         element={
           loading ? (
-            <main className="center-page">Loading…</main>
+            <main className="flex h-screen flex-col items-center justify-center gap-3">
+              <Spinner size={20} label={null} className="text-muted-foreground" />
+              <p className="text-muted-foreground m-0 text-[13px]" role="status">
+                Loading…
+              </p>
+            </main>
           ) : !user ? (
             // Guests land on the public home page whatever path they asked for;
             // its sign-in carries that path so the deep link survives login.

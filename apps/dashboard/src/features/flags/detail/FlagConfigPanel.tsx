@@ -31,17 +31,19 @@ import {
   flagConfigVersionsQueryOptions,
   flagKeys,
 } from '@/api/flags';
-import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
 import {
+  Badge,
+  Button,
+  DiffViewer,
+  diffLines,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { diffLines, prettyJson } from '@/components/diff';
+} from '@velobits-dev/ui';
+import { prettyJson } from '@/components/json';
 import { JsonField } from '@/components/JsonField';
 import { Panel } from '@/components/page';
 import { ConfirmButton, ErrorNote } from '@/components/ui';
@@ -129,7 +131,12 @@ export function FlagConfigPanel({ flagId, canEdit }: { flagId: string; canEdit: 
             hint="Any JSON object. Saving writes a new version; nothing is overwritten."
           />
           {canEdit && (
-            <Button className="self-start" onClick={saveDraft} disabled={save.isPending}>
+            <Button
+              variant="primary"
+              className="self-start"
+              onClick={saveDraft}
+              disabled={save.isPending}
+            >
               Save as version {(current?.version ?? 0) + 1}
             </Button>
           )}
@@ -163,7 +170,8 @@ export function FlagConfigPanel({ flagId, canEdit }: { flagId: string; canEdit: 
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
-                      size="xs"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
                       onClick={() =>
                         setCompareVersion(
                           compareVersion === version.version ? null : version.version,
@@ -174,7 +182,9 @@ export function FlagConfigPanel({ flagId, canEdit }: { flagId: string; canEdit: 
                     </Button>
                     {canEdit && version.version !== current?.version && (
                       <ConfirmButton
-                        className={buttonVariants({ variant: 'ghost', size: 'xs' })}
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
                         label="restore"
                         confirmLabel="Restore this version?"
                         onConfirm={() => rollback.mutate(version.version)}
@@ -191,20 +201,14 @@ export function FlagConfigPanel({ flagId, canEdit }: { flagId: string; canEdit: 
                 v{compared.version} → current (v{current?.version}); removed lines are v
                 {compared.version}, added lines are current
               </p>
-              {/* `.diff` and its `.added` / `.removed` / `.same` children are the
-                  legacy stylesheet's rules, kept: they already encode the one
-                  thing this view needs (line-through on removals) and reproducing
-                  them in utilities would be a rename, not an improvement. */}
-              <div className="diff">
-                {diffLines(prettyJson(compared.value), prettyJson(current?.value ?? {})).map(
-                  (line, index) => (
-                    <span key={index} className={line.kind}>
-                      {line.kind === 'added' ? '+ ' : line.kind === 'removed' ? '− ' : '  '}
-                      {line.text}
-                    </span>
-                  ),
-                )}
-              </div>
+              {/* The paragraph above stays even though `DiffViewer` labels and
+                  counts the region itself: the one thing the viewer cannot know
+                  is which side of this comparison is which, and "removed" only
+                  means anything once you know removals are the older version. */}
+              <DiffViewer
+                lines={diffLines(prettyJson(compared.value), prettyJson(current?.value ?? {}))}
+                label={`Config v${compared.version} compared with the current v${current?.version ?? 0}`}
+              />
             </div>
           )}
         </Panel>

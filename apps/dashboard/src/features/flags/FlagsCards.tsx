@@ -12,7 +12,7 @@
  * box, the name and the status sit on one line in that order regardless of where
  * the registry puts them. The detail rows below it are the registry's order.
  */
-import { Card } from '@/components/ui/card';
+import { Card } from '@velobits-dev/ui';
 import { cn } from '@/ui/cn';
 
 import { CARD_DETAIL_COLUMNS, FLAG_COLUMNS, type CellContext, type FlagRow } from './flag-columns';
@@ -30,6 +30,18 @@ export function FlagsCards({ flags, ctx }: { flags: FlagRow[]; ctx: CellContext 
         return (
           <li key={flag.id}>
             <Card
+              /*
+               * The system's glass default. These used to be nested inside the
+               * page's own Card and had to opt out; the page no longer has one,
+               * so each card is a top-level surface on the textured page.
+               */
+              /*
+               * The same `data-state` contract the table row carries, so
+               * selection is readable from the DOM rather than only from the
+               * paint. It is what a test should assert against, and it lets the
+               * ring be re-tuned without anything else having to know.
+               */
+              data-state={selected ? 'selected' : undefined}
               className={cn(
                 'cursor-pointer gap-0 p-3',
                 flag.archived && 'opacity-60',

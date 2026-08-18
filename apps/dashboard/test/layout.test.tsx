@@ -513,11 +513,16 @@ describe('environment colour', () => {
 
     const prod = within(menu).getByRole('menuitemradio', { name: /Production/ });
     const dev = within(menu).getByRole('menuitemradio', { name: /Development/ });
-    expect(prod.querySelector('.bg-off')).toBeTruthy();
-    // `bg-primary`, not `bg-accent`: shadcn owns the word `accent` for its hover
-    // surface, so the brand colour moved to `primary` when the design system
-    // landed. `bg-off` is product-specific and kept its name.
-    expect(dev.querySelector('.bg-primary')).toBeTruthy();
+    expect(prod.querySelector('.bg-danger')).toBeTruthy();
+    // `bg-info` (teal), not `bg-primary`. Development deliberately does not
+    // share the app's action blue - the picker sits in chrome that is already
+    // blue, so a blue environment dot was the one tone here that did not stand
+    // out from its surroundings. See `environment-tone.ts`.
+    expect(dev.querySelector('.bg-info')).toBeTruthy();
+    // The point of the test is that the two are TOLD APART, so assert that
+    // directly rather than only that each matches a class.
+    expect(dev.querySelector('.bg-danger')).toBeNull();
+    expect(prod.querySelector('.bg-info')).toBeNull();
     // Colour is never the only signal - both rows also carry their key.
     expect(within(menu).getByText('prod')).toBeTruthy();
     expect(within(menu).getByText('dev')).toBeTruthy();

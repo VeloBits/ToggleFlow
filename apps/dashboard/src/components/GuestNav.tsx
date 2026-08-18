@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '../auth/AuthContext';
 import { cn } from '../ui/cn';
-import { MenuIcon, ToggleMarkIcon, XIcon } from '../ui/icons';
+import { MenuIcon, ToggleMarkIcon, XIcon } from '@velobits-dev/icons';
+import { Button } from '@velobits-dev/ui';
 import { ThemeToggle } from '../ui/theme-toggle';
 
 /**
  * Floating "island" nav for the public landing page - a fixed, centred bar that
- * gains weight past 40px of scroll but never changes size, so nothing under it
- * shifts. Below `md` the section links collapse into a disclosure panel, while
+ * gains its material past 40px of scroll but never changes size, so nothing under
+ * it shifts. Below `md` the section links collapse into a disclosure panel, while
  * the theme toggle stays in the island at every width - it is a preference, not
  * navigation, so burying it behind a hamburger would be a step backwards.
  *
@@ -18,8 +19,7 @@ import { ThemeToggle } from '../ui/theme-toggle';
  * weight and made the accent action read as optional (see GuestHomePage).
  *
  * Geometry mirrors velobits-website's Navbar so the VeloBits properties share a
- * visual language; the palette is ToggleFlow's own tokens (that site is
- * dark-only lime, this must work in light and dark on the product accent).
+ * visual language; the palette and the material are the design system's.
  */
 
 /**
@@ -38,30 +38,46 @@ const NAV_LINKS: { href: string; label: string }[] = [
 ];
 
 /**
- * At rest. In light mode --panel (#fff) ≈ --bg (#f8f8f8), so the fill reads as
- * almost nothing on purpose: the hairline border and an ambient shadow do the
- * separating. Dark mode's --panel is lighter than its --bg, so translucency is
- * genuinely visible there and the border can step back.
+ * ## The island's material is the design system's tier-O glass
+ *
+ * This used to be four hand-written strings: a `bg-panel/80` fill, a
+ * `backdrop-blur-[18px]`, and two bespoke per-theme `box-shadow` pairs (one set
+ * for at-rest, one for scrolled). All of that is `.glass` in
+ * `@velobits-dev/tokens/glass.css`, and the token layer's version is the one that
+ * has been measured: tier O is gated against all seven worst-case backdrops in
+ * the palette, because an overlay's backdrop is unknowable - which is exactly the
+ * situation a bar floating over a scrolling page is in. It also steps muted text
+ * up to `--muted-on-glass` for its descendants, so the nav's own link colour
+ * firms up on glass without any call site knowing.
+ *
+ * `.glass` sets `background`, `backdrop-filter`, the one sanctioned translucent
+ * `border` and `box-shadow` together. **Do not add a `bg-*`, `border-*` or
+ * `shadow-*` utility to the element carrying it** - utilities are a later layer,
+ * so each one silently removes the part of the material it names.
+ *
+ * ## At rest vs scrolled
+ *
+ * Kept, and now it is the material itself that arrives rather than a shadow
+ * getting heavier: at the top of the page the island is chromeless and the hero's
+ * aurora wash reads straight through it; past 40px, content is passing underneath
+ * and the glass appears to separate the two. `border-transparent` at rest is what
+ * keeps the geometry identical across the switch - `.glass`'s border is 1px, so
+ * without it the bar would jump by a pixel on first scroll.
  */
-const SURFACE_TOP =
-  'border-border/80 bg-panel/80 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_6px_20px_rgba(0,0,0,0.05)] dark:border-border/60 dark:bg-panel/55 dark:shadow-[0_1px_2px_rgba(0,0,0,0.25),0_6px_20px_rgba(0,0,0,0.28)]';
-
-/** Scrolled: content is passing underneath, so the pill goes near-opaque and lifts. */
-const SURFACE_SCROLLED =
-  'border-border bg-panel/95 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_10px_30px_rgba(0,0,0,0.10)] dark:border-border-strong dark:bg-panel/85 dark:shadow-[0_1px_2px_rgba(0,0,0,0.40),0_12px_34px_rgba(0,0,0,0.45)]';
-
-const FOCUS = 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none';
+const SURFACE_TOP = 'border border-transparent';
+const SURFACE_SCROLLED = 'glass';
 
 /**
  * Section anchor as a pill hover-chip. Muted, so the accent stays with the CTA.
  * The horizontal padding is tight at `md` - four chips plus the brand and the
  * action cluster leave under 100px of slack on a 768px island - and relaxes at
  * `lg`, where the original 0.85rem rhythm from velobits-website fits again.
+ *
+ * No focus classes: the token layer's base `:focus-visible` rule draws one ring
+ * for the whole system, and a local `focus-visible:outline-none` would delete it.
  */
-const LINK = `text-muted-foreground hover:bg-highlight hover:text-text rounded-pill px-2.5 py-[0.42rem] text-[13px] font-medium whitespace-nowrap transition-colors duration-150 motion-reduce:transition-none lg:px-[0.85rem] ${FOCUS}`;
-
-/** The one accent action. Ring offset keeps the focus ring visible on accent fill. */
-const CTA = `border-primary bg-primary hover:border-primary-hover hover:bg-primary-hover focus-visible:ring-offset-panel shrink-0 rounded-pill border px-4 py-1.5 text-[13px] font-semibold whitespace-nowrap text-white transition-colors duration-150 focus-visible:ring-offset-2 motion-reduce:transition-none ${FOCUS}`;
+const LINK =
+  'text-muted-foreground hover:bg-highlight hover:text-fg rounded-pill px-2.5 py-[0.42rem] text-[13px] font-medium whitespace-nowrap transition-colors duration-micro motion-reduce:transition-none lg:px-[0.85rem]';
 
 export function GuestNav({ returnTo }: { returnTo: string }) {
   const { signup } = useAuth();
@@ -122,15 +138,16 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
           aria-label="Main"
           data-scrolled={scrolled ? 'true' : 'false'}
           className={cn(
-            // rounded-xl (10px) is the same radius as the hero's flag panel and the
-            // mobile menu card, so the bar reads as one of the page's surfaces.
-            // max-w-page is the page content grid (theme.css) - the same token the
-            // hero, every section and the footer use, so the island's box edges are
-            // the page's left and right reference lines rather than nearly them.
+            // rounded-xl (14px) is the same radius as the hero's flag panel and
+            // the mobile menu card, so the bar reads as one of the page's
+            // surfaces. max-w-page is `--container-page` from the token layer -
+            // the same 72rem the hero, every section and the footer use, so the
+            // island's box edges are the page's left and right reference lines
+            // rather than nearly them.
             // The outer gap steps up in three stages rather than one: at `md` the
             // four chips need every pixel, by `lg` the island is wide enough for
             // the airier spacing the marketing site uses.
-            'pointer-events-auto flex w-full max-w-page items-center justify-between gap-2 rounded-xl border px-2 py-[0.55rem] pl-3 backdrop-blur-[18px] transition-[background-color,border-color,box-shadow] duration-300 motion-reduce:transition-none sm:px-4 sm:pl-[1.1rem] md:gap-3 lg:gap-6',
+            'pointer-events-auto flex w-full max-w-page items-center justify-between gap-2 rounded-xl px-2 py-[0.55rem] pl-3 transition-[background-color,border-color,box-shadow] duration-page motion-reduce:transition-none sm:px-4 sm:pl-[1.1rem] md:gap-3 lg:gap-6',
             scrolled ? SURFACE_SCROLLED : SURFACE_TOP,
           )}
         >
@@ -155,7 +172,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
                 className={cn(
                   LINK,
                   'inline-flex items-center',
-                  activeHash === link.href && 'bg-primary-soft text-text',
+                  activeHash === link.href && 'bg-primary-soft text-fg',
                 )}
               >
                 {link.label}
@@ -169,15 +186,13 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
           */}
           <div className="flex shrink-0 items-center gap-1 sm:gap-2.5 lg:gap-3">
             <ThemeToggle
-              className={cn(
-                // 44px square below `sm`, where the hamburger is its neighbour and
-                // touch is the input mode; it drops to 32px exactly where the CTA
-                // appears, because 32px lands within a pixel of that button's
-                // computed height - a 44px hover circle beside a 31px pill reads
-                // as two unrelated controls. Vertical centring is the flex row's.
-                'text-muted-foreground hover:bg-highlight hover:text-text rounded-pill h-11 w-11 p-0 transition-colors duration-150 motion-reduce:transition-none sm:h-8 sm:w-8',
-                FOCUS,
-              )}
+              // 44px square below `sm`, where the hamburger is its neighbour and
+              // touch is the input mode; it drops to 32px exactly where the CTA
+              // appears, because 32px lands within a pixel of that button's
+              // computed height - a 44px hover circle beside a 31px pill reads as
+              // two unrelated controls. Everything else it needs (ghost paint,
+              // hover wash, focus ring) is already on the Button it renders.
+              className="rounded-pill size-11 sm:size-8"
             />
             <span aria-hidden className="bg-border hidden h-[18px] w-px rounded-full sm:block" />
             {/*
@@ -186,28 +201,31 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
               640–767px band where the sections have already folded away. It is
               hidden below that only because brand + theme + CTA + hamburger stop
               fitting around 380px.
+
+              `primary`, not `brand`: the hero owns the page's single lime button,
+              and two different-coloured buttons both saying "Get started free"
+              would read as two different offers.
             */}
-            <button
-              type="button"
-              className={cn(CTA, 'hidden items-center sm:inline-flex')}
+            <Button
+              variant="primary"
+              size="sm"
+              className="rounded-pill hidden font-semibold sm:inline-flex"
               onClick={() => void signup(returnTo)}
             >
               Get started free
-            </button>
-            <button
+            </Button>
+            <Button
               ref={toggleRef}
-              type="button"
+              variant="ghost"
+              size="icon"
               aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               onClick={() => setMenuOpen((open) => !open)}
-              className={cn(
-                'text-text hover:bg-highlight rounded-pill inline-flex h-11 w-11 shrink-0 items-center justify-center border-0 bg-transparent p-0 transition-colors duration-150 motion-reduce:transition-none md:hidden',
-                FOCUS,
-              )}
+              className="rounded-pill size-11 md:hidden"
             >
               {menuOpen ? <XIcon size={20} /> : <MenuIcon size={20} />}
-            </button>
+            </Button>
           </div>
         </nav>
 
@@ -215,10 +233,14 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
           // `top-full` lands the panel exactly the header's pb-4 below the island
           // at any nav height - no magic offset to retune. The inset tracks the
           // header's px-6, so the panel is exactly as wide as the island above it.
+          //
+          // Tier O again, and for the textbook reason: this floats over whatever
+          // the visitor had scrolled to. It is a SIBLING of the nav, not a child,
+          // so the two glass layers never nest.
           <div
             ref={menuRef}
             id="mobile-menu"
-            className="border-border bg-panel pointer-events-auto absolute top-full right-6 left-6 flex flex-col gap-1 rounded-xl border p-3 shadow-[0_16px_40px_rgba(0,0,0,0.14)] md:hidden dark:shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
+            className="glass pointer-events-auto absolute top-full right-6 left-6 flex flex-col gap-1 rounded-xl p-3 md:hidden"
           >
             <nav aria-label="Page" className="flex flex-col gap-1">
               {NAV_LINKS.map((link) => (
@@ -232,7 +254,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
                   className={cn(
                     LINK,
                     'flex items-center rounded-lg px-3 py-3 text-[14px]',
-                    activeHash === link.href && 'bg-primary-soft text-text',
+                    activeHash === link.href && 'bg-primary-soft text-fg',
                   )}
                 >
                   {link.label}
@@ -241,16 +263,16 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
             </nav>
             {/* Separates navigation from action, so the CTA doesn't read as a fifth link. */}
             <span aria-hidden className="bg-border/70 my-1 h-px w-full" />
-            <button
-              type="button"
-              className={cn(CTA, 'flex w-full justify-center py-2.5 text-[14px]')}
+            <Button
+              variant="primary"
+              className="rounded-pill w-full font-semibold"
               onClick={() => {
                 setMenuOpen(false);
                 void signup(returnTo);
               }}
             >
               Get started free
-            </button>
+            </Button>
           </div>
         )}
       </header>
@@ -258,7 +280,7 @@ export function GuestNav({ returnTo }: { returnTo: string }) {
       {menuOpen && (
         <div
           aria-hidden
-          className="fixed inset-0 z-40 bg-black/45 md:hidden"
+          className="bg-overlay fixed inset-0 z-40 md:hidden"
           onClick={() => setMenuOpen(false)}
         />
       )}

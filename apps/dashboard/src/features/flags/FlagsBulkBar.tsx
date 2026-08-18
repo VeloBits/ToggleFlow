@@ -30,10 +30,9 @@
  */
 import { useEffect, useState } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Button, Separator } from '@velobits-dev/ui';
 import { useWorkspace } from '@/state/WorkspaceContext';
-import { XIcon } from '@/ui/icons';
+import { XIcon } from '@velobits-dev/icons';
 import { cn } from '@/ui/cn';
 
 import type { FlagRow } from './flag-columns';
@@ -145,7 +144,7 @@ export function FlagsBulkBar({
       aria-label="Bulk actions"
       className="border-border bg-panel sticky top-0 z-10 mb-3 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 shadow-sm"
     >
-      <span className="text-text text-[13px] font-semibold tabular-nums">
+      <span className="text-fg text-[13px] font-semibold tabular-nums">
         {flagCount(selection.count)} selected
       </span>
       <Separator orientation="vertical" className="hidden h-5 sm:block" />
@@ -158,9 +157,14 @@ export function FlagsBulkBar({
           <Button
             key={action.id}
             size="sm"
-            // `tone` is Button's own variant name, so the armed state needs no map.
-            variant={isArmed ? action.tone : 'outline'}
-            className={cn(!isArmed && action.tone === 'destructive' && 'text-destructive')}
+            /*
+             * `tone` is Button's own variant name, so the armed state needs no
+             * map. At rest they are `secondary` - the system's outlined button,
+             * and the variant an unlabelled `<Button>` now defaults to - so the
+             * bar reads as a row of equals until one of them is armed.
+             */
+            variant={isArmed ? action.tone : 'secondary'}
+            className={cn(!isArmed && action.tone === 'destructive' && 'text-danger')}
             /*
              * Disabled, never hidden, when an action has nothing to do - a button
              * that vanishes when 12 flags are already on leaves the absence to be
