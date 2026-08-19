@@ -24,6 +24,14 @@
  * The rule this sets for the next change: additive + defaulted + old readers
  * still correct => no bump. Anything that changes how an existing field is
  * interpreted => new schemaVersion and a new schema file beside this one.
+ *
+ * ## Second application: segment OR groups (2026-08-19)
+ *
+ * `segmentSchema.match`/`.ruleSets` were added under the same rule. The third
+ * clause needed work to hold - a multi-set segment has no honest flat
+ * `conditions` - so it is bought with a never-matching sentinel condition that
+ * keeps an old reader's interpretation of `conditions` both unchanged and
+ * correct. See `segmentSchema` for the full argument.
  */
 import { z } from 'zod';
 
@@ -78,9 +86,74 @@ export type Condition = z.infer<typeof conditionSchema>;
 
 // ── Segments and targeting rules ──────────────────────────────────────────────
 
-/** All conditions must match (AND). OR across segments happens at the rule level. */
+/**
+ * The attribute name in the sentinel condition described on `segmentSchema`.
+ *
+ * Chosen to be something no real user context carries: `matchesCondition`
+ * returns false for a missing attribute under EVERY operator (`exists`
+ * included), so a lone sentinel condition matches nobody. A context that
+ * genuinely sent this key would defeat it, which is why the name is namespaced
+ * rather than something like `_unsupported`.
+ */
+export const UNSUPPORTED_SENTINEL_ATTRIBUTE = '__toggleflow_unsupported__';
+
+/**
+ * How a segment's rule sets combine. `as const` because the API's `segment_match`
+ * pgEnum is generated from it, making this the single source of truth for the DB
+ * enum, the wire enum and the TS union - the same arrangement `FLAG_VALUE_TYPES`
+ * has.
+ */
+export const SEGMENT_MATCH_MODES = ['all', 'any'] as const;
+export type SegmentMatch = (typeof SEGMENT_MATCH_MODES)[number];
+export const segmentMatchSchema = z.enum(SEGMENT_MATCH_MODES);
+
+/** A single AND-group. `ruleSets` combines these; see `segmentSchema`. */
+export const segmentRuleSetSchema = z.object({
+  conditions: z.array(conditionSchema),
+});
+export type SegmentRuleSet = z.infer<typeof segmentRuleSetSchema>;
+
+/**
+ * A reusable targeting group, in disjunctive normal form: `ruleSets` are
+ * AND-groups combined by `match`. OR across *segments* still happens at the
+ * rule level (`targetingRuleSchema.segments`); this is OR *within* one segment.
+ *
+ * ## Reading order, and why `conditions` survives
+ *
+ * `conditions` is the original flat AND-list and is still the authority whenever
+ * `ruleSets` is empty. `ruleSets`/`match` are ADDITIVE (schemaVersion 1) under
+ * the same licence typed flag values took: additive + defaulted + old readers
+ * still correct => no bump.
+ *
+ * The third clause is the interesting one, because a multi-set segment cannot be
+ * expressed in `conditions` at all. It is honoured by writing a never-matching
+ * SENTINEL condition into `conditions` whenever `ruleSets` is used (see
+ * `UNSUPPORTED_SENTINEL_ATTRIBUTE`), so a reader that predates this field
+ * evaluates `conditions` exactly as it always did and correctly concludes that
+ * it matches nobody. Fail-CLOSED: an un-upgraded evaluator withholds a feature
+ * from users who should have had it, which is recoverable. The alternative -
+ * leaving `conditions` empty - would make `[].every()` return true and hand the
+ * segment to EVERY user, which is not.
+ *
+ * No evaluator outside this repo exists yet (`@toggleflow/sdk` is unpublished),
+ * so today the sentinel is belt-and-braces. It becomes load-bearing the day the
+ * SDK ships, and costs nothing until then. Do not "simplify" it away.
+ *
+ * ## The omit-when-single rule
+ *
+ * The snapshot builder writes NEITHER field for a single-AND-group segment,
+ * emitting the bare `conditions` it always did. That keeps every pre-existing
+ * segment byte-identical, so content hashes - and therefore ruleset versions -
+ * do not churn for a change nobody made. The `segment.sparse` case in
+ * schema.test.ts guards it, exactly as `tool.sparse` guards the same promise for
+ * boolean flags.
+ */
 export const segmentSchema = z.object({
   conditions: z.array(conditionSchema),
+  /** How `ruleSets` combine. Ignored when `ruleSets` is empty. */
+  match: segmentMatchSchema.default('all'),
+  /** ADDITIVE. When non-empty this REPLACES `conditions` for evaluation. */
+  ruleSets: z.array(segmentRuleSetSchema).default([]),
 });
 export type Segment = z.infer<typeof segmentSchema>;
 

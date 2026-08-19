@@ -156,13 +156,36 @@ async function seed() {
         ),
       );
 
-      await tx.insert(schema.segments).values({
-        projectId: project.id,
-        key: 'beta-users',
-        name: 'Beta users',
-        description: 'Paid plans that opted into beta tools.',
-        rules: [{ attribute: 'plan', operator: 'in', values: ['pro', 'team'] }],
-      });
+      await tx.insert(schema.segments).values([
+        {
+          projectId: project.id,
+          key: 'beta-users',
+          name: 'Beta users',
+          description: 'Paid plans that opted into beta tools.',
+          // One AND-group; `rules` is Condition[][] since migration 0002.
+          rules: [[{ attribute: 'plan', operator: 'in', values: ['pro', 'team'] }]],
+        },
+        {
+          projectId: project.id,
+          key: 'early-access',
+          name: 'Early access',
+          description: 'EU paid plans, or anyone on a US trial - two ORed groups.',
+          // Seeds the match:'any' path so the OR rendering has something to show
+          // on a fresh database, and the snapshot builder's sentinel branch is
+          // exercised by `db:seed` rather than only by tests.
+          match: 'any',
+          rules: [
+            [
+              { attribute: 'plan', operator: 'in', values: ['pro', 'team'] },
+              { attribute: 'region', operator: 'eq', value: 'eu' },
+            ],
+            [
+              { attribute: 'plan', operator: 'eq', value: 'trial' },
+              { attribute: 'country', operator: 'eq', value: 'us' },
+            ],
+          ],
+        },
+      ]);
 
       // Versioned config on two tools in prod (fallback payload rides inside
       // the config value, per brief §6D).
@@ -193,7 +216,8 @@ async function seed() {
 
     console.log(
       `Seeded: "${DEMO_ORG_NAME}" → Demo Project → dev/staging/prod, 5 tools ` +
-        '(3 boolean, 1 string, 1 string_enum), 1 segment, versioned config on 2 tools.',
+        '(3 boolean, 1 string, 1 string_enum), 2 segments (1 ANDed, 1 ORed), ' +
+        'versioned config on 2 tools.',
     );
   } finally {
     await client.end();

@@ -5,7 +5,12 @@
  * flag state, config, ruleset snapshots, and API keys are per-environment.
  * `npm run db:generate` emits SQL migrations into ./drizzle (committed).
  */
-import { FLAG_VALUE_TYPES, type JsonValue } from '@toggleflow/engine';
+import {
+  FLAG_VALUE_TYPES,
+  SEGMENT_MATCH_MODES,
+  type Condition,
+  type JsonValue,
+} from '@toggleflow/engine';
 import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
@@ -38,6 +43,8 @@ export const apiKeyKind = pgEnum('api_key_kind', ['server', 'client']);
  * drizzle-kit emits the `ALTER TYPE … ADD VALUE` from this declaration.
  */
 export const flagValueType = pgEnum('flag_value_type', FLAG_VALUE_TYPES);
+/** Generated from the engine's `SEGMENT_MATCH_MODES`, for the same reason. */
+export const segmentMatch = pgEnum('segment_match', SEGMENT_MATCH_MODES);
 
 // ── Tenancy ───────────────────────────────────────────────────────────────────
 
@@ -209,7 +216,23 @@ export const flagStates = pgTable(
   ],
 );
 
-/** Reusable targeting segments (plan / region / custom attributes), shared across a project's environments. */
+/**
+ * Reusable targeting segments (plan / region / custom attributes), shared across
+ * a project's environments.
+ *
+ * `rules` is CANONICALLY a list of AND-groups (`Condition[][]`) combined by
+ * `match` - not the flat `Condition[]` it held before OR groups (migration
+ * 0002 wrapped every existing row). One shape in the column means no reader
+ * here has to branch on which era wrote the row.
+ *
+ * The engine's wire format still calls the flat single-group case `conditions`,
+ * so `lib/snapshot.ts` is the one place that converts, and the one place that
+ * knows about the sentinel. See `buildSegmentEntry` there.
+ *
+ * Invariant, enforced by the route validators: at least one group. A single
+ * empty group is legal and means "matches everyone", which is what an empty
+ * flat `rules` has always meant.
+ */
 export const segments = pgTable(
   'segments',
   {
@@ -220,7 +243,8 @@ export const segments = pgTable(
     key: text('key').notNull(),
     name: text('name').notNull(),
     description: text('description'),
-    rules: jsonb('rules').$type<unknown[]>().notNull().default([]),
+    rules: jsonb('rules').$type<Condition[][]>().notNull().default([[]]),
+    match: segmentMatch('match').notNull().default('all'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

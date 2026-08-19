@@ -15,6 +15,13 @@
       "when": 1785754033636,
       "tag": "0001_typed-flag-values",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787121567244,
+      "tag": "0002_segment-or-groups",
+      "breakpoints": true
     }
   ]
 }

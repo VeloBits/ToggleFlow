@@ -37,3 +37,12 @@ export const slugifyEnvironmentKey = slugifier(/[^a-z0-9]+/g);
 
 /** "Checkout v2" -> "checkout-v2"; "checkout.v2" keeps its dot. */
 export const slugifyFlagKey = slugifier(/[^a-z0-9._-]+/g);
+
+/*
+ * Segment keys share the flag grammar exactly (apps/api/src/routes/segments.ts's
+ * `segmentKey` is character-for-character the flag rule). Aliased rather than
+ * reused under the flag name so a call site reads as what it is, and so the day
+ * the two grammars diverge there is already a separate name to change.
+ */
+export const SEGMENT_KEY_PATTERN = FLAG_KEY_PATTERN;
+export const slugifySegmentKey = slugifyFlagKey;

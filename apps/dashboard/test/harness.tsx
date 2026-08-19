@@ -17,7 +17,7 @@ import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { expect, vi, type MockInstance } from 'vitest';
 
-import type { Environment, Flag, FlagDefinition, Me, Project } from '../src/api/client';
+import type { Environment, Flag, FlagDefinition, Me, Project, Segment } from '../src/api/client';
 import { userManager } from '../src/auth/oidc';
 import { TooltipProvider } from '../src/components/ui/tooltip';
 import { WorkspaceProvider } from '../src/state/WorkspaceContext';
@@ -226,6 +226,27 @@ export const flagDefinition = (over: Partial<FlagDefinition> = {}): FlagDefiniti
   enumOptions: [],
   defaultValue: null,
   updatedAt: '2026-07-20T10:00:00.000Z',
+  ...over,
+});
+
+/**
+ * A segment as the API sends it. No translation layer for this one - the control
+ * plane already calls a segment a segment.
+ *
+ * `rules` defaults to one AND-group, which is the post-migration shape: a list of
+ * GROUPS, not a flat condition list. A fixture written flat typechecks (both are
+ * arrays) but renders as a segment with no conditions, so the default is spelled
+ * out here rather than left to each suite.
+ */
+export const segmentRow = (over: Partial<Segment> = {}): Segment => ({
+  id: 's1',
+  key: 'beta-users',
+  name: 'Beta users',
+  description: 'Opted in',
+  rules: [[{ attribute: 'plan', operator: 'in', values: ['pro'] }]],
+  match: 'all',
+  createdAt: '2026-08-01T10:00:00.000Z',
+  updatedAt: '2026-08-10T10:00:00.000Z',
   ...over,
 });
 

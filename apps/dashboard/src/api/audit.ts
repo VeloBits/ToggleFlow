@@ -29,6 +29,9 @@ export const auditKeys = {
   page: (orgId: string | null, before: string | null) => ['audit', orgId, before] as const,
   /** The overview's short feed. A separate entry because it asks for a different limit. */
   recent: (orgId: string | null) => ['audit', orgId, 'home'] as const,
+  /** One entity's history, for a detail page's activity panel. */
+  entity: (orgId: string | null, entityId: string | undefined) =>
+    ['audit', orgId, 'entity', entityId] as const,
   members: (orgId: string | null) => ['members', orgId] as const,
 };
 
@@ -61,6 +64,31 @@ export const auditRecentQueryOptions = (orgId: string | null, limit = 8) =>
         .get<{ entries: AuditEntry[] }>(`/v1/orgs/${orgId}/audit?limit=${limit}`)
         .then((res) => res.entries),
     enabled: orgId !== null,
+  });
+
+/**
+ * One entity's audit history, newest first.
+ *
+ * Filtered by the SERVER (`?entityId=`), not by narrowing a page of the org-wide
+ * feed. That feed is paged newest-first, so in an active org an entity's events
+ * sit well past the first page - a client-side filter would show an empty history
+ * for something with plenty, and be wrong in exactly the direction that makes
+ * people distrust an audit trail.
+ */
+export const auditEntityQueryOptions = (
+  orgId: string | null,
+  entityId: string | undefined,
+  limit = 10,
+) =>
+  queryOptions({
+    queryKey: auditKeys.entity(orgId, entityId),
+    queryFn: () =>
+      api
+        .get<{ entries: AuditEntry[] }>(
+          `/v1/orgs/${orgId}/audit?limit=${limit}&entityId=${entityId}`,
+        )
+        .then((res) => res.entries),
+    enabled: orgId !== null && Boolean(entityId),
   });
 
 /**

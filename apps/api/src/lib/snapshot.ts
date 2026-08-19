@@ -8,7 +8,14 @@
  */
 import { createHash } from 'node:crypto';
 
-import { SCHEMA_VERSION, type FlagValueType, type JsonValue } from '@toggleflow/engine';
+import {
+  SCHEMA_VERSION,
+  UNSUPPORTED_SENTINEL_ATTRIBUTE,
+  type Condition,
+  type FlagValueType,
+  type JsonValue,
+  type SegmentMatch,
+} from '@toggleflow/engine';
 import { eq, and } from 'drizzle-orm';
 
 import type { Db } from '../db';
@@ -19,7 +26,16 @@ export interface SnapshotContent {
   projectId: string;
   environmentId: string;
   environmentKey: string;
-  segments: Record<string, { conditions: unknown[] }>;
+  segments: Record<
+    string,
+    {
+      conditions: unknown[];
+      /** Omitted unless the segment is a real OR - see `buildSegmentEntry`. */
+      match?: SegmentMatch;
+      /** Omitted unless the segment is a real OR - see `buildSegmentEntry`. */
+      ruleSets?: { conditions: Condition[] }[];
+    }
+  >;
   tools: Record<
     string,
     {
@@ -33,6 +49,68 @@ export interface SnapshotContent {
       value?: JsonValue;
     }
   >;
+}
+
+/**
+ * DB shape (`Condition[][]` + `match`) → the engine's segment wire shape.
+ *
+ * ## The single-group case writes `conditions` and NOTHING else
+ *
+ * This is the segment twin of the omit-when-default rule on tools below, and it
+ * is load-bearing for the same reason: `segmentSchema` defaults `match` to 'all'
+ * and `ruleSets` to `[]`, so omitting them means exactly what writing them would,
+ * while `stableStringify` drops undefined. A project whose segments are all
+ * single-group therefore hashes BYTE-IDENTICALLY to what it did before OR groups
+ * existed - no hash churn, no republish of a ruleset whose meaning did not
+ * change, no fleet-wide edge-cache invalidation for a migration.
+ *
+ * With one group, `match` cannot matter: `[g].every(f)` and `[g].some(f)` are
+ * both `f(g)`. So collapsing to a bare `conditions` loses nothing, which is what
+ * makes the omission safe rather than merely cheap.
+ *
+ * ## `match: 'all'` FLATTENS, however many groups there are
+ *
+ * AND is associative, so "every group matches, and every condition in each group
+ * matches" is the same predicate as "every condition matches". Concatenating is
+ * therefore lossless, and it keeps the whole `match: 'all'` family on the old
+ * wire shape: no new fields, no sentinel, no hash churn, and any evaluator ever
+ * written reads it correctly. Only a genuine OR needs the new format.
+ *
+ * The grouping itself is not lost - it lives in the `segments` row, which is what
+ * the dashboard reads. A snapshot is a derived read model for evaluation, and
+ * evaluation cannot tell the two apart.
+ *
+ * ## `match: 'any'` writes a fail-closed sentinel into `conditions`
+ *
+ * A real OR has no honest flat representation, and an evaluator that predates
+ * `ruleSets` reads `conditions` alone. Left empty, `[].every()` is true and such
+ * a reader hands the segment to EVERY user - the worst possible failure for a
+ * targeting primitive. The sentinel names an attribute no context carries, and
+ * `matchesCondition` returns false for a missing attribute under every operator,
+ * so an old reader matches NOBODY instead. Current readers ignore `conditions`
+ * entirely when `ruleSets` is present (see `matchesSegment`).
+ */
+export function buildSegmentEntry(
+  rules: Condition[][],
+  match: SegmentMatch,
+): SnapshotContent['segments'][string] {
+  /*
+   * Empty groups carry no constraint and are dropped first, so a half-built
+   * segment from the UI cannot widen an OR to everyone: under `any`, one empty
+   * group would make `some` true for every user. Dropping them also collapses the
+   * all-empty case to the historical "matches everyone" segment below.
+   */
+  const groups = rules.filter((group) => group.length > 0);
+
+  if (match === 'all') return { conditions: groups.flat() };
+  if (groups.length === 0) return { conditions: [] };
+  if (groups.length === 1) return { conditions: groups[0]! };
+
+  return {
+    conditions: [{ attribute: UNSUPPORTED_SENTINEL_ATTRIBUTE, operator: 'exists' }],
+    match,
+    ruleSets: groups.map((conditions) => ({ conditions })),
+  };
 }
 
 /** JSON.stringify with recursively sorted object keys - hash input must be canonical. */
@@ -116,7 +194,7 @@ export async function buildSnapshotContent(
 
   const segmentEntries: SnapshotContent['segments'] = {};
   for (const segment of segmentRows) {
-    segmentEntries[segment.key] = { conditions: segment.rules };
+    segmentEntries[segment.key] = buildSegmentEntry(segment.rules, segment.match);
   }
 
   return {

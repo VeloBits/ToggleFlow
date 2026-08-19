@@ -12,6 +12,7 @@ import type {
   JsonObject,
   JsonValue,
   RulesetSnapshot,
+  Segment,
   SnapshotTool,
   TargetingRule,
   UserContext,
@@ -45,7 +46,20 @@ export interface ToolEvaluation {
   fallback: JsonValue | null;
 }
 
-function matchesCondition(
+/**
+ * Whether one attribute test passes.
+ *
+ * Exported because the dashboard's segment preview explains a result condition by
+ * condition ("plan is one of [pro, team] ✓"), and the only way for that
+ * explanation to be guaranteed true is for it to come from the evaluator the edge
+ * actually runs. A second implementation in the UI would agree until the tenth
+ * operator, and then quietly disagree.
+ *
+ * A missing attribute fails EVERY operator, `exists` and the negative ones
+ * included - rules only fire on known data, so `neq` against an absent attribute
+ * is false rather than true.
+ */
+export function matchesCondition(
   condition: Condition,
   attributes: Record<string, AttributeValue>,
 ): boolean {
@@ -73,6 +87,37 @@ function matchesCondition(
   }
 }
 
+/**
+ * Whether a user falls in a segment.
+ *
+ * `ruleSets` wins when present and `conditions` is then ignored, because for a
+ * multi-set segment `conditions` holds only the fail-closed sentinel written for
+ * readers that predate `ruleSets` - see `segmentSchema`. Evaluating both would
+ * mean this evaluator honouring a placeholder addressed to someone else, and no
+ * multi-set segment would ever match.
+ *
+ * An empty `ruleSets` falls through to `conditions`, which is every segment
+ * written before this field existed and every single-AND-group segment written
+ * since.
+ */
+export function matchesSegment(
+  segment: Segment,
+  attributes: Record<string, AttributeValue>,
+): boolean {
+  const all = (set: { conditions: Condition[] }) =>
+    set.conditions.every((c) => matchesCondition(c, attributes));
+
+  if (segment.ruleSets.length === 0)
+    return segment.conditions.every((c) => matchesCondition(c, attributes));
+  /*
+   * `some`/`every` over the sets. Note the degenerate cases differ and both are
+   * deliberate: `any` over zero sets is unreachable (guarded above), while an
+   * empty AND-group inside `ruleSets` matches everyone - the same thing an empty
+   * `conditions` has always meant.
+   */
+  return segment.match === 'any' ? segment.ruleSets.some(all) : segment.ruleSets.every(all);
+}
+
 function matchesRule(
   rule: TargetingRule,
   snapshot: RulesetSnapshot,
@@ -84,7 +129,7 @@ function matchesRule(
   return rule.segments.some((segmentKey) => {
     const segment = snapshot.segments[segmentKey];
     if (!segment) return false;
-    return segment.conditions.every((c) => matchesCondition(c, attributes));
+    return matchesSegment(segment, attributes);
   });
 }
 
