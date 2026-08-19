@@ -42,8 +42,34 @@ describe('rulesetSnapshotSchema', () => {
     });
   });
 
+  it('applies defaults to sparse segment entries', () => {
+    const parsed = parseRulesetSnapshot({
+      ...minimalSnapshot,
+      segments: { 'segment.sparse': { conditions: [] } },
+    });
+    // The sibling of the tool.sparse guard above, and load-bearing for the same
+    // reason: the builder omits match/ruleSets for a single-AND-group segment so
+    // every segment written before OR groups existed hashes identically. If this
+    // needs relaxing, that guarantee has broken and every environment will
+    // republish for a change nobody made.
+    expect(parsed.segments['segment.sparse']).toEqual({
+      conditions: [],
+      match: 'all',
+      ruleSets: [],
+    });
+  });
+
   it('rejects an unknown schemaVersion', () => {
     expect(() => parseRulesetSnapshot({ ...minimalSnapshot, schemaVersion: 2 })).toThrow();
+  });
+
+  it('rejects an unknown segment match mode', () => {
+    expect(() =>
+      parseRulesetSnapshot({
+        ...minimalSnapshot,
+        segments: { s: { conditions: [], match: 'none' } },
+      }),
+    ).toThrow();
   });
 
   it('rejects unknown condition operators', () => {

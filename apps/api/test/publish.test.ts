@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { parseRulesetSnapshot } from '@toggleflow/engine';
+import { UNSUPPORTED_SENTINEL_ATTRIBUTE, parseRulesetSnapshot } from '@toggleflow/engine';
 import { desc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -285,6 +285,71 @@ describe('publish pipeline', () => {
     const content = await buildSnapshotContent(h.db, plainEnvId);
     expect(content!.tools['tool.plain']).toMatchObject({ valueType: undefined, value: undefined });
     expect(stableStringify(content)).not.toContain('valueType');
+  });
+
+  /**
+   * The segment twin of the churn test above: a single-AND-group segment must
+   * serialise as the bare `conditions` list it did before OR groups existed, or
+   * migration 0002 would republish every environment in the fleet.
+   */
+  it('does not churn the content hash of a single-group segment', async () => {
+    const plain = await createWorkspace(h, 'publish-segment');
+    const plainEnvId = plain.environments[0]!.id;
+    await h.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${plain.projectId}/segments`,
+      headers: h.authed(plain.adminToken),
+      payload: {
+        key: 'single-group',
+        name: 'Single group',
+        rules: [[{ attribute: 'plan', operator: 'eq', value: 'pro' }]],
+      },
+    });
+    await h.app.publisher.flushAll();
+
+    const content = await buildSnapshotContent(h.db, plainEnvId);
+    expect(content!.segments['single-group']).toEqual({
+      conditions: [{ attribute: 'plan', operator: 'eq', value: 'pro' }],
+    });
+    const serialised = stableStringify(content);
+    expect(serialised).not.toContain('ruleSets');
+    expect(serialised).not.toContain('match');
+  });
+
+  it('publishes an ORed segment as ruleSets that survive a frozen-schema parse', async () => {
+    const or = await createWorkspace(h, 'publish-or');
+    const orEnvId = or.environments[0]!.id;
+    await h.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${or.projectId}/segments`,
+      headers: h.authed(or.adminToken),
+      payload: {
+        key: 'eu-pro-or-us-trial',
+        name: 'EU pro or US trial',
+        match: 'any',
+        rules: [
+          [{ attribute: 'plan', operator: 'eq', value: 'pro' }],
+          [{ attribute: 'country', operator: 'eq', value: 'us' }],
+        ],
+      },
+    });
+    await h.app.publisher.flushAll();
+
+    const raw = JSON.parse((await kv.getWithMetadata(rulesetKvKey(orEnvId))).value!);
+    // Nothing added, nothing removed by the frozen schema - so schemaVersion 1
+    // really does carry OR groups and the worker cannot drop them on read.
+    expect(parseRulesetSnapshot(raw)).toEqual(raw);
+    expect(raw.segments['eu-pro-or-us-trial']).toMatchObject({
+      match: 'any',
+      ruleSets: [
+        { conditions: [{ attribute: 'plan', operator: 'eq', value: 'pro' }] },
+        { conditions: [{ attribute: 'country', operator: 'eq', value: 'us' }] },
+      ],
+    });
+    // And the fail-closed sentinel is what an evaluator predating ruleSets sees.
+    expect(raw.segments['eu-pro-or-us-trial'].conditions).toEqual([
+      { attribute: UNSUPPORTED_SENTINEL_ATTRIBUTE, operator: 'exists' },
+    ]);
   });
 
   it('deleting an environment removes its KV entries', async () => {

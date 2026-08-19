@@ -22,7 +22,11 @@ const segment = (over: Partial<Segment> = {}): Segment => ({
   key: 'beta-users',
   name: 'Beta users',
   description: 'Opted in',
-  rules: [],
+  // One empty AND-group - the stored form of "no conditions yet".
+  rules: [[]],
+  match: 'all',
+  createdAt: '2026-08-01T10:00:00.000Z',
+  updatedAt: '2026-08-01T10:00:00.000Z',
   ...over,
 });
 

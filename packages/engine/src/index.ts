@@ -10,12 +10,16 @@
  */
 export {
   SCHEMA_VERSION,
+  SEGMENT_MATCH_MODES,
+  UNSUPPORTED_SENTINEL_ATTRIBUTE,
   attributeValueSchema,
   conditionSchema,
   jsonObjectSchema,
   jsonValueSchema,
   parseRulesetSnapshot,
   rulesetSnapshotSchema,
+  segmentMatchSchema,
+  segmentRuleSetSchema,
   segmentSchema,
   snapshotToolSchema,
   targetingRuleSchema,
@@ -28,6 +32,8 @@ export type {
   JsonValue,
   RulesetSnapshot,
   Segment,
+  SegmentMatch,
+  SegmentRuleSet,
   SnapshotTool,
   TargetingRule,
   UserContext,
@@ -48,7 +54,7 @@ export type {
   ResolveValueInput,
 } from './flag-types';
 
-export { evaluateAll, evaluateTool } from './evaluate';
+export { evaluateAll, evaluateTool, matchesCondition, matchesSegment } from './evaluate';
 export type { EvaluationReason, ToolEvaluation } from './evaluate';
 
 export { fnv1a32, stableBucket } from './hash';

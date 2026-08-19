@@ -1,16 +1,25 @@
 // @vitest-environment happy-dom
 /**
- * Segments admin: list, create vs edit (the key is immutable once set),
- * condition-JSON validation against the engine schema, and delete.
+ * The Segments list: reading a segment without reading JSON, searching by
+ * condition, the usage column, and the create flow's hand-off to the detail page.
+ *
+ * The suite this replaced tested a JSON textarea - typing
+ * `[{"attribute":"plan",…}]` into a field and asserting on `Not valid JSON.`
+ * That page is gone, and so is the class of test that goes with it: there is no
+ * longer a way to express a malformed condition, which is the point of the
+ * redesign rather than a gap in coverage.
  */
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Segment } from '../src/api/client';
-import { SegmentsPage } from '../src/pages/SegmentsPage';
+import type { SegmentUsage } from '../src/api/client';
+import { SegmentsPage } from '../src/features/segments';
 import {
+  ENV_ID,
   PROJECT_ID,
   renderWithProviders,
+  segmentRow,
   stubAuth,
   stubFetch,
   workspaceHandlers,
@@ -19,13 +28,20 @@ import {
 } from './harness';
 
 const SEGMENTS_URL = `/v1/projects/${PROJECT_ID}/segments`;
+const USAGE_URL = `${SEGMENTS_URL}/usage`;
 
-const segment = (over: Partial<Segment> = {}): Segment => ({
-  id: 's1',
-  key: 'beta-users',
-  name: 'Beta users',
-  description: 'Opted in',
-  rules: [{ attribute: 'plan', operator: 'in', values: ['pro'] }],
+const usage = (over: Partial<SegmentUsage> = {}): SegmentUsage => ({
+  flagCount: 1,
+  references: [
+    {
+      flagId: 't1',
+      flagKey: 'tool.summarize',
+      flagName: 'Summarize',
+      environmentId: ENV_ID,
+      environmentKey: 'prod',
+      environmentName: 'Production',
+    },
+  ],
   ...over,
 });
 
@@ -34,18 +50,43 @@ const pageHandlers = (
   over: Handlers = {},
 ): Handlers => ({
   ...workspaceHandlers(role),
-  [`GET ${SEGMENTS_URL}`]: [segment()],
+  [`GET ${SEGMENTS_URL}`]: [segmentRow()],
+  [`GET ${USAGE_URL}`]: {},
   ...over,
 });
+
+/** Reports where a navigation landed, so the create hand-off is observable. */
+function LocationProbe() {
+  return <span data-testid="location">{useLocation().pathname}</span>;
+}
 
 function renderPage(handlers: Handlers = pageHandlers()): { stub: FetchStub } {
   stubAuth();
   const stub = stubFetch(handlers);
-  renderWithProviders(<SegmentsPage />);
+  renderWithProviders(
+    <>
+      <LocationProbe />
+      <Routes>
+        <Route path="/segments" element={<SegmentsPage />} />
+        {/* Where the create flow and a row click both go. */}
+        <Route path="/segments/:segmentId" element={<span>detail stub</span>} />
+      </Routes>
+    </>,
+    { route: '/segments' },
+  );
   return { stub };
 }
 
-const loaded = () => waitFor(() => expect(screen.getByText('beta-users')).toBeTruthy());
+/*
+ * The table and the card list are BOTH mounted on every paint and CSS picks one
+ * at the `md` breakpoint - which happy-dom does not apply - so every row is in
+ * the tree twice. Assertions scope to one of them on purpose; an unscoped
+ * `getByText` throws on the duplicate.
+ */
+const inTable = () => within(screen.getByRole('table', { name: 'Segments' }));
+const inCards = () => within(screen.getByRole('list', { name: 'Segments (compact)' }));
+
+const loaded = () => waitFor(() => expect(inTable().getByText('beta-users')).toBeTruthy());
 
 beforeEach(() => {
   localStorage.clear();
@@ -57,30 +98,83 @@ afterEach(() => {
 });
 
 describe('listing', () => {
-  it('renders key, name, description, and the raw conditions', async () => {
+  it('renders the rules in words rather than as JSON', async () => {
     renderPage();
     await loaded();
-    expect(screen.getByText(/Opted in/)).toBeTruthy();
-    expect(
-      screen.getByText(JSON.stringify([{ attribute: 'plan', operator: 'in', values: ['pro'] }])),
-    ).toBeTruthy();
+    const table = inTable();
+    expect(table.getByText('Beta users')).toBeTruthy();
+    expect(table.getByText('Opted in')).toBeTruthy();
+    // The whole point: `plan is one of pro`, not `[{"attribute":"plan",…}]`.
+    expect(table.getByText('plan is one of pro')).toBeTruthy();
+    expect(screen.queryByText(/\{"attribute"/)).toBeNull();
+
+    // The card list carries the same reading, so a phone is not sent back to JSON.
+    expect(inCards().getByText('plan is one of pro')).toBeTruthy();
   });
 
-  it('omits the description separator when there is none', async () => {
+  it('labels a segment with no conditions as matching everyone', async () => {
+    renderPage(pageHandlers('admin', { [`GET ${SEGMENTS_URL}`]: [segmentRow({ rules: [[]] })] }));
+    await loaded();
+    const table = inTable();
+    expect(table.getByText('Everyone')).toBeTruthy();
+    expect(table.getByText('No conditions')).toBeTruthy();
+  });
+
+  it('summarises an ORed segment by its shape', async () => {
     renderPage(
-      pageHandlers('admin', { [`GET ${SEGMENTS_URL}`]: [segment({ description: null })] }),
+      pageHandlers('admin', {
+        [`GET ${SEGMENTS_URL}`]: [
+          segmentRow({
+            match: 'any',
+            rules: [
+              [
+                { attribute: 'plan', operator: 'eq', value: 'pro' },
+                { attribute: 'region', operator: 'eq', value: 'eu' },
+              ],
+              [{ attribute: 'country', operator: 'eq', value: 'us' }],
+            ],
+          }),
+        ],
+      }),
     );
     await loaded();
-    // Anchored, because the separator is rendered as " - description" and
-    // Testing Library trims it to "- description". A bare /-/ also matches the
-    // segment key "beta-users", so it can never be null and the assertion was
-    // failing for a reason unrelated to the separator.
-    expect(screen.queryByText(/^-\s/)).toBeNull();
+    // Groups collapse to their first condition plus a count - a cell wide enough
+    // for two groups in full is a cell too wide for a table.
+    const table = inTable();
+    expect(table.getByText('(plan is pro +1) OR (country is us)')).toBeTruthy();
+    expect(table.getByText('2 rule sets (OR)')).toBeTruthy();
   });
 
-  it('shows an empty state', async () => {
-    renderPage(pageHandlers('admin', { [`GET ${SEGMENTS_URL}`]: [] }));
-    await waitFor(() => expect(screen.getByText('No segments yet.')).toBeTruthy());
+  it('shows usage once the count arrives, and Unused when there is none', async () => {
+    renderPage(pageHandlers('admin', { [`GET ${USAGE_URL}`]: { 'beta-users': usage() } }));
+    await loaded();
+    await waitFor(() => expect(inTable().getByText(/1 reference/)).toBeTruthy());
+    // The environment is named beside the count, so "used where" needs no click.
+    expect(inTable().getByText(/Production/)).toBeTruthy();
+
+    cleanup();
+    renderPage();
+    await loaded();
+    await waitFor(() => expect(inTable().getByText('Unused')).toBeTruthy());
+  });
+
+  it('keeps the list usable when the usage request fails', async () => {
+    // A missing count is a degraded column, not a broken page.
+    renderPage(
+      pageHandlers('admin', {
+        [`GET ${USAGE_URL}`]: { status: 500, body: { error: 'boom', message: 'usage exploded' } },
+      }),
+    );
+    await loaded();
+    expect(inTable().getByText('plan is one of pro')).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('usage exploded')).toBeTruthy());
+  });
+
+  it('opens the detail route when a row is clicked', async () => {
+    renderPage();
+    await loaded();
+    fireEvent.click(inTable().getByText('Beta users'));
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/segments/s1'));
   });
 
   it('surfaces a load failure', async () => {
@@ -95,108 +189,149 @@ describe('listing', () => {
     await waitFor(() => expect(screen.getByText('no access')).toBeTruthy());
   });
 
-  it('hides all mutation controls from a viewer', async () => {
+  it('hides the create button from a viewer', async () => {
     renderPage(pageHandlers('viewer'));
     await loaded();
-    expect(screen.queryByText('＋ New segment')).toBeNull();
-    expect(screen.queryByText('edit')).toBeNull();
-    expect(screen.queryByText('delete')).toBeNull();
+    expect(screen.queryByText('Create segment')).toBeNull();
+  });
+});
+
+describe('search', () => {
+  const twoSegments = (): Handlers =>
+    pageHandlers('admin', {
+      [`GET ${SEGMENTS_URL}`]: [
+        segmentRow(),
+        segmentRow({
+          id: 's2',
+          key: 'eu-users',
+          name: 'EU users',
+          description: null,
+          rules: [[{ attribute: 'region', operator: 'eq', value: 'eu' }]],
+        }),
+      ],
+    });
+
+  it('filters by name', async () => {
+    renderPage(twoSegments());
+    await loaded();
+    fireEvent.change(screen.getByLabelText('Search segments'), { target: { value: 'EU' } });
+    expect(screen.queryByText('Beta users')).toBeNull();
+    expect(inTable().getByText('EU users')).toBeTruthy();
+  });
+
+  it('filters by condition, which names alone cannot answer', async () => {
+    renderPage(twoSegments());
+    await loaded();
+    // "which segment targets on region?" - the question that motivates searching
+    // the conditions at all.
+    fireEvent.change(screen.getByLabelText('Search segments'), { target: { value: 'region' } });
+    expect(inTable().getByText('EU users')).toBeTruthy();
+    expect(screen.queryByText('Beta users')).toBeNull();
+  });
+
+  it('offers a way back when nothing matches', async () => {
+    renderPage(twoSegments());
+    await loaded();
+    fireEvent.change(screen.getByLabelText('Search segments'), { target: { value: 'zzz' } });
+    expect(screen.getByText('No segments match')).toBeTruthy();
+
+    fireEvent.click(screen.getByText('Clear search'));
+    expect(inTable().getByText('Beta users')).toBeTruthy();
+  });
+});
+
+describe('empty state', () => {
+  it('explains what a segment is for and offers the first one', async () => {
+    renderPage(pageHandlers('admin', { [`GET ${SEGMENTS_URL}`]: [] }));
+    await waitFor(() => expect(screen.getByText('No segments yet')).toBeTruthy());
+    expect(screen.getByText(/Describe a group of users once/)).toBeTruthy();
+    expect(screen.getByText('Create segment')).toBeTruthy();
+  });
+
+  it('tells a viewer who can create one instead of offering the button', async () => {
+    renderPage(pageHandlers('viewer', { [`GET ${SEGMENTS_URL}`]: [] }));
+    await waitFor(() => expect(screen.getByText('No segments yet')).toBeTruthy());
+    expect(screen.getByText(/Ask an admin or developer/)).toBeTruthy();
+    expect(screen.queryByText('Create segment')).toBeNull();
   });
 });
 
 describe('create', () => {
-  it('posts a new segment with a trimmed key, name, and parsed conditions', async () => {
-    const { stub } = renderPage(
-      pageHandlers('admin', { [`POST ${SEGMENTS_URL}`]: segment({ id: 's2' }) }),
+  const opened = async () => {
+    renderPage(
+      pageHandlers('admin', {
+        [`POST ${SEGMENTS_URL}`]: segmentRow({ id: 's9', key: 'power-users' }),
+      }),
+    );
+    await loaded();
+    fireEvent.click(screen.getByText('Create segment'));
+    await waitFor(() => expect(screen.getByLabelText('Name')).toBeTruthy());
+  };
+
+  it('derives the key from the name until the key is edited', async () => {
+    await opened();
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Power Users' } });
+    expect(screen.getByLabelText('Key')).toHaveProperty('value', 'power-users');
+
+    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'custom.key' } });
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed' } });
+    // Once touched, the key stops following the name.
+    expect(screen.getByLabelText('Key')).toHaveProperty('value', 'custom.key');
+  });
+
+  it('posts the segment and lands on its rule builder', async () => {
+    stubAuth();
+    const stub = stubFetch(
+      pageHandlers('admin', {
+        [`POST ${SEGMENTS_URL}`]: segmentRow({ id: 's9', key: 'power-users' }),
+      }),
+    );
+    renderWithProviders(
+      <>
+        <LocationProbe />
+        <Routes>
+          <Route path="/segments" element={<SegmentsPage />} />
+          <Route path="/segments/:segmentId" element={<span>detail stub</span>} />
+        </Routes>
+      </>,
+      { route: '/segments' },
     );
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ New segment'));
-    expect(screen.getByText('New segment')).toBeTruthy();
+    fireEvent.click(screen.getByText('Create segment'));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: ' Power Users ' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: ' notes ' } });
+    fireEvent.click(screen.getByText('Create segment', { selector: 'button[type="submit"]' }));
 
-    const save = screen.getByText('Save');
-    // Both key and name are required for a create.
-    expect(save).toHaveProperty('disabled', true);
-    fireEvent.change(screen.getByLabelText('Key'), { target: { value: ' power-users ' } });
-    expect(save).toHaveProperty('disabled', true);
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: ' Power users ' } });
-    expect(save).toHaveProperty('disabled', false);
-
-    fireEvent.change(screen.getByLabelText('Conditions (ALL must match)'), {
-      target: { value: '[{"attribute":"seats","operator":"gte","value":5}]' },
-    });
-    fireEvent.click(save);
-
-    await waitFor(() => expect(screen.queryByText('New segment')).toBeNull());
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/segments/s9'));
+    // No `rules` in the body: the API defaults to one empty group and the builder
+    // on the next screen is where conditions get added.
     expect(stub.calls.find((c) => c.key === `POST ${SEGMENTS_URL}`)?.body).toEqual({
       key: 'power-users',
-      name: 'Power users',
-      description: null,
-      rules: [{ attribute: 'seats', operator: 'gte', value: 5 }],
+      name: 'Power Users',
+      description: 'notes',
     });
   });
 
-  it('pre-fills a sensible starter condition', async () => {
-    renderPage();
-    await loaded();
-    fireEvent.click(screen.getByText('＋ New segment'));
-    expect(screen.getByLabelText('Conditions (ALL must match)')).toHaveProperty(
-      'value',
-      JSON.stringify([{ attribute: 'plan', operator: 'in', values: ['pro'] }], null, 2),
+  it('refuses an empty name without calling the API', async () => {
+    stubAuth();
+    const stub = stubFetch(pageHandlers());
+    renderWithProviders(
+      <Routes>
+        <Route path="/segments" element={<SegmentsPage />} />
+      </Routes>,
+      { route: '/segments' },
     );
-  });
-
-  it('sends a description when one is typed', async () => {
-    const { stub } = renderPage(pageHandlers('admin', { [`POST ${SEGMENTS_URL}`]: segment() }));
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ New segment'));
-    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'k' } });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'N' } });
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: ' notes ' } });
-    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByText('Create segment'));
+    fireEvent.click(screen.getByText('Create segment', { selector: 'button[type="submit"]' }));
 
-    await waitFor(() =>
-      expect(
-        (stub.calls.find((c) => c.key === `POST ${SEGMENTS_URL}`)?.body as { description: string })
-          .description,
-      ).toBe('notes'),
-    );
-  });
-
-  it('rejects malformed JSON without calling the API', async () => {
-    const { stub } = renderPage();
-    await loaded();
-
-    fireEvent.click(screen.getByText('＋ New segment'));
-    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'k' } });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'N' } });
-    fireEvent.change(screen.getByLabelText('Conditions (ALL must match)'), {
-      target: { value: 'not json' },
-    });
-    fireEvent.click(screen.getByText('Save'));
-
-    expect(screen.getByText('Not valid JSON.')).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('A name is required.')).toBeTruthy());
     expect(stub.calls.some((c) => c.key.startsWith('POST'))).toBe(false);
   });
 
-  it('reports an unknown operator with its path', async () => {
-    const { stub } = renderPage();
-    await loaded();
-
-    fireEvent.click(screen.getByText('＋ New segment'));
-    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'k' } });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'N' } });
-    fireEvent.change(screen.getByLabelText('Conditions (ALL must match)'), {
-      target: { value: '[{"attribute":"plan","operator":"startsWith","value":"p"}]' },
-    });
-    fireEvent.click(screen.getByText('Save'));
-
-    await waitFor(() => expect(document.querySelector('.error-note')).toBeTruthy());
-    expect(stub.calls.some((c) => c.key.startsWith('POST'))).toBe(false);
-  });
-
-  it('surfaces a rejected create and keeps the modal open', async () => {
+  it('surfaces a duplicate key and keeps the dialog open', async () => {
     renderPage(
       pageHandlers('admin', {
         [`POST ${SEGMENTS_URL}`]: {
@@ -207,106 +342,17 @@ describe('create', () => {
     );
     await loaded();
 
-    fireEvent.click(screen.getByText('＋ New segment'));
-    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'beta-users' } });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Dupe' } });
-    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByText('Create segment'));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Beta users' } });
+    fireEvent.click(screen.getByText('Create segment', { selector: 'button[type="submit"]' }));
 
     await waitFor(() => expect(screen.getByText('key already used')).toBeTruthy());
-    expect(screen.getByText('New segment')).toBeTruthy();
+    expect(screen.getByLabelText('Name')).toBeTruthy();
   });
 
   it('closes on cancel', async () => {
-    renderPage();
-    await loaded();
-    fireEvent.click(screen.getByText('＋ New segment'));
+    await opened();
     fireEvent.click(screen.getByText('Cancel'));
-    expect(screen.queryByText('New segment')).toBeNull();
-  });
-});
-
-describe('edit', () => {
-  it('pre-fills from the segment and PATCHes without the key', async () => {
-    const { stub } = renderPage(pageHandlers('admin', { 'PATCH /v1/segments/s1': segment() }));
-    await loaded();
-
-    fireEvent.click(screen.getByText('edit'));
-    expect(screen.getByText('Edit beta-users')).toBeTruthy();
-    // The key is immutable once assigned, so the field is not offered.
-    expect(screen.queryByLabelText('Key')).toBeNull();
-    expect(screen.getByLabelText('Name')).toHaveProperty('value', 'Beta users');
-    expect(screen.getByLabelText('Description')).toHaveProperty('value', 'Opted in');
-
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Beta cohort' } });
-    fireEvent.click(screen.getByText('Save'));
-
-    await waitFor(() => expect(screen.queryByText('Edit beta-users')).toBeNull());
-    expect(stub.calls.find((c) => c.key === 'PATCH /v1/segments/s1')?.body).toEqual({
-      name: 'Beta cohort',
-      description: 'Opted in',
-      rules: [{ attribute: 'plan', operator: 'in', values: ['pro'] }],
-    });
-  });
-
-  it('clears the description to null when emptied', async () => {
-    const { stub } = renderPage(pageHandlers('admin', { 'PATCH /v1/segments/s1': segment() }));
-    await loaded();
-
-    fireEvent.click(screen.getByText('edit'));
-    fireEvent.change(screen.getByLabelText('Description'), { target: { value: '   ' } });
-    fireEvent.click(screen.getByText('Save'));
-
-    await waitFor(() =>
-      expect(
-        (
-          stub.calls.find((c) => c.key === 'PATCH /v1/segments/s1')?.body as {
-            description: unknown;
-          }
-        ).description,
-      ).toBeNull(),
-    );
-  });
-
-  it('handles a segment that arrives with an empty description', async () => {
-    renderPage(
-      pageHandlers('admin', { [`GET ${SEGMENTS_URL}`]: [segment({ description: null })] }),
-    );
-    await loaded();
-    fireEvent.click(screen.getByText('edit'));
-    expect(screen.getByLabelText('Description')).toHaveProperty('value', '');
-  });
-});
-
-describe('delete', () => {
-  it('deletes after confirming', async () => {
-    const { stub } = renderPage(
-      pageHandlers('admin', { 'DELETE /v1/segments/s1': { status: 204 } }),
-    );
-    await loaded();
-
-    fireEvent.click(screen.getByText('delete'));
-    // Two-step: the first click only arms.
-    expect(stub.calls.some((c) => c.key.startsWith('DELETE'))).toBe(false);
-
-    fireEvent.click(screen.getByText('Delete segment?'));
-    await waitFor(() =>
-      expect(stub.calls.some((c) => c.key === 'DELETE /v1/segments/s1')).toBe(true),
-    );
-  });
-
-  it('surfaces a delete failure', async () => {
-    renderPage(
-      pageHandlers('admin', {
-        'DELETE /v1/segments/s1': {
-          status: 409,
-          body: { error: 'in_use', message: 'segment referenced by a rule' },
-        },
-      }),
-    );
-    await loaded();
-
-    fireEvent.click(screen.getByText('delete'));
-    fireEvent.click(screen.getByText('Delete segment?'));
-    await waitFor(() => expect(screen.getByText('segment referenced by a rule')).toBeTruthy());
+    await waitFor(() => expect(screen.queryByLabelText('Name')).toBeNull());
   });
 });

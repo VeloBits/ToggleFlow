@@ -23,7 +23,7 @@
  * layer is a bigger change than this one: the query layer (api/flags.ts) owns
  * the GET paths, while the pages still build their own PATCH/PUT paths.
  */
-import type { FlagValueType, JsonValue } from '@toggleflow/engine';
+import type { Condition, FlagValueType, JsonValue, SegmentMatch } from '@toggleflow/engine';
 
 import { getAccessToken } from '../auth/AuthContext';
 
@@ -222,12 +222,57 @@ export const fetchFlags = (environmentId: string): Promise<Flag[]> =>
     .get<FlagRowWire[]>(`/v1/environments/${environmentId}/flags`)
     .then((rows) => rows.map(toFlag));
 
+/**
+ * A reusable targeting group.
+ *
+ * `rules` is a list of AND-GROUPS combined by `match` - not a flat condition
+ * list, which is what it was before OR groups. `Condition[][]` rather than
+ * `unknown[]`, because the rule builder needs to render the operator and the
+ * value field per condition, and the engine's own type is the honest one to do
+ * that from. The API validates against the same `conditionSchema`, so anything
+ * that arrives here really is this shape.
+ *
+ * No translation layer for this one: the control plane already calls a segment a
+ * segment, so unlike `Tool`/`Flag` there are no two names to reconcile.
+ */
 export interface Segment {
   id: string;
   key: string;
   name: string;
   description: string | null;
-  rules: unknown[];
+  rules: Condition[][];
+  match: SegmentMatch;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** One flag, in one environment, whose targeting rules name a segment. */
+export interface SegmentReference {
+  flagId: string;
+  flagKey: string;
+  flagName: string;
+  environmentId: string;
+  environmentKey: string;
+  environmentName: string;
+}
+
+export interface SegmentUsage {
+  flagCount: number;
+  references: SegmentReference[];
+}
+
+/**
+ * One attribute the project's rules mention, with the literals seen beside it.
+ *
+ * There is no attribute registry - `condition.attribute` is free-form - so this
+ * is derived server-side from every segment and every flag targeting rule in the
+ * project. Suggestions only: a typed attribute the project has never used before
+ * must still be accepted, or a new project could not target anything.
+ */
+export interface ProjectAttribute {
+  name: string;
+  valueSamples: (string | number | boolean)[];
+  usageCount: number;
 }
 
 /** The JSON blob a flag carries per environment, versioned server-side. */

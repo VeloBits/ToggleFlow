@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { evaluateAll, evaluateTool } from '../src/evaluate';
-import { SCHEMA_VERSION, parseRulesetSnapshot, type UserContext } from '../src/schema';
+import { evaluateAll, evaluateTool, matchesSegment } from '../src/evaluate';
+import {
+  SCHEMA_VERSION,
+  UNSUPPORTED_SENTINEL_ATTRIBUTE,
+  parseRulesetSnapshot,
+  type UserContext,
+} from '../src/schema';
 
 const base = {
   schemaVersion: SCHEMA_VERSION,
@@ -94,6 +99,106 @@ describe('condition semantics', () => {
     );
     expect(evaluateTool(snapshot, 'tool.x', user({ region: 'us' })).reason).toBe('rollout');
     expect(evaluateTool(snapshot, 'tool.x', user({ plan: 'pro' })).reason).toBe('rollout');
+  });
+});
+
+describe('matchesSegment', () => {
+  const EU_PRO = [
+    { attribute: 'plan', operator: 'in' as const, values: ['pro', 'team'] },
+    { attribute: 'region', operator: 'eq' as const, value: 'eu' },
+  ];
+  const US_TRIAL = [
+    { attribute: 'plan', operator: 'eq' as const, value: 'trial' },
+    { attribute: 'country', operator: 'eq' as const, value: 'us' },
+  ];
+
+  /** Parse through the snapshot schema so defaults are applied as in production. */
+  const segment = (raw: unknown) =>
+    parseRulesetSnapshot({ ...base, segments: { s: raw } }).segments.s!;
+
+  it('ANDs a flat conditions list when ruleSets is empty', () => {
+    const s = segment({ conditions: EU_PRO });
+    expect(matchesSegment(s, { plan: 'pro', region: 'eu' })).toBe(true);
+    expect(matchesSegment(s, { plan: 'pro', region: 'us' })).toBe(false);
+    expect(matchesSegment(s, { plan: 'free', region: 'eu' })).toBe(false);
+  });
+
+  it('matches everyone when a flat conditions list is empty', () => {
+    expect(matchesSegment(segment({ conditions: [] }), {})).toBe(true);
+  });
+
+  it('ORs the rule sets under match:any', () => {
+    const s = segment({
+      conditions: [],
+      match: 'any',
+      ruleSets: [{ conditions: EU_PRO }, { conditions: US_TRIAL }],
+    });
+    expect(matchesSegment(s, { plan: 'team', region: 'eu' })).toBe(true);
+    expect(matchesSegment(s, { plan: 'trial', country: 'us' })).toBe(true);
+    // Neither group satisfied in full: a half-match of each is not a match.
+    expect(matchesSegment(s, { plan: 'trial', region: 'eu' })).toBe(false);
+    expect(matchesSegment(s, {})).toBe(false);
+  });
+
+  it('ANDs the rule sets under match:all', () => {
+    const s = segment({
+      conditions: [],
+      match: 'all',
+      ruleSets: [{ conditions: [EU_PRO[0]!] }, { conditions: [EU_PRO[1]!] }],
+    });
+    expect(matchesSegment(s, { plan: 'pro', region: 'eu' })).toBe(true);
+    expect(matchesSegment(s, { plan: 'pro' })).toBe(false);
+  });
+
+  it('ignores conditions entirely when ruleSets is present', () => {
+    /*
+     * The sentinel case, and the reason this evaluator must not consult both:
+     * a multi-set segment carries a never-matching condition in `conditions` for
+     * readers that predate ruleSets. Honouring it here would mean no multi-set
+     * segment ever matched anybody.
+     */
+    const s = segment({
+      conditions: [{ attribute: UNSUPPORTED_SENTINEL_ATTRIBUTE, operator: 'exists' }],
+      match: 'any',
+      ruleSets: [{ conditions: EU_PRO }],
+    });
+    expect(matchesSegment(s, { plan: 'pro', region: 'eu' })).toBe(true);
+  });
+
+  it('leaves the sentinel unmatched for any real context', () => {
+    // Fail-closed is the whole point: an un-upgraded reader sees only this.
+    const s = segment({
+      conditions: [{ attribute: UNSUPPORTED_SENTINEL_ATTRIBUTE, operator: 'exists' }],
+    });
+    expect(matchesSegment(s, { plan: 'pro', region: 'eu' })).toBe(false);
+    expect(matchesSegment(s, {})).toBe(false);
+  });
+
+  it('gates a targeting rule through an OR segment end to end', () => {
+    const snapshot = parseRulesetSnapshot({
+      ...base,
+      segments: {
+        reach: {
+          conditions: [{ attribute: UNSUPPORTED_SENTINEL_ATTRIBUTE, operator: 'exists' }],
+          match: 'any',
+          ruleSets: [{ conditions: EU_PRO }, { conditions: US_TRIAL }],
+        },
+      },
+      tools: {
+        'tool.x': {
+          enabled: true,
+          rolloutPercent: 0,
+          targetingRules: [{ segments: ['reach'], enabled: true }],
+        },
+      },
+    });
+    expect(evaluateTool(snapshot, 'tool.x', user({ plan: 'pro', region: 'eu' })).reason).toBe(
+      'targeting',
+    );
+    expect(evaluateTool(snapshot, 'tool.x', user({ plan: 'trial', country: 'us' })).reason).toBe(
+      'targeting',
+    );
+    expect(evaluateTool(snapshot, 'tool.x', user({ plan: 'free' })).reason).toBe('rollout');
   });
 });
 

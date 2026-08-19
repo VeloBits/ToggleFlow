@@ -64,6 +64,61 @@ describe('audit log', () => {
     }
   });
 
+  it('narrows to one entity with entityId', async () => {
+    /*
+     * The detail-page activity panel. Filtered in SQL rather than in the client
+     * because the feed is paged newest-first: in a busy org an entity's events
+     * sit well past the first page, so filtering what arrived would show an empty
+     * history for something that has plenty.
+     */
+    const made = await h.app.inject({
+      method: 'POST',
+      url: `/v1/projects/${ws.projectId}/segments`,
+      headers: h.authed(ws.adminToken),
+      payload: { key: 'audited-seg', name: 'Audited' },
+    });
+    const segmentId = made.json().id;
+    await h.app.inject({
+      method: 'PATCH',
+      url: `/v1/segments/${segmentId}`,
+      headers: h.authed(ws.adminToken),
+      payload: { name: 'Audited again' },
+    });
+
+    const res = await h.app.inject({
+      method: 'GET',
+      url: `/v1/orgs/${ws.orgId}/audit?entityId=${segmentId}`,
+      headers: h.authed(ws.adminToken),
+    });
+    expect(res.statusCode).toBe(200);
+    const { entries } = res.json();
+    expect(entries.map((e: { action: string }) => e.action)).toEqual([
+      'segment.update',
+      'segment.create',
+    ]);
+    // Nothing from the tools created in beforeAll leaks in.
+    expect(entries.every((e: { entityId: string }) => e.entityId === segmentId)).toBe(true);
+  });
+
+  it('returns an empty list for an entity with no history', async () => {
+    const res = await h.app.inject({
+      method: 'GET',
+      url: `/v1/orgs/${ws.orgId}/audit?entityId=00000000-0000-4000-8000-000000000000`,
+      headers: h.authed(ws.adminToken),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().entries).toEqual([]);
+  });
+
+  it('rejects a non-uuid entityId', async () => {
+    const res = await h.app.inject({
+      method: 'GET',
+      url: `/v1/orgs/${ws.orgId}/audit?entityId=not-a-uuid`,
+      headers: h.authed(ws.adminToken),
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('is readable by viewers but hidden from non-members', async () => {
     await addMember(h.db, ws.orgId, 'viewer-user', 'viewer');
     const viewer = await h.signToken('viewer-user');

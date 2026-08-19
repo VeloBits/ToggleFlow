@@ -174,14 +174,21 @@ describe('dev seed', () => {
     expect(byKey('tool.summarize').rolloutPercent).toBeNull();
   });
 
-  it('creates the beta-users segment', async () => {
+  it('creates the beta-users and early-access segments', async () => {
     await runSeed();
 
-    const [segment] = await db.select().from(segments);
-    expect(segment!.key).toBe('beta-users');
-    expect(segment!.rules).toEqual([
-      { attribute: 'plan', operator: 'in', values: ['pro', 'team'] },
+    const rows = await db.select().from(segments);
+    const byKey = (key: string) => rows.find((s) => s.key === key)!;
+
+    // One AND-group - `rules` is a list of groups since migration 0002.
+    expect(byKey('beta-users').match).toBe('all');
+    expect(byKey('beta-users').rules).toEqual([
+      [{ attribute: 'plan', operator: 'in', values: ['pro', 'team'] }],
     ]);
+
+    // Two ORed groups, so a fresh database exercises the OR path end to end.
+    expect(byKey('early-access').match).toBe('any');
+    expect(byKey('early-access').rules).toHaveLength(2);
   });
 
   it('creates versioned prod config on exactly the two configured tools', async () => {

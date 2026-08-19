@@ -11,6 +11,7 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 
 import killSwitchFixture from '@toggleflow/engine/fixtures/kill-switch.json';
+import segmentOrFixture from '@toggleflow/engine/fixtures/segment-or.json';
 import stringValueFixture from '@toggleflow/engine/fixtures/string-value.json';
 import targetingFixture from '@toggleflow/engine/fixtures/targeting.json';
 import { Miniflare } from 'miniflare';
@@ -21,6 +22,7 @@ const CLIENT_KEY = 'tf_cli_test-client-key';
 const TARGETING_ENV = 'env-prod';
 const KILL_ENV = 'env-kill';
 const STRING_ENV = 'env-typed';
+const SEGMENT_OR_ENV = 'env-segment-or';
 
 const sha256 = (input: string) => createHash('sha256').update(input).digest('hex');
 
@@ -59,7 +61,18 @@ beforeAll(async () => {
   await kv.put(`ruleset:${STRING_ENV}`, JSON.stringify(stringValueFixture.snapshot), {
     metadata: { contentHash: 'string-hash-1', version: 7 },
   });
-  for (const envId of [TARGETING_ENV, KILL_ENV, STRING_ENV]) {
+  /*
+   * Segment OR groups. Seeded here rather than only unit-tested in the engine
+   * because this is the runtime that actually serves them: the worker re-parses
+   * every snapshot with `safeParse` on read, so a `ruleSets` field the frozen
+   * schema did not carry would be silently stripped and every OR segment would
+   * fall back to its fail-closed sentinel - matching nobody, in production, with
+   * green engine tests.
+   */
+  await kv.put(`ruleset:${SEGMENT_OR_ENV}`, JSON.stringify(segmentOrFixture.snapshot), {
+    metadata: { contentHash: 'segment-or-hash-1', version: 20 },
+  });
+  for (const envId of [TARGETING_ENV, KILL_ENV, STRING_ENV, SEGMENT_OR_ENV]) {
     await kv.put(
       `keys:${envId}`,
       JSON.stringify({ server: [sha256(SERVER_KEY)], client: [sha256(CLIENT_KEY)] }),
@@ -190,6 +203,7 @@ describe('GET /v1/flags (edge evaluation)', () => {
   describe('targeting fixture', () => runCases(targetingFixture.cases, TARGETING_ENV));
   describe('kill-switch fixture', () => runCases(killSwitchFixture.cases, KILL_ENV));
   describe('string-value fixture', () => runCases(stringValueFixture.cases, STRING_ENV));
+  describe('segment-or fixture', () => runCases(segmentOrFixture.cases, SEGMENT_OR_ENV));
 
   it('serves a typed string flag end to end, and never leaks the value it withheld', async () => {
     interface TypedFlag {

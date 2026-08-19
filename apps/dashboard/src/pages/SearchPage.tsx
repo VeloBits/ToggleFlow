@@ -15,8 +15,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { api, type Segment } from '../api/client';
 import { flagDefinitionsQueryOptions, flagsQueryOptions } from '../api/flags';
+import { segmentsQueryOptions } from '../api/segments';
 import { EmptyState, PageHeader, Panel } from '../components/page';
 import { ErrorNote, StatusChip } from '../components/ui';
 import { useWorkspace } from '../state/WorkspaceContext';
@@ -28,11 +28,13 @@ export function SearchPage() {
 
   const flagsQuery = useQuery(flagsQueryOptions(ws.environmentId));
   const definitionsQuery = useQuery(flagDefinitionsQueryOptions(ws.projectId));
-  const segmentsQuery = useQuery({
-    queryKey: ['segments', ws.projectId],
-    queryFn: () => api.get<Segment[]>(`/v1/projects/${ws.projectId}/segments`),
-    enabled: ws.projectId !== null,
-  });
+  /*
+   * The shared factory, not an inline copy of the same key. This page and the
+   * Segments list read the same entry, so a key that drifted on one of them
+   * would leave stale rows here after an edit there - the failure `api/flags.ts`
+   * documents for flags.
+   */
+  const segmentsQuery = useQuery(segmentsQueryOptions(ws.projectId));
 
   const needle = query.trim().toLowerCase();
 
@@ -138,7 +140,10 @@ export function SearchPage() {
                     key={segment.id}
                     className="border-border flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0"
                   >
-                    <Link to="/segments" className="mono min-w-0 truncate">
+                    {/* The segment itself, not the list it lives in - segments
+                        have a detail route now, so a result opens the thing you
+                        searched for, as a flag result already did. */}
+                    <Link to={`/segments/${segment.id}`} className="mono min-w-0 truncate">
                       {segment.key}
                     </Link>
                     <span className="text-muted-foreground min-w-0 flex-1 truncate text-[13px]">

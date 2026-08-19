@@ -17,6 +17,7 @@ import {
   userContextSchema,
 } from '../src/schema';
 import configFallback from '../fixtures/config-fallback.json';
+import segmentOr from '../fixtures/segment-or.json';
 import killSwitch from '../fixtures/kill-switch.json';
 import rollout from '../fixtures/rollout.json';
 import stringValue from '../fixtures/string-value.json';
@@ -53,6 +54,7 @@ const fixtures = {
   rollout,
   'config-fallback': configFallback,
   'string-value': stringValue,
+  'segment-or': segmentOr,
 };
 
 for (const [name, raw] of Object.entries(fixtures)) {

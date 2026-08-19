@@ -1,0 +1,284 @@
+{
+  "description": "Segment OR groups: ruleSets combined by match, conditions ANDed within each set, ruleSets overriding the fail-closed sentinel in conditions, and a single-group segment still read from conditions.",
+  "snapshot": {
+    "schemaVersion": 1,
+    "projectId": "proj-demo",
+    "environmentId": "env-prod",
+    "environmentKey": "prod",
+    "version": 20,
+    "publishedAt": "2026-08-19T12:00:00.000Z",
+    "segments": {
+      "eu-pro-or-us-trial": {
+        "conditions": [
+          {
+            "attribute": "__toggleflow_unsupported__",
+            "operator": "exists"
+          }
+        ],
+        "match": "any",
+        "ruleSets": [
+          {
+            "conditions": [
+              {
+                "attribute": "plan",
+                "operator": "in",
+                "values": ["pro", "team"]
+              },
+              {
+                "attribute": "region",
+                "operator": "eq",
+                "value": "eu"
+              }
+            ]
+          },
+          {
+            "conditions": [
+              {
+                "attribute": "plan",
+                "operator": "eq",
+                "value": "trial"
+              },
+              {
+                "attribute": "country",
+                "operator": "eq",
+                "value": "us"
+              }
+            ]
+          }
+        ]
+      },
+      "all-sets-required": {
+        "conditions": [],
+        "match": "all",
+        "ruleSets": [
+          {
+            "conditions": [
+              {
+                "attribute": "plan",
+                "operator": "eq",
+                "value": "pro"
+              }
+            ]
+          },
+          {
+            "conditions": [
+              {
+                "attribute": "seats",
+                "operator": "gte",
+                "value": 10
+              }
+            ]
+          }
+        ]
+      },
+      "legacy-single-group": {
+        "conditions": [
+          {
+            "attribute": "plan",
+            "operator": "eq",
+            "value": "pro"
+          }
+        ]
+      }
+    },
+    "tools": {
+      "tool.or-gated": {
+        "enabled": true,
+        "rolloutPercent": 0,
+        "targetingRules": [
+          {
+            "segments": ["eu-pro-or-us-trial"],
+            "conditions": [],
+            "enabled": true
+          }
+        ],
+        "config": null
+      },
+      "tool.all-gated": {
+        "enabled": true,
+        "rolloutPercent": 0,
+        "targetingRules": [
+          {
+            "segments": ["all-sets-required"],
+            "conditions": [],
+            "enabled": true
+          }
+        ],
+        "config": null
+      },
+      "tool.legacy-gated": {
+        "enabled": true,
+        "rolloutPercent": 0,
+        "targetingRules": [
+          {
+            "segments": ["legacy-single-group"],
+            "conditions": [],
+            "enabled": true
+          }
+        ],
+        "config": null
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "first OR group matching in full puts the user in the segment",
+      "toolKey": "tool.or-gated",
+      "context": {
+        "key": "alice",
+        "attributes": {
+          "plan": "team",
+          "region": "eu"
+        }
+      },
+      "expected": {
+        "key": "tool.or-gated",
+        "enabled": true,
+        "reason": "targeting",
+        "value": true,
+        "valueType": "boolean",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "second OR group matching in full is equally sufficient",
+      "toolKey": "tool.or-gated",
+      "context": {
+        "key": "bob",
+        "attributes": {
+          "plan": "trial",
+          "country": "us"
+        }
+      },
+      "expected": {
+        "key": "tool.or-gated",
+        "enabled": true,
+        "reason": "targeting",
+        "value": true,
+        "valueType": "boolean",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "half of each OR group is not a match — groups are ANDed internally",
+      "toolKey": "tool.or-gated",
+      "context": {
+        "key": "carol",
+        "attributes": {
+          "plan": "trial",
+          "region": "eu"
+        }
+      },
+      "expected": {
+        "key": "tool.or-gated",
+        "enabled": false,
+        "reason": "rollout",
+        "value": false,
+        "valueType": "boolean",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "the sentinel in conditions is ignored when ruleSets is present",
+      "toolKey": "tool.or-gated",
+      "context": {
+        "key": "dave",
+        "attributes": {
+          "plan": "pro",
+          "region": "eu",
+          "__toggleflow_unsupported__": "anything"
+        }
+      },
+      "expected": {
+        "key": "tool.or-gated",
+        "enabled": true,
+        "reason": "targeting",
+        "value": true,
+        "valueType": "boolean",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "match:all requires every rule set",
+      "toolKey": "tool.all-gated",
+      "context": {
+        "key": "erin",
+        "attributes": {
+          "plan": "pro",
+          "seats": 12
+        }
+      },
+      "expected": {
+        "key": "tool.all-gated",
+        "enabled": true,
+        "reason": "targeting",
+        "value": true,
+        "valueType": "boolean",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "match:all fails when one rule set does not match",
+      "toolKey": "tool.all-gated",
+      "context": {
+        "key": "frank",
+        "attributes": {
+          "plan": "pro",
+          "seats": 2
+        }
+      },
+      "expected": {
+        "key": "tool.all-gated",
+        "enabled": false,
+        "reason": "rollout",
+        "value": false,
+        "valueType": "boolean",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "a segment written before ruleSets existed is still read from conditions",
+      "toolKey": "tool.legacy-gated",
+      "context": {
+        "key": "grace",
+        "attributes": {
+          "plan": "pro"
+        }
+      },
+      "expected": {
+        "key": "tool.legacy-gated",
+        "enabled": true,
+        "reason": "targeting",
+        "value": true,
+        "valueType": "boolean",
+        "config": null,
+        "fallback": null
+      }
+    },
+    {
+      "name": "a legacy segment still excludes a non-matching user",
+      "toolKey": "tool.legacy-gated",
+      "context": {
+        "key": "heidi",
+        "attributes": {
+          "plan": "free"
+        }
+      },
+      "expected": {
+        "key": "tool.legacy-gated",
+        "enabled": false,
+        "reason": "rollout",
+        "value": false,
+        "valueType": "boolean",
+        "config": null,
+        "fallback": null
+      }
+    }
+  ]
+}

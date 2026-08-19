@@ -1,6 +1,7 @@
 import configFallbackFixture from '@toggleflow/engine/fixtures/config-fallback.json';
 import killSwitchFixture from '@toggleflow/engine/fixtures/kill-switch.json';
 import rolloutFixture from '@toggleflow/engine/fixtures/rollout.json';
+import segmentOrFixture from '@toggleflow/engine/fixtures/segment-or.json';
 import stringValueFixture from '@toggleflow/engine/fixtures/string-value.json';
 import targetingFixture from '@toggleflow/engine/fixtures/targeting.json';
 import type { ToolEvaluation } from '@toggleflow/engine';
@@ -30,6 +31,9 @@ const GOLDEN_FIXTURES = {
   rollout: asGolden(rolloutFixture),
   'config-fallback': asGolden(configFallbackFixture),
   'string-value': asGolden(stringValueFixture),
+  // The server client evaluates LOCALLY via the engine, so OR groups have to work
+  // here as well as at the edge - two runtimes, one fixture.
+  'segment-or': asGolden(segmentOrFixture),
 };
 
 const openClients: ToggleFlowServerClient[] = [];

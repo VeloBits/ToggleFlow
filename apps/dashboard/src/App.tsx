@@ -5,6 +5,7 @@ import { CallbackPage } from './auth/CallbackPage';
 import { Layout } from './components/Layout';
 import { AuditLogPage } from './features/audit';
 import { FlagDetailPage, FlagsPage } from './features/flags';
+import { SegmentDetailPage, SegmentsPage } from './features/segments';
 import { ApiKeysPage } from './pages/ApiKeysPage';
 import { EnvironmentsPage } from './pages/EnvironmentsPage';
 import { GuestHomePage } from './pages/GuestHomePage';
@@ -12,7 +13,6 @@ import { HomePage } from './pages/HomePage';
 import { MembersPage } from './pages/MembersPage';
 import { BillingPage, IntegrationsPage, WebhooksPage } from './pages/PlannedPages';
 import { SearchPage } from './pages/SearchPage';
-import { SegmentsPage } from './pages/SegmentsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { WorkspaceProvider } from './state/WorkspaceContext';
 
@@ -51,6 +51,7 @@ export function App() {
                   <Route path="/flags" element={<FlagsPage />} />
                   <Route path="/flags/:flagId" element={<FlagDetailPage />} />
                   <Route path="/segments" element={<SegmentsPage />} />
+                  <Route path="/segments/:segmentId" element={<SegmentDetailPage />} />
                   <Route path="/environments" element={<EnvironmentsPage />} />
                   <Route path="/keys" element={<ApiKeysPage />} />
                   <Route path="/audit" element={<AuditLogPage />} />
